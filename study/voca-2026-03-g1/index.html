@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==">
+<title>단어암기 · 2026 3월 고1</title>
+<style>
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #2563eb;
+  --primary-d: #1d4ed8;
+  --good: #059669;
+  --bad: #dc2626;
+  --accent: #7c3aed;
+  --listen: #2563eb;
+  --read: #7c3aed;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+  --radius: 14px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif; font-size: 16px; line-height: 1.45;
+  min-height: 100%; overscroll-behavior: none; }
+button, input, select { font: inherit; }
+button { cursor: pointer; border: none; background: none; }
+.app { max-width: 560px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
+  padding-bottom: calc(64px + var(--safe-b)); }
+header.app-h { position: sticky; top: 0; z-index: 40; background: rgba(247,248,250,.92);
+  backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+  padding: 10px 14px 8px; }
+header.app-h h1 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em; }
+header.app-h .sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+.stats-bar { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.pill { background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 3px 10px; font-size: .72rem; color: var(--muted); }
+.pill b { color: var(--text); font-weight: 600; }
+.pill.ok b { color: var(--good); }
+.pill.bad b { color: var(--bad); }
+main { flex: 1; padding: 12px 14px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  background: rgba(255,255,255,.95); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border); padding: 6px 8px calc(6px + var(--safe-b));
+  display: flex; justify-content: center; gap: 2px; max-width: 560px; margin: 0 auto; }
+.nav button { flex: 1; max-width: 110px; padding: 8px 4px 6px; border-radius: 10px;
+  color: var(--muted); font-size: .68rem; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.nav button .ico { font-size: 1.15rem; line-height: 1; }
+.nav button.active { color: var(--primary); background: #eff6ff; font-weight: 600; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+.card h2 { margin: 0 0 10px; font-size: .95rem; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 14px; border-radius: 10px; font-weight: 600; font-size: .9rem;
+  background: var(--primary); color: #fff; transition: transform .08s, opacity .15s; }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.btn.good { background: var(--good); }
+.btn.bad { background: var(--bad); }
+.btn.accent { background: var(--accent); }
+.btn.sm { padding: 7px 11px; font-size: .8rem; border-radius: 8px; }
+.btn.block { width: 100%; }
+.seg { display: flex; background: #eef2f7; border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; padding: 8px 6px; border-radius: 8px; font-size: .82rem; color: var(--muted); font-weight: 500; }
+.seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.06); font-weight: 700; }
+.chk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; max-height: 220px; overflow: auto; padding: 4px 0; }
+.chk-grid label { display: flex; align-items: center; justify-content: center; gap: 2px;
+  padding: 7px 2px; border-radius: 8px; border: 1px solid var(--border); background: #fff;
+  font-size: .78rem; cursor: pointer; user-select: none; }
+.chk-grid label.on { border-color: var(--primary); background: #eff6ff; color: var(--primary); font-weight: 700; }
+.chk-grid label input { display: none; }
+.chk-grid label .cnt { font-size: .65rem; color: var(--muted); }
+.search-box { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--border);
+  border-radius: 10px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") 12px center no-repeat; outline: none; }
+.search-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
+.toggle input { width: 18px; height: 18px; accent-color: var(--primary); }
+.hint { font-size: .78rem; color: var(--muted); margin: 6px 0 0; }
+.flash-wrap { perspective: 1000px; touch-action: pan-y; }
+.flash { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 28px 18px; user-select: none; position: relative;
+  transition: transform .2s, opacity .2s; }
+.flash .word { font-size: 1.85rem; font-weight: 800; letter-spacing: -.02em; word-break: break-word; margin: 0; }
+.flash .form { margin-top: 4px; color: #9ca3af; font-size: .8rem; }
+.flash .meaning { margin-top: 18px; font-size: 1.25rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+.flash .ety { margin-top: 10px; font-size: .85rem; color: var(--bad); }
+.flash .tap-hint { position: absolute; bottom: 12px; left: 0; right: 0; font-size: .72rem; color: #9ca3af; }
+.flash .meta { position: absolute; top: 12px; left: 14px; right: 14px; display: flex; justify-content: space-between;
+  font-size: .72rem; color: var(--muted); }
+.flash .meta .sec-L { color: var(--listen); }
+.flash .meta .sec-R { color: var(--read); }
+.progress-line { height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; margin: 8px 0 12px; }
+.progress-line > i { display: block; height: 100%; background: var(--primary); width: 0; transition: width .2s; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.speak-btn { display: inline-flex !important; visibility: visible !important; opacity: 1 !important;
+  align-items: center; justify-content: center; gap: 4px; flex-shrink: 0;
+  min-height: 40px; min-width: 72px; padding: 8px 12px; border-radius: 999px;
+  background: #eff6ff; color: var(--primary); border: 1.5px solid #bfdbfe;
+  font-size: .85rem; font-weight: 700; line-height: 1; z-index: 5; position: relative; }
+.speak-btn:active { background: #dbeafe; transform: scale(.97); }
+.speak-btn.sm { min-height: 32px; min-width: 64px; padding: 5px 9px; font-size: .75rem; }
+.flash .speak-slot { margin-top: 10px; display: flex; justify-content: center; }
+.list .speak-slot { margin-top: 6px; }
+.list .speak-btn { margin: 0; }
+.toast { position: fixed; left: 50%; bottom: calc(72px + var(--safe-b)); transform: translateX(-50%) translateY(12px);
+  background: rgba(17,24,39,.92); color: #fff; padding: 10px 14px; border-radius: 10px;
+  font-size: .82rem; max-width: min(92vw, 360px); text-align: center; z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.quiz-q { font-size: 1.35rem; font-weight: 800; text-align: center; margin: 8px 0 4px; word-break: break-word; }
+.quiz-sub { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 14px; }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choices button { text-align: left; padding: 14px 14px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: #fff; font-size: .95rem; transition: background .12s, border-color .12s; }
+.choices button:active:not(:disabled) { background: #f3f4f6; }
+.choices button.correct { border-color: var(--good); background: #ecfdf5; color: var(--good); font-weight: 700; }
+.choices button.wrong { border-color: var(--bad); background: #fef2f2; color: var(--bad); }
+.choices button.dim { opacity: .45; }
+.result-score { text-align: center; font-size: 2.4rem; font-weight: 800; margin: 8px 0; }
+.result-score span { font-size: 1rem; font-weight: 500; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: none; }
+.list .w { font-weight: 700; }
+.list .p { color: var(--muted); font-size: .8rem; }
+.list .m { font-size: .9rem; margin-top: 2px; }
+.list .actions-r { margin-left: auto; flex-shrink: 0; display: flex; gap: 4px; }
+.empty { text-align: center; color: var(--muted); padding: 36px 12px; font-size: .9rem; }
+.q-prog { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow: auto; }
+.q-prog .item { display: grid; grid-template-columns: 42px 1fr 48px; gap: 8px; align-items: center; font-size: .8rem; }
+.q-prog .bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.q-prog .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); }
+.search-results { margin-top: 10px; }
+.badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: .68rem; font-weight: 600; }
+.badge.L { background: #dbeafe; color: #1d4ed8; }
+.badge.R { background: #ede9fe; color: #6d28d9; }
+.swipe-left { transform: translateX(-40px) rotate(-3deg); opacity: .6; }
+.swipe-right { transform: translateX(40px) rotate(3deg); opacity: .6; }
+@media (min-width: 700px) {
+  .app { max-width: 640px; }
+  .flash .word { font-size: 2.1rem; }
+  .chk-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-h">
+    <h1>단어암기 · 2026 3월 고1</h1>
+    <div class="sub">모의고사 어휘 · 듣기 448 + 독해 867 = 1,315</div>
+    <div class="stats-bar" id="statsBar"></div>
+  </header>
+  <main>
+    <!-- HOME / RANGE -->
+    <section class="panel active" id="panel-home">
+      <div class="card">
+        <h2>범위 선택</h2>
+        <div class="seg" id="rangeSeg">
+          <button type="button" data-r="L" class="on">듣기</button>
+          <button type="button" data-r="R">독해</button>
+          <button type="button" data-r="A">전체</button>
+          <button type="button" data-r="Q">문항</button>
+          <button type="button" data-r="W">오답만</button>
+        </div>
+        <div id="qSelectWrap" style="display:none;margin-top:12px">
+          <div class="row" style="margin-bottom:8px">
+            <button type="button" class="btn sm ghost" id="selListen">듣기 전선택</button>
+            <button type="button" class="btn sm ghost" id="selRead">독해 전선택</button>
+            <button type="button" class="btn sm ghost" id="selClear">해제</button>
+          </div>
+          <div class="chk-grid" id="qGrid"></div>
+        </div>
+        <p class="hint" id="rangeHint">듣기 문항 1–17 · 선택 단어 <b id="selCount">0</b>개</p>
+      </div>
+      <div class="card">
+        <h2>학습 옵션</h2>
+        <label class="toggle"><input type="checkbox" id="optShuffle" checked> 카드 섞기</label>
+        <label class="toggle" style="margin-top:8px"><input type="checkbox" id="optReverse"> 뜻 먼저 보기 (역방향)</label>
+        <label class="toggle" style="margin-top:8px"><input type="checkbox" id="optSkipKnown"> 알아요 표시한 단어 건너뛰기</label>
+        <label class="toggle" style="margin-top:8px"><input type="checkbox" id="optAutoSpeak"> 자동 발음 (카드 나올 때)</label>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button type="button" class="btn block" id="btnStartCard" style="flex:1">카드 암기 시작</button>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button type="button" class="btn accent block" id="btnStartQuiz" style="flex:1">테스트 시작</button>
+      </div>
+      <div class="card">
+        <h2>검색</h2>
+        <input class="search-box" id="searchInput" type="search" placeholder="단어·뜻 검색" autocomplete="off">
+        <div class="search-results" id="searchResults"></div>
+      </div>
+      <div class="card">
+        <h2>문항별 진행률</h2>
+        <div class="q-prog" id="qProg"></div>
+      </div>
+    </section>
+
+    <!-- CARD -->
+    <section class="panel" id="panel-card">
+      <div class="progress-line"><i id="cardProg"></i></div>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px;font-size:.8rem;color:var(--muted)">
+        <span id="cardCounter">0 / 0</span>
+        <button type="button" class="btn sm ghost" id="btnCardHome">홈으로</button>
+      </div>
+      <div class="card flash-wrap" id="flashWrap" style="padding:0;overflow:hidden;position:relative">
+        <div class="flash" id="flashCard">
+          <div class="meta"><span id="flashMeta"></span><span id="flashIdx"></span></div>
+          <div class="word" id="flashWord"></div>
+          <div class="speak-slot">
+            <button type="button" class="speak-btn" id="ttsBtn" title="발음 듣기" aria-label="발음 듣기">🔊 발음</button>
+          </div>
+          <div class="form" id="flashForm"></div>
+          <div class="meaning" id="flashMean" style="display:none"></div>
+          <div class="ety" id="flashEty" style="display:none"></div>
+          <div class="tap-hint" id="flashHint">탭하여 뜻 보기 · 좌우 스와이프</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn bad" id="btnDontKnow">모르겠어요</button>
+        <button type="button" class="btn good" id="btnKnow">알아요</button>
+      </div>
+      <p class="hint" style="text-align:center">알아요 → 외운 것으로 저장 · 모르겠어요 → 오답노트</p>
+    </section>
+
+    <!-- QUIZ -->
+    <section class="panel" id="panel-quiz">
+      <div class="progress-line"><i id="quizProg"></i></div>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px;font-size:.8rem;color:var(--muted)">
+        <span id="quizCounter">0 / 0</span>
+        <button type="button" class="btn sm ghost" id="btnQuizHome">홈으로</button>
+      </div>
+      <div class="card" id="quizCard">
+        <div class="seg" id="quizModeSeg" style="margin-bottom:14px">
+          <button type="button" data-m="wm" class="on">단어 → 뜻</button>
+          <button type="button" data-m="mw">뜻 → 단어</button>
+        </div>
+        <div class="quiz-q" id="quizQ"></div>
+        <div class="quiz-sub" id="quizSub"></div>
+        <div class="choices" id="quizChoices"></div>
+      </div>
+      <div class="card" id="quizResult" style="display:none">
+        <h2 style="text-align:center">테스트 결과</h2>
+        <div class="result-score" id="resultScore"></div>
+        <p class="hint" style="text-align:center" id="resultMsg"></p>
+        <div id="wrongListWrap"></div>
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn block" id="btnQuizRetry">다시 풀기</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="btn ghost block" id="btnQuizToWrong">오답노트에서 복습</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- WRONG / UNKNOWN -->
+    <section class="panel" id="panel-wrong">
+      <div class="card">
+        <h2>오답노트 · 모르는 단어</h2>
+        <p class="hint">테스트 오답·「모르겠어요」한 단어가 자동 저장됩니다.</p>
+        <div class="row" style="margin:10px 0">
+          <button type="button" class="btn sm" id="btnStudyWrong">이 목록으로 카드 학습</button>
+          <button type="button" class="btn sm ghost" id="btnClearWrong">전체 삭제</button>
+        </div>
+        <ul class="list" id="wrongList"></ul>
+        <div class="empty" id="wrongEmpty" style="display:none">아직 모르는 단어가 없습니다. 잘하고 있어요!</div>
+      </div>
+      <div class="card">
+        <h2>외운 단어</h2>
+        <p class="hint">「알아요」로 표시한 단어 · <span id="knownCount">0</span>개</p>
+        <div class="row" style="margin:10px 0">
+          <button type="button" class="btn sm ghost" id="btnClearKnown">외운 표시 초기화</button>
+        </div>
+        <ul class="list" id="knownList" style="max-height:280px;overflow:auto"></ul>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <nav class="nav">
+    <button type="button" data-tab="home" class="active"><span class="ico">🏠</span>홈</button>
+    <button type="button" data-tab="card"><span class="ico">🃏</span>카드</button>
+    <button type="button" data-tab="quiz"><span class="ico">✏️</span>테스트</button>
+    <button type="button" data-tab="wrong"><span class="ico">📝</span>오답</button>
+  </nav>
+</div>
+<script id="WORD_DATA" type="application/json">[{"id":1,"q":1,"sec":"L","w":"put on","f":"","m":"(공연 등을) 올리다; 입다","e":""},{"id":2,"q":1,"sec":"L","w":"good","f":"","m":"좋은","e":""},{"id":3,"q":1,"sec":"L","w":"afternoon","f":"","m":"오후","e":""},{"id":4,"q":1,"sec":"L","w":"leader","f":"","m":"지도자","e":""},{"id":5,"q":1,"sec":"L","w":"school","f":"","m":"학교","e":""},{"id":6,"q":1,"sec":"L","w":"band","f":"","m":"밴드, 악단","e":""},{"id":7,"q":1,"sec":"L","w":"festival","f":"","m":"축제","e":""},{"id":8,"q":1,"sec":"L","w":"next","f":"","m":"다음의","e":""},{"id":9,"q":1,"sec":"L","w":"month","f":"","m":"달, 월","e":""},{"id":10,"q":1,"sec":"L","w":"member","f":"","m":"구성원","e":""},{"id":11,"q":1,"sec":"L","w":"practice","f":"practicing → practice","m":"연습하다 // 연습, 관행","e":""},{"id":12,"q":1,"sec":"L","w":"hard","f":"","m":"열심히; 어려운","e":""},{"id":13,"q":1,"sec":"L","w":"put","f":"","m":"놓다, 두다","e":""},{"id":14,"q":1,"sec":"L","w":"fantastic","f":"","m":"환상적인","e":""},{"id":15,"q":1,"sec":"L","w":"show","f":"","m":"공연 // 보여 주다","e":""},{"id":16,"q":1,"sec":"L","w":"however","f":"","m":"그러나","e":""},{"id":17,"q":1,"sec":"L","w":"want","f":"","m":"원하다","e":""},{"id":18,"q":1,"sec":"L","w":"concert","f":"","m":"콘서트","e":""},{"id":19,"q":1,"sec":"L","w":"everyone","f":"","m":"모든 사람","e":""},{"id":20,"q":1,"sec":"L","w":"enjoy","f":"","m":"즐기다","e":""},{"id":21,"q":1,"sec":"L","w":"ask","f":"asking → ask","m":"부탁하다; 묻다","e":""},{"id":22,"q":1,"sec":"L","w":"recommend","f":"","m":"추천하다","e":"re+commend"},{"id":23,"q":1,"sec":"L","w":"specific","f":"","m":"구체적인","e":""},{"id":24,"q":1,"sec":"L","w":"song","f":"","m":"노래","e":""},{"id":25,"q":1,"sec":"L","w":"hear","f":"","m":"듣다","e":""},{"id":26,"q":1,"sec":"L","w":"play","f":"","m":"연주하다; 놀다","e":""},{"id":27,"q":1,"sec":"L","w":"mind","f":"","m":"마음","e":""},{"id":28,"q":1,"sec":"L","w":"write","f":"","m":"쓰다","e":""},{"id":29,"q":1,"sec":"L","w":"piece","f":"","m":"한 장, 조각","e":""},{"id":30,"q":1,"sec":"L","w":"paper","f":"","m":"종이","e":""},{"id":31,"q":1,"sec":"L","w":"drop","f":"","m":"넣다; 떨어뜨리다","e":""},{"id":32,"q":1,"sec":"L","w":"request","f":"","m":"요청","e":""},{"id":33,"q":1,"sec":"L","w":"box","f":"","m":"상자","e":""},{"id":34,"q":1,"sec":"L","w":"front","f":"","m":"앞","e":""},{"id":35,"q":1,"sec":"L","w":"music","f":"","m":"음악","e":""},{"id":36,"q":1,"sec":"L","w":"room","f":"","m":"방","e":""},{"id":37,"q":1,"sec":"L","w":"select","f":"","m":"고르다","e":"se+lect"},{"id":38,"q":1,"sec":"L","w":"perform","f":"","m":"공연하다","e":""},{"id":39,"q":1,"sec":"L","w":"participation","f":"","m":"참여","e":""},{"id":40,"q":2,"sec":"L","w":"from now on","f":"","m":"지금부터는","e":""},{"id":41,"q":2,"sec":"L","w":"make sure","f":"","m":"반드시 ~하다, 확인하다","e":""},{"id":42,"q":2,"sec":"L","w":"something","f":"","m":"무언가","e":""},{"id":43,"q":2,"sec":"L","w":"wrong","f":"","m":"잘못된, 이상이 있는","e":""},{"id":44,"q":2,"sec":"L","w":"leg","f":"","m":"다리","e":""},{"id":45,"q":2,"sec":"L","w":"little","f":"","m":"약간의","e":""},{"id":46,"q":2,"sec":"L","w":"pain","f":"","m":"통증","e":""},{"id":47,"q":2,"sec":"L","w":"maybe","f":"","m":"아마도","e":""},{"id":48,"q":2,"sec":"L","w":"exercise","f":"exercised → exercise","m":"운동하다 // 운동","e":""},{"id":49,"q":2,"sec":"L","w":"yesterday","f":"","m":"어제","e":""},{"id":50,"q":2,"sec":"L","w":"stretch","f":"","m":"스트레칭하다","e":""},{"id":51,"q":2,"sec":"L","w":"tired","f":"","m":"피곤한","e":""},{"id":52,"q":2,"sec":"L","w":"rest","f":"rested → rest","m":"쉬다","e":""},{"id":53,"q":2,"sec":"L","w":"afterward","f":"","m":"그 후에","e":""},{"id":54,"q":2,"sec":"L","w":"skip","f":"","m":"생략하다","e":""},{"id":55,"q":2,"sec":"L","w":"right","f":"","m":"권리","e":""},{"id":56,"q":2,"sec":"L","w":"workout","f":"","m":"운동","e":""},{"id":57,"q":2,"sec":"L","w":"important","f":"","m":"중요한","e":""},{"id":58,"q":2,"sec":"L","w":"without","f":"","m":"없이","e":""},{"id":59,"q":2,"sec":"L","w":"muscle","f":"","m":"근육","e":""},{"id":60,"q":2,"sec":"L","w":"stay","f":"","m":"유지되다","e":""},{"id":61,"q":2,"sec":"L","w":"tight","f":"","m":"긴장된","e":""},{"id":62,"q":2,"sec":"L","w":"hurt","f":"","m":"아프다","e":""},{"id":63,"q":2,"sec":"L","w":"know","f":"","m":"알다","e":""},{"id":64,"q":2,"sec":"L","w":"try","f":"","m":"시도하다","e":""},{"id":65,"q":2,"sec":"L","w":"spend","f":"spending → spend","m":"(시간을) 쓰다","e":""},{"id":66,"q":2,"sec":"L","w":"minute","f":"","m":"분","e":""},{"id":67,"q":2,"sec":"L","w":"time","f":"","m":"시간","e":""},{"id":68,"q":2,"sec":"L","w":"help","f":"","m":"돕다","e":""},{"id":69,"q":2,"sec":"L","w":"recover","f":"","m":"회복하다","e":"re+cover"},{"id":70,"q":2,"sec":"L","w":"fast","f":"faster → fast","m":"빨리","e":""},{"id":71,"q":2,"sec":"L","w":"sound","f":"","m":"들리다 // 소리","e":""},{"id":72,"q":2,"sec":"L","w":"helpful","f":"","m":"도움이 되는","e":""},{"id":73,"q":2,"sec":"L","w":"reduce","f":"","m":"줄이다","e":"re(뒤로)+duce(이끌다)"},{"id":74,"q":2,"sec":"L","w":"make","f":"","m":"만들다","e":""},{"id":75,"q":2,"sec":"L","w":"sure","f":"","m":"확실한","e":""},{"id":76,"q":2,"sec":"L","w":"now","f":"","m":"지금","e":""},{"id":77,"q":3,"sec":"L","w":"turn into","f":"","m":"~이 되다","e":""},{"id":78,"q":3,"sec":"L","w":"turn in","f":"","m":"제출하다, 맡기다","e":""},{"id":79,"q":3,"sec":"L","w":"viewer","f":"","m":"시청자","e":""},{"id":80,"q":3,"sec":"L","w":"tune","f":"","m":"맞추다, (방송에) 접속하다","e":""},{"id":81,"q":3,"sec":"L","w":"video","f":"","m":"비디오","e":""},{"id":82,"q":3,"sec":"L","w":"channel","f":"","m":"채널","e":""},{"id":83,"q":3,"sec":"L","w":"high school","f":"","m":"고등학교","e":""},{"id":84,"q":3,"sec":"L","w":"first","f":"","m":"처음의","e":""},{"id":85,"q":3,"sec":"L","w":"start","f":"started → start","m":"시작하다","e":""},{"id":86,"q":3,"sec":"L","w":"high","f":"","m":"높은","e":""},{"id":87,"q":3,"sec":"L","w":"hardly","f":"","m":"거의 ~않다","e":""},{"id":88,"q":3,"sec":"L","w":"talk","f":"talked → talk","m":"이야기하다","e":""},{"id":89,"q":3,"sec":"L","w":"anyone","f":"","m":"누구든","e":""},{"id":90,"q":3,"sec":"L","w":"keep","f":"kept → keep","m":"계속하다","e":""},{"id":91,"q":3,"sec":"L","w":"others","f":"","m":"다른 사람들","e":""},{"id":92,"q":3,"sec":"L","w":"speak","f":"","m":"말하다","e":""},{"id":93,"q":3,"sec":"L","w":"soon","f":"","m":"곧","e":""},{"id":94,"q":3,"sec":"L","w":"learn","f":"learned → learn","m":"배우다","e":""},{"id":95,"q":3,"sec":"L","w":"say","f":"","m":"말하다","e":""},{"id":96,"q":3,"sec":"L","w":"simple","f":"","m":"간단한","e":""},{"id":97,"q":3,"sec":"L","w":"hallway","f":"","m":"복도","e":""},{"id":98,"q":3,"sec":"L","w":"sometimes","f":"","m":"때때로","e":""},{"id":99,"q":3,"sec":"L","w":"turn","f":"","m":"돌다, 변하다","e":""},{"id":100,"q":3,"sec":"L","w":"short","f":"","m":"짧은","e":""},{"id":101,"q":3,"sec":"L","w":"friendly","f":"","m":"친근한","e":""},{"id":102,"q":3,"sec":"L","w":"chat","f":"","m":"짧은 대화","e":""},{"id":103,"q":3,"sec":"L","w":"thing","f":"","m":"것","e":""},{"id":104,"q":3,"sec":"L","w":"easy","f":"easier → easy","m":"쉬운","e":""},{"id":105,"q":3,"sec":"L","w":"around","f":"","m":"주위에","e":""},{"id":106,"q":3,"sec":"L","w":"person","f":"people → person","m":"사람","e":""},{"id":107,"q":3,"sec":"L","w":"morning","f":"","m":"아침","e":""},{"id":108,"q":3,"sec":"L","w":"friend","f":"","m":"친구","e":""},{"id":109,"q":3,"sec":"L","w":"build","f":"","m":"쌓다","e":""},{"id":110,"q":3,"sec":"L","w":"relationship","f":"","m":"관계","e":""},{"id":111,"q":3,"sec":"L","w":"begin","f":"","m":"시작하다","e":""},{"id":112,"q":3,"sec":"L","w":"life","f":"","m":"삶","e":""},{"id":113,"q":3,"sec":"L","w":"remember","f":"","m":"기억하다","e":""},{"id":114,"q":3,"sec":"L","w":"small","f":"","m":"작은","e":""},{"id":115,"q":3,"sec":"L","w":"greeting","f":"","m":"인사","e":""},{"id":116,"q":3,"sec":"L","w":"spark","f":"","m":"불씨, 계기","e":""},{"id":117,"q":3,"sec":"L","w":"connection","f":"","m":"연결, 관계","e":""},{"id":118,"q":4,"sec":"L","w":"look","f":"looking → look","m":"보다","e":""},{"id":119,"q":4,"sec":"L","w":"take","f":"took → take","m":"취하다","e":""},{"id":120,"q":4,"sec":"L","w":"picture","f":"","m":"사진","e":""},{"id":121,"q":4,"sec":"L","w":"sport","f":"","m":"스포츠","e":""},{"id":122,"q":4,"sec":"L","w":"day","f":"","m":"날","e":""},{"id":123,"q":4,"sec":"L","w":"see","f":"","m":"보다","e":""},{"id":124,"q":4,"sec":"L","w":"blue","f":"","m":"푸른","e":""},{"id":125,"q":4,"sec":"L","w":"team","f":"","m":"팀","e":""},{"id":126,"q":4,"sec":"L","w":"banner","f":"","m":"현수막","e":""},{"id":127,"q":4,"sec":"L","w":"pole","f":"","m":"기둥","e":""},{"id":128,"q":4,"sec":"L","w":"great","f":"","m":"훌륭한","e":""},{"id":129,"q":4,"sec":"L","w":"year","f":"","m":"해","e":""},{"id":130,"q":4,"sec":"L","w":"cap","f":"","m":"모자","e":""},{"id":131,"q":4,"sec":"L","w":"chair","f":"","m":"의자","e":""},{"id":132,"q":4,"sec":"L","w":"think","f":"","m":"생각하다","e":""},{"id":133,"q":4,"sec":"L","w":"someone","f":"","m":"누군가","e":""},{"id":134,"q":4,"sec":"L","w":"leave","f":"left → leave","m":"남겨 두다; 떠나다","e":""},{"id":135,"q":4,"sec":"L","w":"volunteer","f":"volunteering → volunteer","m":"자원봉사하다","e":""},{"id":136,"q":4,"sec":"L","w":"game","f":"","m":"경기","e":""},{"id":137,"q":4,"sec":"L","w":"pick","f":"picking → pick","m":"줍다","e":""},{"id":138,"q":4,"sec":"L","w":"ground","f":"","m":"바닥","e":""},{"id":139,"q":4,"sec":"L","w":"nice","f":"","m":"좋은","e":""},{"id":140,"q":4,"sec":"L","w":"like","f":"","m":"좋아하다; ~처럼","e":""},{"id":141,"q":4,"sec":"L","w":"striped","f":"","m":"줄무늬의","e":""},{"id":142,"q":4,"sec":"L","w":"shirt","f":"","m":"셔츠","e":""},{"id":143,"q":4,"sec":"L","w":"wear","f":"wearing → wear","m":"입다","e":""},{"id":144,"q":4,"sec":"L","w":"soccer","f":"","m":"축구","e":""},{"id":145,"q":4,"sec":"L","w":"ball","f":"","m":"공","e":""},{"id":146,"q":4,"sec":"L","w":"beside","f":"","m":"옆","e":""},{"id":147,"q":4,"sec":"L","w":"use","f":"used → use","m":"사용하다","e":""},{"id":148,"q":4,"sec":"L","w":"busy","f":"","m":"바쁜","e":""},{"id":149,"q":4,"sec":"L","w":"share","f":"sharing → share","m":"공유하다","e":""},{"id":150,"q":5,"sec":"L","w":"double check","f":"","m":"재확인하다","e":""},{"id":151,"q":5,"sec":"L","w":"ready","f":"","m":"준비된","e":""},{"id":152,"q":5,"sec":"L","w":"online","f":"","m":"온라인의","e":""},{"id":153,"q":5,"sec":"L","w":"group","f":"","m":"그룹","e":""},{"id":154,"q":5,"sec":"L","w":"discussion","f":"","m":"토론","e":""},{"id":155,"q":5,"sec":"L","w":"worry","f":"worried → worry","m":"걱정하다","e":""},{"id":156,"q":5,"sec":"L","w":"host","f":"hosting → host","m":"진행하다","e":""},{"id":157,"q":5,"sec":"L","w":"double","f":"","m":"두 배의, 이중으로","e":""},{"id":158,"q":5,"sec":"L","w":"check","f":"","m":"점검하다","e":""},{"id":159,"q":5,"sec":"L","w":"link","f":"","m":"링크","e":""},{"id":160,"q":5,"sec":"L","w":"upload","f":"uploaded → upload","m":"업로드하다","e":""},{"id":161,"q":5,"sec":"L","w":"material","f":"","m":"자료","e":""},{"id":162,"q":5,"sec":"L","w":"folder","f":"","m":"폴더","e":""},{"id":163,"q":5,"sec":"L","w":"camera","f":"","m":"카메라","e":""},{"id":164,"q":5,"sec":"L","w":"angle","f":"","m":"앵글","e":""},{"id":165,"q":5,"sec":"L","w":"set","f":"","m":"설정하다","e":""},{"id":166,"q":5,"sec":"L","w":"pretty","f":"","m":"꽤","e":""},{"id":167,"q":5,"sec":"L","w":"pause","f":"","m":"잠시 멈춤","e":""},{"id":168,"q":5,"sec":"L","w":"forget","f":"","m":"잊다","e":""},{"id":169,"q":5,"sec":"L","w":"microphone","f":"","m":"마이크","e":""},{"id":170,"q":5,"sec":"L","w":"test","f":"tested → test","m":"점검하다","e":""},{"id":171,"q":5,"sec":"L","w":"work","f":"","m":"작동하다; 일하다","e":""},{"id":172,"q":5,"sec":"L","w":"perfect","f":"","m":"완벽한","e":""},{"id":173,"q":5,"sec":"L","w":"everything","f":"","m":"모든 것","e":""},{"id":174,"q":5,"sec":"L","w":"seem","f":"","m":"~인 듯하다","e":""},{"id":175,"q":5,"sec":"L","w":"record","f":"recording → record","m":"녹화하다","e":""},{"id":176,"q":5,"sec":"L","w":"pleasure","f":"","m":"기쁨","e":""},{"id":177,"q":5,"sec":"L","w":"luck","f":"","m":"행운","e":""},{"id":178,"q":6,"sec":"L","w":"credit card","f":"","m":"신용카드","e":""},{"id":179,"q":6,"sec":"L","w":"pajama","f":"","m":"잠옷","e":""},{"id":180,"q":6,"sec":"L","w":"cotton","f":"","m":"면","e":""},{"id":181,"q":6,"sec":"L","w":"spring","f":"","m":"봄","e":""},{"id":182,"q":6,"sec":"L","w":"pattern","f":"","m":"무늬","e":""},{"id":183,"q":6,"sec":"L","w":"comfortable","f":"","m":"편안한","e":""},{"id":184,"q":6,"sec":"L","w":"dollar","f":"","m":"달러","e":""},{"id":185,"q":6,"sec":"L","w":"size","f":"","m":"크기","e":""},{"id":186,"q":6,"sec":"L","w":"medium","f":"","m":"중간의","e":""},{"id":187,"q":6,"sec":"L","w":"large","f":"","m":"큰","e":""},{"id":188,"q":6,"sec":"L","w":"pair","f":"","m":"켤레","e":""},{"id":189,"q":6,"sec":"L","w":"mom","f":"","m":"엄마","e":""},{"id":190,"q":6,"sec":"L","w":"sweet","f":"","m":"다정한, 상냥한","e":""},{"id":191,"q":6,"sec":"L","w":"mother","f":"","m":"어머니","e":""},{"id":192,"q":6,"sec":"L","w":"love","f":"","m":"사랑하다","e":""},{"id":193,"q":6,"sec":"L","w":"sock","f":"","m":"양말","e":""},{"id":194,"q":6,"sec":"L","w":"go","f":"","m":"가다","e":""},{"id":195,"q":6,"sec":"L","w":"need","f":"","m":"필요로 하다","e":""},{"id":196,"q":6,"sec":"L","w":"correct","f":"","m":"맞는","e":""},{"id":197,"q":6,"sec":"L","w":"coupon","f":"","m":"쿠폰","e":""},{"id":198,"q":6,"sec":"L","w":"get","f":"","m":"얻다","e":""},{"id":199,"q":6,"sec":"L","w":"percent","f":"","m":"퍼센트","e":""},{"id":200,"q":6,"sec":"L","w":"total","f":"","m":"전체","e":""},{"id":201,"q":6,"sec":"L","w":"price","f":"","m":"가격","e":""},{"id":202,"q":6,"sec":"L","w":"credit","f":"","m":"신용","e":""},{"id":203,"q":6,"sec":"L","w":"card","f":"","m":"카드","e":""},{"id":204,"q":7,"sec":"L","w":"check it out","f":"","m":"확인해 보다","e":""},{"id":205,"q":7,"sec":"L","w":"check out","f":"","m":"(책을) 대출하다; 확인해 보다","e":""},{"id":206,"q":7,"sec":"L","w":"due date","f":"","m":"반납·제출 기한","e":""},{"id":207,"q":7,"sec":"L","w":"on time","f":"","m":"제시간에","e":""},{"id":208,"q":7,"sec":"L","w":"cellphone","f":"","m":"휴대폰","e":""},{"id":209,"q":7,"sec":"L","w":"ring","f":"","m":"울리다","e":""},{"id":210,"q":7,"sec":"L","w":"wonder","f":"wondering → wonder","m":"궁금해하다","e":""},{"id":211,"q":7,"sec":"L","w":"library","f":"","m":"도서관","e":""},{"id":212,"q":7,"sec":"L","w":"borrow","f":"","m":"빌리다","e":""},{"id":213,"q":7,"sec":"L","w":"history","f":"","m":"역사","e":""},{"id":214,"q":7,"sec":"L","w":"book","f":"","m":"책; 예약하다","e":""},{"id":215,"q":7,"sec":"L","w":"assignment","f":"","m":"과제","e":""},{"id":216,"q":7,"sec":"L","w":"shelf","f":"","m":"선반","e":""},{"id":217,"q":7,"sec":"L","w":"student","f":"","m":"학생","e":""},{"id":218,"q":7,"sec":"L","w":"happen","f":"happened → happen","m":"일어나다","e":""},{"id":219,"q":7,"sec":"L","w":"late","f":"","m":"늦은","e":""},{"id":220,"q":7,"sec":"L","w":"return","f":"returned → return","m":"반납하다","e":""},{"id":221,"q":7,"sec":"L","w":"always","f":"","m":"항상","e":""},{"id":222,"q":7,"sec":"L","w":"due","f":"","m":"만기의","e":""},{"id":223,"q":7,"sec":"L","w":"date","f":"","m":"날짜","e":""},{"id":224,"q":7,"sec":"L","w":"problem","f":"","m":"문제","e":""},{"id":225,"q":7,"sec":"L","w":"network","f":"","m":"네트워크","e":""},{"id":226,"q":7,"sec":"L","w":"system","f":"","m":"시스템","e":""},{"id":227,"q":7,"sec":"L","w":"frustrating","f":"","m":"좌절감을 주는","e":""},{"id":228,"q":8,"sec":"L","w":"application form","f":"","m":"신청서","e":""},{"id":229,"q":8,"sec":"L","w":"social media","f":"","m":"소셜 미디어","e":""},{"id":230,"q":8,"sec":"L","w":"sign up for","f":"","m":"(~에) 등록·신청하다","e":""},{"id":231,"q":8,"sec":"L","w":"take place","f":"","m":"열리다, 일어나다","e":""},{"id":232,"q":8,"sec":"L","w":"fill out","f":"","m":"(양식을) 작성하다","e":""},{"id":233,"q":8,"sec":"L","w":"race","f":"","m":"경주","e":""},{"id":234,"q":8,"sec":"L","w":"hunger","f":"","m":"기아","e":""},{"id":235,"q":8,"sec":"L","w":"event","f":"","m":"행사","e":""},{"id":236,"q":8,"sec":"L","w":"promote","f":"promoting → promote","m":"장려하다","e":""},{"id":237,"q":8,"sec":"L","w":"importance","f":"","m":"중요성","e":""},{"id":238,"q":8,"sec":"L","w":"food","f":"","m":"음식","e":""},{"id":239,"q":8,"sec":"L","w":"generation","f":"","m":"세대","e":"gener(낳다)"},{"id":240,"q":8,"sec":"L","w":"interest","f":"interesting → interest","m":"관심","e":""},{"id":241,"q":8,"sec":"L","w":"place","f":"","m":"장소; 열리다","e":""},{"id":242,"q":8,"sec":"L","w":"hold","f":"held → hold","m":"개최하다","e":""},{"id":243,"q":8,"sec":"L","w":"participant","f":"","m":"참가자","e":""},{"id":244,"q":8,"sec":"L","w":"run","f":"running → run","m":"달리다; 운영하다","e":""},{"id":245,"q":8,"sec":"L","w":"walk","f":"walking → walk","m":"걷다","e":""},{"id":246,"q":8,"sec":"L","w":"distance","f":"","m":"거리","e":""},{"id":247,"q":8,"sec":"L","w":"social","f":"","m":"소셜","e":""},{"id":248,"q":8,"sec":"L","w":"media","f":"","m":"미디어","e":""},{"id":249,"q":8,"sec":"L","w":"prize","f":"","m":"상품","e":""},{"id":250,"q":8,"sec":"L","w":"meet","f":"","m":"충족하다; 만나다","e":""},{"id":251,"q":8,"sec":"L","w":"requirement","f":"","m":"요건","e":""},{"id":252,"q":8,"sec":"L","w":"water","f":"","m":"물","e":""},{"id":253,"q":8,"sec":"L","w":"bottle","f":"","m":"병","e":""},{"id":254,"q":8,"sec":"L","w":"join","f":"","m":"참가하다","e":""},{"id":255,"q":8,"sec":"L","w":"sign","f":"","m":"서명하다","e":""},{"id":256,"q":8,"sec":"L","w":"scan","f":"","m":"스캔하다","e":""},{"id":257,"q":8,"sec":"L","w":"code","f":"","m":"코드","e":""},{"id":258,"q":8,"sec":"L","w":"fill","f":"","m":"채우기","e":""},{"id":259,"q":8,"sec":"L","w":"application","f":"","m":"응용 프로그램","e":""},{"id":260,"q":8,"sec":"L","w":"form","f":"","m":"양식","e":""},{"id":261,"q":9,"sec":"L","w":"computer","f":"","m":"컴퓨터","e":""},{"id":262,"q":9,"sec":"L","w":"teacher","f":"","m":"교사","e":""},{"id":263,"q":9,"sec":"L","w":"afterschool","f":"","m":"방과 후의","e":""},{"id":264,"q":9,"sec":"L","w":"program","f":"","m":"프로그램","e":""},{"id":265,"q":9,"sec":"L","w":"come","f":"coming → come","m":"오다","e":""},{"id":266,"q":9,"sec":"L","w":"grader","f":"","m":"학년 학생","e":""},{"id":267,"q":9,"sec":"L","w":"basic","f":"","m":"기초의","e":""},{"id":268,"q":9,"sec":"L","w":"skill","f":"","m":"기술","e":""},{"id":269,"q":9,"sec":"L","w":"lab","f":"","m":"실습실","e":""},{"id":270,"q":9,"sec":"L","w":"last","f":"","m":"지속되다","e":""},{"id":271,"q":9,"sec":"L","w":"hour","f":"","m":"시간","e":""},{"id":272,"q":9,"sec":"L","w":"ending","f":"","m":"끝, 종료","e":""},{"id":273,"q":9,"sec":"L","w":"compose","f":"composed → compose","m":"구성되다","e":"com(함께)+pose(놓다)"},{"id":274,"q":9,"sec":"L","w":"part","f":"","m":"부분","e":""},{"id":275,"q":9,"sec":"L","w":"introduce","f":"","m":"소개하다","e":"intro(안으로)+duce(이끌다)"},{"id":276,"q":9,"sec":"L","w":"concept","f":"","m":"개념","e":""},{"id":277,"q":9,"sec":"L","w":"second","f":"","m":"두 번째의","e":""},{"id":278,"q":9,"sec":"L","w":"include","f":"","m":"포함하다","e":"in(안으로)+clude(닫다)"},{"id":279,"q":9,"sec":"L","w":"provide","f":"provided → provide","m":"제공하다","e":"pro(앞)+vide(보다)"},{"id":280,"q":9,"sec":"L","w":"bring","f":"","m":"가져오다","e":""},{"id":281,"q":9,"sec":"L","w":"complete","f":"","m":"완료하다","e":"com(함께)+plete(채우다)"},{"id":282,"q":9,"sec":"L","w":"receive","f":"","m":"받다","e":"re(뒤로)+ceive(받다)"},{"id":283,"q":9,"sec":"L","w":"gift","f":"","m":"선물","e":""},{"id":284,"q":9,"sec":"L","w":"hope","f":"","m":"바라다","e":""},{"id":285,"q":10,"sec":"L","w":"right away","f":"","m":"즉시","e":""},{"id":286,"q":10,"sec":"L","w":"leave out","f":"","m":"빼다, 제외하다","e":""},{"id":287,"q":10,"sec":"L","w":"birthday","f":"","m":"생일","e":""},{"id":288,"q":10,"sec":"L","w":"week","f":"","m":"주","e":""},{"id":289,"q":10,"sec":"L","w":"plan","f":"","m":"계획","e":""},{"id":290,"q":10,"sec":"L","w":"one-day","f":"","m":"하루짜리","e":""},{"id":291,"q":10,"sec":"L","w":"class","f":"","m":"수업","e":""},{"id":292,"q":10,"sec":"L","w":"together","f":"","m":"함께","e":""},{"id":293,"q":10,"sec":"L","w":"option","f":"","m":"선택지","e":""},{"id":294,"q":10,"sec":"L","w":"choose","f":"","m":"고르다","e":""},{"id":295,"q":10,"sec":"L","w":"kind","f":"","m":"종류 // 친절한","e":""},{"id":296,"q":10,"sec":"L","w":"bake","f":"baking → bake","m":"굽다","e":""},{"id":297,"q":10,"sec":"L","w":"cake","f":"","m":"케이크","e":""},{"id":298,"q":10,"sec":"L","w":"cookie","f":"","m":"쿠키","e":""},{"id":299,"q":10,"sec":"L","w":"narrow","f":"","m":"좁히다","e":""},{"id":300,"q":10,"sec":"L","w":"level","f":"","m":"수준","e":""},{"id":301,"q":10,"sec":"L","w":"advanced","f":"","m":"고급의","e":""},{"id":302,"q":10,"sec":"L","w":"big","f":"","m":"큰","e":""},{"id":303,"q":10,"sec":"L","w":"prefer","f":"","m":"선호하다","e":""},{"id":304,"q":10,"sec":"L","w":"fewer","f":"","m":"더 적은","e":""},{"id":305,"q":10,"sec":"L","w":"expensive","f":"","m":"비싼","e":""},{"id":306,"q":10,"sec":"L","w":"away","f":"","m":"곧장","e":""},{"id":307,"q":11,"sec":"L","w":"dad","f":"","m":"아빠","e":""},{"id":308,"q":11,"sec":"L","w":"finally","f":"","m":"마침내","e":""},{"id":309,"q":11,"sec":"L","w":"fix","f":"fixed → fix","m":"고치다","e":""},{"id":310,"q":11,"sec":"L","w":"bicycle","f":"","m":"자전거","e":""},{"id":311,"q":11,"sec":"L","w":"proud","f":"","m":"자랑스러운","e":""},{"id":312,"q":11,"sec":"L","w":"repair","f":"","m":"수리","e":""},{"id":313,"q":11,"sec":"L","w":"shop","f":"","m":"가게","e":""},{"id":314,"q":11,"sec":"L","w":"ride","f":"","m":"타다","e":""},{"id":315,"q":11,"sec":"L","w":"sorry","f":"","m":"미안한","e":""},{"id":316,"q":11,"sec":"L","w":"buy","f":"bought → buy","m":"구매","e":""},{"id":317,"q":11,"sec":"L","w":"bike","f":"","m":"자전거","e":""},{"id":318,"q":11,"sec":"L","w":"park","f":"","m":"공원","e":""},{"id":319,"q":11,"sec":"L","w":"bad","f":"","m":"나쁜","e":""},{"id":320,"q":11,"sec":"L","w":"rain","f":"","m":"비","e":""},{"id":321,"q":11,"sec":"L","w":"tomorrow","f":"","m":"내일","e":""},{"id":322,"q":12,"sec":"L","w":"go over","f":"","m":"다시 검토하다","e":""},{"id":323,"q":12,"sec":"L","w":"rule","f":"","m":"규칙","e":""},{"id":324,"q":12,"sec":"L","w":"debate","f":"","m":"토론","e":""},{"id":325,"q":12,"sec":"L","w":"competition","f":"","m":"대회","e":""},{"id":326,"q":12,"sec":"L","w":"confuse","f":"confusing → confuse","m":"혼란스럽게 하다","e":""},{"id":327,"q":12,"sec":"L","w":"afraid","f":"","m":"두려워하는","e":""},{"id":328,"q":12,"sec":"L","w":"mistake","f":"","m":"실수","e":""},{"id":329,"q":12,"sec":"L","w":"win","f":"","m":"이기다","e":""},{"id":330,"q":12,"sec":"L","w":"understand","f":"","m":"이해하다","e":""},{"id":331,"q":12,"sec":"L","w":"reason","f":"","m":"이유","e":""},{"id":332,"q":12,"sec":"L","w":"welcome","f":"","m":"환영하다","e":""},{"id":333,"q":12,"sec":"L","w":"teammate","f":"","m":"팀원","e":""},{"id":334,"q":12,"sec":"L","w":"agree","f":"","m":"동의하다","e":""},{"id":335,"q":12,"sec":"L","w":"follow","f":"","m":"따르다","e":""},{"id":336,"q":13,"sec":"L","w":"in person","f":"","m":"직접(대면으로)","e":""},{"id":337,"q":13,"sec":"L","w":"go ahead","f":"","m":"계속 진행하다","e":""},{"id":338,"q":13,"sec":"L","w":"text","f":"texted → text","m":"문자(를 보내다)","e":""},{"id":339,"q":13,"sec":"L","w":"flu","f":"","m":"독감","e":""},{"id":340,"q":13,"sec":"L","w":"able","f":"","m":"~할 수 있는","e":""},{"id":341,"q":13,"sec":"L","w":"suppose","f":"supposed → suppose","m":"~하기로 되어 있다","e":""},{"id":342,"q":13,"sec":"L","w":"mentoring","f":"","m":"멘토링","e":""},{"id":343,"q":13,"sec":"L","w":"project","f":"","m":"프로젝트","e":""},{"id":344,"q":13,"sec":"L","w":"ahead","f":"","m":"앞으로","e":""},{"id":345,"q":13,"sec":"L","w":"properly","f":"","m":"제대로","e":""},{"id":346,"q":13,"sec":"L","w":"tell","f":"told → tell","m":"말하다","e":""},{"id":347,"q":13,"sec":"L","w":"participate","f":"","m":"참여하다","e":"parti+cip"},{"id":348,"q":13,"sec":"L","w":"gather","f":"gathering → gather","m":"모이다; 모임","e":""},{"id":349,"q":13,"sec":"L","w":"email","f":"","m":"이메일하다","e":""},{"id":350,"q":13,"sec":"L","w":"visit","f":"","m":"방문하다","e":""},{"id":351,"q":13,"sec":"L","w":"office","f":"","m":"사무실","e":""},{"id":352,"q":13,"sec":"L","w":"lunch","f":"","m":"점심","e":""},{"id":353,"q":13,"sec":"L","w":"situation","f":"","m":"상황","e":""},{"id":354,"q":13,"sec":"L","w":"finish","f":"finished → finish","m":"끝내다","e":""},{"id":355,"q":13,"sec":"L","w":"reschedule","f":"rescheduled → reschedule","m":"일정을 바꾸다","e":""},{"id":356,"q":14,"sec":"L","w":"animal","f":"","m":"동물","e":""},{"id":357,"q":14,"sec":"L","w":"protection","f":"","m":"보호","e":""},{"id":358,"q":14,"sec":"L","w":"center","f":"","m":"센터","e":""},{"id":359,"q":14,"sec":"L","w":"adoption","f":"","m":"입양","e":""},{"id":360,"q":14,"sec":"L","w":"weekend","f":"","m":"주말","e":""},{"id":361,"q":14,"sec":"L","w":"booth","f":"","m":"부스","e":""},{"id":362,"q":14,"sec":"L","w":"visitor","f":"","m":"방문객","e":""},{"id":363,"q":14,"sec":"L","w":"inform","f":"","m":"알리다","e":"in(안으로)+form(형태)"},{"id":364,"q":14,"sec":"L","w":"expect","f":"","m":"예상하다, 기대하다","e":"ex(밖으로)+pect(보다)"},{"id":365,"q":14,"sec":"L","w":"lot","f":"","m":"많음, 많은 수","e":""},{"id":366,"q":14,"sec":"L","w":"mean","f":"","m":"의미하다","e":""},{"id":367,"q":14,"sec":"L","w":"chance","f":"","m":"기회","e":""},{"id":368,"q":14,"sec":"L","w":"adopt","f":"adopted → adopt","m":"입양하다","e":""},{"id":369,"q":14,"sec":"L","w":"photo","f":"","m":"사진","e":""},{"id":370,"q":14,"sec":"L","w":"recently","f":"","m":"최근에","e":""},{"id":371,"q":14,"sec":"L","w":"background","f":"","m":"배경","e":""},{"id":372,"q":14,"sec":"L","w":"nervous","f":"","m":"긴장한","e":""},{"id":373,"q":14,"sec":"L","w":"tonight","f":"","m":"오늘 밤","e":""},{"id":374,"q":15,"sec":"L","w":"lost-and-found","f":"","m":"분실물 센터","e":""},{"id":375,"q":15,"sec":"L","w":"field trip","f":"","m":"현장체험학습","e":""},{"id":376,"q":15,"sec":"L","w":"lose","f":"lost → lose","m":"잃다","e":""},{"id":377,"q":15,"sec":"L","w":"bag","f":"","m":"가방","e":""},{"id":378,"q":15,"sec":"L","w":"field","f":"","m":"필드","e":""},{"id":379,"q":15,"sec":"L","w":"trip","f":"","m":"여행, 나들이, 견학","e":""},{"id":380,"q":15,"sec":"L","w":"museum","f":"","m":"박물관","e":""},{"id":381,"q":15,"sec":"L","w":"search","f":"searched → search","m":"찾다","e":""},{"id":382,"q":15,"sec":"L","w":"everywhere","f":"","m":"어디에나","e":""},{"id":383,"q":15,"sec":"L","w":"find","f":"","m":"찾다","e":""},{"id":384,"q":15,"sec":"L","w":"eventually","f":"","m":"결국","e":""},{"id":385,"q":15,"sec":"L","w":"give","f":"gave → give","m":"주다","e":""},{"id":386,"q":15,"sec":"L","w":"mention","f":"mentioned → mention","m":"언급하다","e":""},{"id":387,"q":15,"sec":"L","w":"classmate","f":"","m":"급우","e":""},{"id":388,"q":15,"sec":"L","w":"surprise","f":"","m":"놀라움","e":""},{"id":389,"q":15,"sec":"L","w":"kindly","f":"","m":"친절히","e":""},{"id":390,"q":15,"sec":"L","w":"entrance","f":"","m":"입구","e":""},{"id":391,"q":15,"sec":"L","w":"discover","f":"discovered → discover","m":"발견하다","e":"dis(반대)+cover(덮다)"},{"id":392,"q":15,"sec":"L","w":"inside","f":"","m":"안에","e":""},{"id":393,"q":15,"sec":"L","w":"money","f":"","m":"돈","e":""},{"id":394,"q":15,"sec":"L","w":"feel","f":"felt → feel","m":"느끼다","e":""},{"id":395,"q":15,"sec":"L","w":"extremely","f":"","m":"극히","e":""},{"id":396,"q":15,"sec":"L","w":"relieve","f":"relieved → relieve","m":"안도하게 하다","e":""},{"id":397,"q":15,"sec":"L","w":"grateful","f":"","m":"고마워하는","e":""},{"id":398,"q":15,"sec":"L","w":"kindness","f":"","m":"친절함","e":""},{"id":399,"q":15,"sec":"L","w":"likely","f":"","m":"아마 ~일","e":""},{"id":400,"q":15,"sec":"L","w":"listener","f":"","m":"청취자","e":""},{"id":401,"q":15,"sec":"L","w":"fitness","f":"","m":"체력","e":""},{"id":402,"q":15,"sec":"L","w":"guide","f":"","m":"안내","e":""},{"id":403,"q":15,"sec":"L","w":"effectively","f":"","m":"효과적으로","e":""},{"id":404,"q":15,"sec":"L","w":"eat","f":"eating → eat","m":"먹다","e":""},{"id":405,"q":15,"sec":"L","w":"raise","f":"","m":"높이다","e":""},{"id":406,"q":15,"sec":"L","w":"energy","f":"","m":"에너지","e":""},{"id":407,"q":15,"sec":"L","w":"banana","f":"","m":"바나나","e":""},{"id":408,"q":15,"sec":"L","w":"popular","f":"","m":"인기 있는","e":""},{"id":409,"q":15,"sec":"L","w":"choice","f":"","m":"선택","e":""},{"id":410,"q":15,"sec":"L","w":"quick","f":"","m":"빠른","e":""},{"id":411,"q":15,"sec":"L","w":"yogurt","f":"","m":"요거트","e":""},{"id":412,"q":15,"sec":"L","w":"light","f":"","m":"가벼운; 빛","e":""},{"id":413,"q":15,"sec":"L","w":"stomach","f":"","m":"위","e":""},{"id":414,"q":15,"sec":"L","w":"body","f":"","m":"몸","e":""},{"id":415,"q":15,"sec":"L","w":"protein","f":"","m":"단백질","e":""},{"id":416,"q":15,"sec":"L","w":"egg","f":"","m":"달걀","e":""},{"id":417,"q":15,"sec":"L","w":"full","f":"","m":"배부른","e":""},{"id":418,"q":15,"sec":"L","w":"long","f":"longer → long","m":"긴","e":""},{"id":419,"q":15,"sec":"L","w":"improve","f":"","m":"향상시키다","e":""},{"id":420,"q":15,"sec":"L","w":"strength","f":"","m":"강도","e":""},{"id":421,"q":15,"sec":"L","w":"amount","f":"","m":"양","e":""},{"id":422,"q":15,"sec":"L","w":"nut","f":"","m":"견과","e":""},{"id":423,"q":15,"sec":"L","w":"maintain","f":"","m":"유지하다","e":"main(손)+tain(잡다)"},{"id":424,"q":15,"sec":"L","w":"throughout","f":"","m":"내내","e":""},{"id":425,"q":15,"sec":"L","w":"lead","f":"","m":"이어지다","e":""},{"id":426,"q":15,"sec":"L","w":"result","f":"","m":"결과","e":""},{"id":427,"q":15,"sec":"L","w":"tip","f":"","m":"조언","e":""},{"id":428,"q":15,"sec":"L","w":"missing","f":"","m":"잃어버린","e":""},{"id":429,"q":15,"sec":"L","w":"appreciate","f":"","m":"소중히 여기다; 고마워하다","e":"ap+preci(가격)"},{"id":430,"q":15,"sec":"L","w":"back","f":"","m":"다시","e":""},{"id":431,"q":15,"sec":"L","w":"glad","f":"","m":"기쁜","e":""},{"id":432,"q":16,"sec":"L","w":"meal","f":"","m":"식사","e":""},{"id":433,"q":16,"sec":"L","w":"across","f":"","m":"걸쳐","e":""},{"id":434,"q":16,"sec":"L","w":"different","f":"","m":"다른","e":""},{"id":435,"q":16,"sec":"L","w":"various","f":"","m":"다양한","e":""},{"id":436,"q":16,"sec":"L","w":"method","f":"","m":"방법","e":""},{"id":437,"q":16,"sec":"L","w":"prepare","f":"preparing → prepare","m":"준비하다","e":"pre(미리)+pare(갖추다)"},{"id":438,"q":16,"sec":"L","w":"breakfast","f":"","m":"아침 식사","e":""},{"id":439,"q":16,"sec":"L","w":"effective","f":"","m":"효과적인","e":""},{"id":440,"q":16,"sec":"L","w":"diet","f":"","m":"식단","e":""},{"id":441,"q":16,"sec":"L","w":"strategy","f":"","m":"전략","e":""},{"id":442,"q":16,"sec":"L","w":"aim","f":"aimed → aim","m":"목표로 하다","e":""},{"id":443,"q":16,"sec":"L","w":"health","f":"","m":"건강","e":""},{"id":444,"q":16,"sec":"L","w":"recovery","f":"","m":"회복","e":""},{"id":445,"q":16,"sec":"L","w":"practical","f":"","m":"실용적인","e":""},{"id":446,"q":16,"sec":"L","w":"store","f":"storing → store","m":"저장하다","e":""},{"id":447,"q":16,"sec":"L","w":"item","f":"","m":"품목","e":""},{"id":448,"q":16,"sec":"L","w":"honey","f":"","m":"꿀","e":""},{"id":449,"q":18,"sec":"R","w":"look forward to","f":"","m":"~을 고대하다","e":""},{"id":450,"q":18,"sec":"R","w":"look forward","f":"","m":"기대하다","e":""},{"id":451,"q":18,"sec":"R","w":"dear","f":"","m":"친애하는","e":""},{"id":452,"q":18,"sec":"R","w":"point","f":"","m":"지점; 요점","e":""},{"id":453,"q":18,"sec":"R","w":"table","f":"","m":"탁구대; 표","e":""},{"id":454,"q":18,"sec":"R","w":"tennis","f":"","m":"탁구, 테니스","e":""},{"id":455,"q":18,"sec":"R","w":"manager","f":"","m":"관리자","e":""},{"id":456,"q":18,"sec":"R","w":"upcoming","f":"","m":"다가오는","e":""},{"id":457,"q":18,"sec":"R","w":"reopen","f":"reopening → reopen","m":"재개장하다","e":""},{"id":458,"q":18,"sec":"R","w":"unfortunately","f":"","m":"불행히도","e":""},{"id":459,"q":18,"sec":"R","w":"process","f":"","m":"과정","e":""},{"id":460,"q":18,"sec":"R","w":"unexpected","f":"","m":"예상치 못한","e":""},{"id":461,"q":18,"sec":"R","w":"electrical","f":"","m":"전기의","e":""},{"id":462,"q":18,"sec":"R","w":"issue","f":"","m":"문제","e":""},{"id":463,"q":18,"sec":"R","w":"cause","f":"causing → cause","m":"야기하다 // 원인","e":""},{"id":464,"q":18,"sec":"R","w":"regret","f":"","m":"유감으로 생각하다","e":""},{"id":465,"q":18,"sec":"R","w":"delay","f":"delayed → delay","m":"연기하다 // 지연","e":""},{"id":466,"q":18,"sec":"R","w":"originally","f":"","m":"원래","e":""},{"id":467,"q":18,"sec":"R","w":"schedule","f":"scheduled → schedule","m":"예정하다 // 일정","e":""},{"id":468,"q":18,"sec":"R","w":"ensure","f":"","m":"보장하다","e":""},{"id":469,"q":18,"sec":"R","w":"safety","f":"","m":"안전","e":""},{"id":470,"q":18,"sec":"R","w":"forward","f":"","m":"앞으로","e":""},{"id":471,"q":18,"sec":"R","w":"court","f":"","m":"법원","e":""},{"id":472,"q":18,"sec":"R","w":"patience","f":"","m":"인내, 이해심","e":""},{"id":473,"q":18,"sec":"R","w":"sincerely","f":"","m":"진심으로","e":""},{"id":474,"q":19,"sec":"R","w":"carnival","f":"","m":"카니발, 축제","e":""},{"id":475,"q":19,"sec":"R","w":"four-year-old","f":"","m":"네 살의","e":""},{"id":476,"q":19,"sec":"R","w":"girl","f":"","m":"소녀","e":""},{"id":477,"q":19,"sec":"R","w":"imagine","f":"imagining → imagine","m":"상상하다","e":""},{"id":478,"q":19,"sec":"R","w":"colorful","f":"","m":"다채로운","e":""},{"id":479,"q":19,"sec":"R","w":"balloon","f":"","m":"풍선","e":""},{"id":480,"q":19,"sec":"R","w":"delicious","f":"","m":"맛있는","e":""},{"id":481,"q":19,"sec":"R","w":"candy","f":"","m":"사탕","e":""},{"id":482,"q":19,"sec":"R","w":"arrive","f":"arrived → arrive","m":"도착하다","e":""},{"id":483,"q":19,"sec":"R","w":"twinkle","f":"twinkling → twinkle","m":"반짝이다","e":""},{"id":484,"q":19,"sec":"R","w":"jump","f":"","m":"점프","e":""},{"id":485,"q":19,"sec":"R","w":"joy","f":"","m":"기쁨","e":""},{"id":486,"q":19,"sec":"R","w":"magician","f":"","m":"마술사","e":""},{"id":487,"q":19,"sec":"R","w":"trick","f":"","m":"트릭","e":""},{"id":488,"q":19,"sec":"R","w":"cheer","f":"cheered → cheer","m":"환호하다","e":""},{"id":489,"q":19,"sec":"R","w":"family","f":"","m":"가족","e":""},{"id":490,"q":19,"sec":"R","w":"suddenly","f":"","m":"갑자기","e":""},{"id":491,"q":19,"sec":"R","w":"huge","f":"","m":"거대한","e":""},{"id":492,"q":19,"sec":"R","w":"parade","f":"","m":"퍼레이드","e":""},{"id":493,"q":19,"sec":"R","w":"toward","f":"","m":"~쪽으로","e":""},{"id":494,"q":19,"sec":"R","w":"monster","f":"","m":"괴물","e":""},{"id":495,"q":19,"sec":"R","w":"heart","f":"","m":"하트","e":""},{"id":496,"q":19,"sec":"R","w":"beat","f":"","m":"비트","e":""},{"id":497,"q":19,"sec":"R","w":"fear","f":"","m":"두려움","e":""},{"id":498,"q":19,"sec":"R","w":"freeze","f":"froze → freeze","m":"얼다, 움츠리다","e":""},{"id":499,"q":19,"sec":"R","w":"quickly","f":"","m":"빨리","e":""},{"id":500,"q":19,"sec":"R","w":"hide","f":"hid → hide","m":"숨다","e":""},{"id":501,"q":19,"sec":"R","w":"behind","f":"","m":"뒤","e":""},{"id":502,"q":19,"sec":"R","w":"excite","f":"excited → excite","m":"흥분시키다","e":""},{"id":503,"q":19,"sec":"R","w":"scared","f":"","m":"겁먹은","e":""},{"id":504,"q":19,"sec":"R","w":"amazed","f":"","m":"놀란","e":""},{"id":505,"q":19,"sec":"R","w":"envious","f":"","m":"부러워하는","e":""},{"id":506,"q":19,"sec":"R","w":"relaxed","f":"","m":"편안한","e":""},{"id":507,"q":19,"sec":"R","w":"annoy","f":"annoyed → annoy","m":"불쾌하게 하다","e":""},{"id":508,"q":19,"sec":"R","w":"embarrassed","f":"","m":"당황한","e":""},{"id":509,"q":19,"sec":"R","w":"confident","f":"","m":"자신감 있는","e":""},{"id":510,"q":19,"sec":"R","w":"disappointed","f":"","m":"실망한","e":""},{"id":511,"q":20,"sec":"R","w":"self-deprecating","f":"","m":"자기 비하의","e":""},{"id":512,"q":20,"sec":"R","w":"tried-and-tested","f":"","m":"검증된","e":""},{"id":513,"q":20,"sec":"R","w":"bond with","f":"","m":"(~와) 유대감을 맺다","e":""},{"id":514,"q":20,"sec":"R","w":"simply","f":"","m":"검소하게; 단순히","e":""},{"id":515,"q":20,"sec":"R","w":"influence","f":"","m":"영향을 미치다 // 영향","e":"in(안으로)+flu(흐르다)"},{"id":516,"q":20,"sec":"R","w":"stir","f":"","m":"자극하다, 마음을 움직이다","e":""},{"id":517,"q":20,"sec":"R","w":"audience","f":"","m":"청중","e":""},{"id":518,"q":20,"sec":"R","w":"instantly","f":"","m":"즉시","e":""},{"id":519,"q":20,"sec":"R","w":"powerfully","f":"","m":"강력하게","e":""},{"id":520,"q":20,"sec":"R","w":"authentically","f":"","m":"진정성 있게","e":""},{"id":521,"q":20,"sec":"R","w":"open","f":"opening → open","m":"열기","e":""},{"id":522,"q":20,"sec":"R","w":"personal","f":"","m":"개인적인","e":""},{"id":523,"q":20,"sec":"R","w":"story","f":"","m":"이야기","e":""},{"id":524,"q":20,"sec":"R","w":"anecdote","f":"","m":"일화","e":""},{"id":525,"q":20,"sec":"R","w":"clear","f":"","m":"분명한","e":""},{"id":526,"q":20,"sec":"R","w":"vacation","f":"","m":"휴가","e":""},{"id":527,"q":20,"sec":"R","w":"baby","f":"","m":"아기","e":""},{"id":528,"q":20,"sec":"R","w":"stage","f":"","m":"무대","e":""},{"id":529,"q":20,"sec":"R","w":"key","f":"","m":"핵심적인","e":""},{"id":530,"q":20,"sec":"R","w":"biographical","f":"","m":"전기적인","e":""},{"id":531,"q":20,"sec":"R","w":"detail","f":"","m":"세부 사항","e":""},{"id":532,"q":20,"sec":"R","w":"emotion","f":"","m":"감정","e":""},{"id":533,"q":20,"sec":"R","w":"moment","f":"","m":"순간","e":""},{"id":534,"q":20,"sec":"R","w":"joke","f":"","m":"농담","e":""},{"id":535,"q":20,"sec":"R","w":"bond","f":"bonding → bond","m":"유대감","e":""},{"id":536,"q":20,"sec":"R","w":"stranger","f":"","m":"낯선 사람","e":""},{"id":537,"q":20,"sec":"R","w":"lay","f":"laying → lay","m":"놓다","e":""},{"id":538,"q":20,"sec":"R","w":"groundwork","f":"","m":"토대","e":""},{"id":539,"q":20,"sec":"R","w":"persuade","f":"","m":"설득하다","e":"per(완전히)+suade(권하다)"},{"id":540,"q":20,"sec":"R","w":"harsh","f":"","m":"가혹한","e":""},{"id":541,"q":20,"sec":"R","w":"reality","f":"","m":"현실","e":""},{"id":542,"q":20,"sec":"R","w":"argument","f":"","m":"주장, 논거","e":""},{"id":543,"q":20,"sec":"R","w":"vacuum","f":"","m":"진공, 고립 상태","e":""},{"id":544,"q":20,"sec":"R","w":"speech","f":"","m":"연설","e":""},{"id":545,"q":20,"sec":"R","w":"coach","f":"","m":"코치","e":""},{"id":546,"q":20,"sec":"R","w":"reveal","f":"revealing → reveal","m":"드러내다","e":""},{"id":547,"q":20,"sec":"R","w":"flaw","f":"","m":"결점","e":""},{"id":548,"q":20,"sec":"R","w":"allow","f":"","m":"허용하다","e":""},{"id":549,"q":20,"sec":"R","w":"identify","f":"","m":"동일시하다, 확인하다","e":"ident(같다)+fy(만들다)"},{"id":550,"q":21,"sec":"R","w":"steal the shade","f":"","m":"후손이 누릴 혜택을 빼앗다","e":""},{"id":551,"q":21,"sec":"R","w":"far-reaching","f":"","m":"광범위한, 파급력이 큰","e":""},{"id":552,"q":21,"sec":"R","w":"unprecedented","f":"","m":"전례 없는","e":"un+pre(미리)+cede(가다)"},{"id":553,"q":21,"sec":"R","w":"genetic","f":"","m":"유전의","e":""},{"id":554,"q":21,"sec":"R","w":"cultural","f":"","m":"문화적인","e":""},{"id":555,"q":21,"sec":"R","w":"environmental","f":"","m":"환경의","e":"environ(주위)"},{"id":556,"q":21,"sec":"R","w":"power","f":"","m":"힘, 권력","e":""},{"id":557,"q":21,"sec":"R","w":"species","f":"","m":"종(생물)","e":""},{"id":558,"q":21,"sec":"R","w":"nearly","f":"","m":"거의","e":""},{"id":559,"q":21,"sec":"R","w":"earth","f":"","m":"지구","e":""},{"id":560,"q":21,"sec":"R","w":"embodied","f":"","m":"육체를 지닌, 구현된","e":""},{"id":561,"q":21,"sec":"R","w":"individual","f":"","m":"개인","e":""},{"id":562,"q":21,"sec":"R","w":"trap","f":"trapped → trap","m":"가두다","e":""},{"id":563,"q":21,"sec":"R","w":"within","f":"","m":"~안에","e":""},{"id":564,"q":21,"sec":"R","w":"limit","f":"limited → limit","m":"제한하다 // 제한된","e":""},{"id":565,"q":21,"sec":"R","w":"data","f":"","m":"데이터","e":""},{"id":566,"q":21,"sec":"R","w":"stream","f":"","m":"흐름","e":""},{"id":567,"q":21,"sec":"R","w":"memory","f":"","m":"기억","e":""},{"id":568,"q":21,"sec":"R","w":"influencer","f":"","m":"영향력 있는 존재","e":""},{"id":569,"q":21,"sec":"R","w":"grander","f":"","m":"더 거대한","e":""},{"id":570,"q":21,"sec":"R","w":"humanity","f":"","m":"인류","e":""},{"id":571,"q":21,"sec":"R","w":"decision","f":"","m":"결정","e":""},{"id":572,"q":21,"sec":"R","w":"impact","f":"","m":"영향, 충격","e":""},{"id":573,"q":21,"sec":"R","w":"responsibility","f":"","m":"책임","e":"re(다시)+spond(약속)"},{"id":574,"q":21,"sec":"R","w":"become","f":"","m":"~이 되다","e":""},{"id":575,"q":21,"sec":"R","w":"ancestor","f":"","m":"조상","e":"ante(앞)+cess(가다)"},{"id":576,"q":21,"sec":"R","w":"view","f":"","m":"관점","e":""},{"id":577,"q":21,"sec":"R","w":"travel","f":"","m":"여행하다","e":""},{"id":578,"q":21,"sec":"R","w":"well-being","f":"","m":"복지, 안녕","e":""},{"id":579,"q":21,"sec":"R","w":"billion","f":"","m":"10억","e":""},{"id":580,"q":21,"sec":"R","w":"live","f":"lived → live","m":"살다","e":""},{"id":581,"q":21,"sec":"R","w":"world","f":"","m":"세계","e":""},{"id":582,"q":21,"sec":"R","w":"currently","f":"","m":"현재","e":""},{"id":583,"q":21,"sec":"R","w":"century","f":"","m":"세기","e":""},{"id":584,"q":21,"sec":"R","w":"ago","f":"","m":"이전에","e":""},{"id":585,"q":21,"sec":"R","w":"native","f":"","m":"원주민의","e":""},{"id":586,"q":21,"sec":"R","w":"create","f":"created → create","m":"만들다","e":""},{"id":587,"q":21,"sec":"R","w":"stewardship","f":"","m":"관리, 수탁 관리","e":""},{"id":588,"q":21,"sec":"R","w":"instruct","f":"instructing → instruct","m":"지시하다","e":""},{"id":589,"q":21,"sec":"R","w":"consider","f":"","m":"고려하다","e":"con(함께)+sider(별)"},{"id":590,"q":21,"sec":"R","w":"child","f":"children → child","m":"아이","e":""},{"id":591,"q":21,"sec":"R","w":"future","f":"","m":"미래","e":""},{"id":592,"q":21,"sec":"R","w":"precious","f":"","m":"소중한","e":""},{"id":593,"q":21,"sec":"R","w":"decade","f":"","m":"10년","e":""},{"id":594,"q":21,"sec":"R","w":"garden","f":"","m":"정원","e":""},{"id":595,"q":21,"sec":"R","w":"plant","f":"planted → plant","m":"심다","e":""},{"id":596,"q":21,"sec":"R","w":"steal","f":"","m":"훔치다","e":""},{"id":597,"q":21,"sec":"R","w":"shade","f":"","m":"그늘","e":""},{"id":598,"q":21,"sec":"R","w":"descendant","f":"","m":"후손","e":"de(아래로)+scend(오르다)"},{"id":599,"q":21,"sec":"R","w":"ignore","f":"","m":"무시하다","e":""},{"id":600,"q":21,"sec":"R","w":"benefit","f":"","m":"이익, 혜택","e":""},{"id":601,"q":21,"sec":"R","w":"pass","f":"passed → pass","m":"물려 주다; 지나가다","e":""},{"id":602,"q":21,"sec":"R","w":"father","f":"","m":"아버지","e":""},{"id":603,"q":21,"sec":"R","w":"remove","f":"","m":"제거하다","e":""},{"id":604,"q":21,"sec":"R","w":"face","f":"","m":"직면하다","e":""},{"id":605,"q":21,"sec":"R","w":"blame","f":"","m":"비난하다","e":""},{"id":606,"q":21,"sec":"R","w":"lack","f":"","m":"결여, 부족","e":""},{"id":607,"q":21,"sec":"R","w":"care","f":"","m":"돌보다","e":""},{"id":608,"q":21,"sec":"R","w":"resource","f":"","m":"자원","e":""},{"id":609,"q":21,"sec":"R","w":"deserve","f":"","m":"~할 만하다","e":""},{"id":610,"q":22,"sec":"R","w":"repeated exposure","f":"","m":"반복 노출","e":""},{"id":611,"q":22,"sec":"R","w":"taste preferences","f":"","m":"미각 선호","e":""},{"id":612,"q":22,"sec":"R","w":"processed grain","f":"","m":"가공 곡물","e":""},{"id":613,"q":22,"sec":"R","w":"whole grain","f":"","m":"통곡물","e":""},{"id":614,"q":22,"sec":"R","w":"despite","f":"","m":"~에도 불구하고","e":""},{"id":615,"q":22,"sec":"R","w":"behavior","f":"","m":"행동","e":""},{"id":616,"q":22,"sec":"R","w":"early","f":"","m":"초기의, 일찍","e":""},{"id":617,"q":22,"sec":"R","w":"childhood","f":"","m":"어린 시절","e":""},{"id":618,"q":22,"sec":"R","w":"inborn","f":"","m":"타고난","e":""},{"id":619,"q":22,"sec":"R","w":"biological","f":"","m":"생물학적인","e":""},{"id":620,"q":22,"sec":"R","w":"difference","f":"","m":"차이","e":""},{"id":621,"q":22,"sec":"R","w":"taste","f":"","m":"취향","e":""},{"id":622,"q":22,"sec":"R","w":"preference","f":"","m":"선호","e":"pre(앞)+fer(나르다)"},{"id":623,"q":22,"sec":"R","w":"change","f":"changed → change","m":"바꾸다 // 변화","e":""},{"id":624,"q":22,"sec":"R","w":"neuroplasticity","f":"","m":"신경가소성","e":""},{"id":625,"q":22,"sec":"R","w":"amazing","f":"","m":"놀라운","e":""},{"id":626,"q":22,"sec":"R","w":"adaptability","f":"","m":"적응력","e":"ad(~로)+apt(맞다)"},{"id":627,"q":22,"sec":"R","w":"flexibility","f":"","m":"유연성","e":"flect(구부리다)"},{"id":628,"q":22,"sec":"R","w":"age","f":"","m":"나이; 나이가 들다","e":""},{"id":629,"q":22,"sec":"R","w":"terrific","f":"","m":"아주 좋은","e":""},{"id":630,"q":22,"sec":"R","w":"adventurous","f":"","m":"모험적인","e":""},{"id":631,"q":22,"sec":"R","w":"eater","f":"","m":"먹는 사람","e":""},{"id":632,"q":22,"sec":"R","w":"expand","f":"","m":"확장하다","e":"ex(밖으로)+pand(펼치다)"},{"id":633,"q":22,"sec":"R","w":"dinner","f":"","m":"저녁 식사","e":""},{"id":634,"q":22,"sec":"R","w":"menu","f":"","m":"메뉴","e":""},{"id":635,"q":22,"sec":"R","w":"tasty","f":"","m":"맛있는","e":""},{"id":636,"q":22,"sec":"R","w":"eager","f":"","m":"열망하는","e":""},{"id":637,"q":22,"sec":"R","w":"break","f":"","m":"깨뜨리다; 끊다","e":""},{"id":638,"q":22,"sec":"R","w":"poor","f":"","m":"나쁜; 가난한","e":""},{"id":639,"q":22,"sec":"R","w":"habit","f":"","m":"습관","e":""},{"id":640,"q":22,"sec":"R","w":"kid","f":"","m":"아이","e":""},{"id":641,"q":22,"sec":"R","w":"gradually","f":"","m":"점차","e":""},{"id":642,"q":22,"sec":"R","w":"nutritious","f":"","m":"영양가 있는","e":""},{"id":643,"q":22,"sec":"R","w":"adult","f":"","m":"성인","e":""},{"id":644,"q":22,"sec":"R","w":"readjust","f":"","m":"재조정하다","e":""},{"id":645,"q":22,"sec":"R","w":"switch","f":"","m":"바꾸다","e":""},{"id":646,"q":22,"sec":"R","w":"grain","f":"","m":"곡물","e":""},{"id":647,"q":22,"sec":"R","w":"white","f":"","m":"흰","e":""},{"id":648,"q":22,"sec":"R","w":"bread","f":"","m":"빵","e":""},{"id":649,"q":22,"sec":"R","w":"rice","f":"","m":"쌀","e":""},{"id":650,"q":22,"sec":"R","w":"whole","f":"","m":"전체","e":""},{"id":651,"q":22,"sec":"R","w":"type","f":"","m":"종류","e":""},{"id":652,"q":22,"sec":"R","w":"instance","f":"","m":"예","e":""},{"id":653,"q":22,"sec":"R","w":"nutty","f":"","m":"고소한","e":""},{"id":654,"q":22,"sec":"R","w":"flavor","f":"","m":"풍미","e":""},{"id":655,"q":22,"sec":"R","w":"chewy","f":"","m":"쫄깃한","e":""},{"id":656,"q":22,"sec":"R","w":"texture","f":"","m":"질감","e":""},{"id":657,"q":22,"sec":"R","w":"repeat","f":"repeated → repeat","m":"반복하다","e":""},{"id":658,"q":22,"sec":"R","w":"exposure","f":"","m":"노출","e":"ex(밖으로)+pose(놓다)"},{"id":659,"q":22,"sec":"R","w":"willingness","f":"","m":"의지","e":""},{"id":660,"q":23,"sec":"R","w":"go along with","f":"","m":"동조하다, 따르다","e":""},{"id":661,"q":23,"sec":"R","w":"peer pressure","f":"","m":"또래 압력","e":""},{"id":662,"q":23,"sec":"R","w":"stand up for","f":"","m":"(의견·권리를) 옹호하다","e":""},{"id":663,"q":23,"sec":"R","w":"peer group","f":"","m":"또래 집단","e":""},{"id":664,"q":23,"sec":"R","w":"conformity","f":"","m":"순응, 동조","e":"con(함께)+form(형태)"},{"id":665,"q":23,"sec":"R","w":"teenage","f":"","m":"십대의","e":""},{"id":666,"q":23,"sec":"R","w":"study","f":"studied → study","m":"연구하다 // 공부","e":""},{"id":667,"q":23,"sec":"R","w":"young","f":"","m":"젊은","e":""},{"id":668,"q":23,"sec":"R","w":"appear","f":"","m":"~처럼 보이다","e":""},{"id":669,"q":23,"sec":"R","w":"fascinate","f":"fascinating → fascinate","m":"매혹하다","e":""},{"id":670,"q":23,"sec":"R","w":"spread","f":"","m":"퍼지다","e":""},{"id":671,"q":23,"sec":"R","w":"equally","f":"","m":"똑같이","e":""},{"id":672,"q":23,"sec":"R","w":"thus","f":"","m":"따라서","e":""},{"id":673,"q":23,"sec":"R","w":"along","f":"","m":"~을 따라; 함께","e":""},{"id":674,"q":23,"sec":"R","w":"reach","f":"","m":"도달하다","e":""},{"id":675,"q":23,"sec":"R","w":"peak","f":"","m":"정점","e":""},{"id":676,"q":23,"sec":"R","w":"tendency","f":"","m":"경향","e":""},{"id":677,"q":23,"sec":"R","w":"decrease","f":"","m":"감소하다","e":"de(아래로)+crease(자라다)"},{"id":678,"q":23,"sec":"R","w":"disagree","f":"","m":"동의하지 않다","e":""},{"id":679,"q":23,"sec":"R","w":"stand","f":"","m":"옹호하다; 서다","e":""},{"id":680,"q":23,"sec":"R","w":"opinion","f":"","m":"의견","e":""},{"id":681,"q":23,"sec":"R","w":"demonstrate","f":"","m":"보여 주다","e":"de(완전히)+monstrate(보이다)"},{"id":682,"q":23,"sec":"R","w":"peer","f":"","m":"동료","e":""},{"id":683,"q":23,"sec":"R","w":"mature","f":"","m":"성숙하다","e":"matur(익다)"},{"id":684,"q":23,"sec":"R","w":"resilient","f":"","m":"회복력 있는","e":""},{"id":685,"q":23,"sec":"R","w":"defend","f":"","m":"옹호하다","e":"de(떨어져)+fend(치다)"},{"id":686,"q":23,"sec":"R","w":"negative","f":"","m":"부정적인","e":""},{"id":687,"q":23,"sec":"R","w":"effect","f":"","m":"영향, 효과","e":""},{"id":688,"q":23,"sec":"R","w":"teenager","f":"","m":"십대","e":""},{"id":689,"q":23,"sec":"R","w":"factor","f":"","m":"요인","e":""},{"id":690,"q":23,"sec":"R","w":"decision-making","f":"","m":"의사 결정","e":""},{"id":691,"q":23,"sec":"R","w":"ways","f":"","m":"방법들","e":""},{"id":692,"q":23,"sec":"R","w":"overcome","f":"","m":"극복하다","e":""},{"id":693,"q":23,"sec":"R","w":"pressure","f":"","m":"압력","e":""},{"id":694,"q":24,"sec":"R","w":"temptation bundling","f":"","m":"유혹 묶기(즐거운 일과 해야 할 일을 결합)","e":""},{"id":695,"q":24,"sec":"R","w":"held hostage","f":"","m":"볼모로 잡힌","e":""},{"id":696,"q":24,"sec":"R","w":"give up","f":"","m":"포기하다","e":""},{"id":697,"q":24,"sec":"R","w":"put off","f":"","m":"미루다","e":""},{"id":698,"q":24,"sec":"R","w":"survive","f":"","m":"생존하다","e":"sur(위)+vive(살다)"},{"id":699,"q":24,"sec":"R","w":"brain","f":"","m":"뇌","e":""},{"id":700,"q":24,"sec":"R","w":"essential","f":"","m":"필수적인","e":"esse(존재)"},{"id":701,"q":24,"sec":"R","w":"business","f":"","m":"사업; 업무","e":""},{"id":702,"q":24,"sec":"R","w":"question","f":"","m":"질문; 문제","e":""},{"id":703,"q":24,"sec":"R","w":"attach","f":"attaching → attach","m":"붙이다","e":"at(~에)+tach(붙이다)"},{"id":704,"q":24,"sec":"R","w":"temptation","f":"","m":"유혹","e":"tempt(시험하다)"},{"id":705,"q":24,"sec":"R","w":"bundle","f":"bundling → bundle","m":"묶다","e":""},{"id":706,"q":24,"sec":"R","w":"professor","f":"","m":"교수","e":""},{"id":707,"q":24,"sec":"R","w":"research","f":"","m":"연구","e":""},{"id":708,"q":24,"sec":"R","w":"call","f":"called → call","m":"부르다; ~라고 하다","e":""},{"id":709,"q":24,"sec":"R","w":"hostage","f":"","m":"볼모, 인질","e":""},{"id":710,"q":24,"sec":"R","w":"gym","f":"","m":"체육관","e":""},{"id":711,"q":24,"sec":"R","w":"access","f":"","m":"접근권, 이용","e":"ac(~로)+cess(가다)"},{"id":712,"q":24,"sec":"R","w":"audio","f":"","m":"오디오의","e":""},{"id":713,"q":24,"sec":"R","w":"device","f":"","m":"기기","e":""},{"id":714,"q":24,"sec":"R","w":"tempt","f":"tempting → tempt","m":"유혹하다","e":""},{"id":715,"q":24,"sec":"R","w":"listen","f":"listening → listen","m":"듣다","e":""},{"id":716,"q":24,"sec":"R","w":"awesome","f":"","m":"멋진","e":""},{"id":717,"q":24,"sec":"R","w":"audiobook","f":"","m":"오디오북","e":""},{"id":718,"q":24,"sec":"R","w":"combine","f":"","m":"결합하다","e":"com(함께)+bine(둘)"},{"id":719,"q":24,"sec":"R","w":"otherwise","f":"","m":"그렇지 않으면","e":""},{"id":720,"q":24,"sec":"R","w":"force","f":"forced → force","m":"강요하다","e":""},{"id":721,"q":24,"sec":"R","w":"two-thirds","f":"","m":"3분의 2","e":""},{"id":722,"q":24,"sec":"R","w":"opt","f":"opted → opt","m":"선택하다","e":"opt(선택하다)"},{"id":723,"q":24,"sec":"R","w":"pay","f":"","m":"지불하다","e":""},{"id":724,"q":24,"sec":"R","w":"gym-only","f":"","m":"체육관 전용","e":""},{"id":725,"q":24,"sec":"R","w":"stop","f":"","m":"멈추다","e":""},{"id":726,"q":24,"sec":"R","w":"avoid","f":"","m":"피하다","e":""},{"id":727,"q":24,"sec":"R","w":"smart","f":"","m":"현명한","e":""},{"id":728,"q":24,"sec":"R","w":"focus","f":"","m":"집중하다","e":""},{"id":729,"q":24,"sec":"R","w":"healthcare","f":"","m":"의료, 헬스케어","e":""},{"id":730,"q":24,"sec":"R","w":"service","f":"","m":"서비스","e":""},{"id":731,"q":24,"sec":"R","w":"success","f":"","m":"성공","e":"suc(아래)+cess(가다)"},{"id":732,"q":24,"sec":"R","w":"everyday","f":"","m":"일상의","e":""},{"id":733,"q":24,"sec":"R","w":"hobby","f":"","m":"취미","e":""},{"id":734,"q":24,"sec":"R","w":"effort","f":"","m":"노력","e":""},{"id":735,"q":25,"sec":"R","w":"working from home","f":"","m":"재택근무","e":""},{"id":736,"q":25,"sec":"R","w":"note","f":"","m":"주석","e":""},{"id":737,"q":25,"sec":"R","w":"response","f":"","m":"응답","e":""},{"id":738,"q":25,"sec":"R","w":"graph","f":"","m":"그래프","e":""},{"id":739,"q":25,"sec":"R","w":"top","f":"","m":"최고의","e":""},{"id":740,"q":25,"sec":"R","w":"working","f":"","m":"작업 중","e":""},{"id":741,"q":25,"sec":"R","w":"home","f":"","m":"집","e":""},{"id":742,"q":25,"sec":"R","w":"based","f":"","m":"~에 기반한","e":""},{"id":743,"q":25,"sec":"R","w":"global","f":"","m":"세계적인","e":""},{"id":744,"q":25,"sec":"R","w":"survey","f":"","m":"조사","e":""},{"id":745,"q":25,"sec":"R","w":"worker","f":"","m":"노동자","e":""},{"id":746,"q":25,"sec":"R","w":"commute","f":"","m":"통근","e":""},{"id":747,"q":25,"sec":"R","w":"respondent","f":"","m":"응답자","e":""},{"id":748,"q":25,"sec":"R","w":"save","f":"","m":"아끼다","e":""},{"id":749,"q":25,"sec":"R","w":"gas","f":"","m":"휘발유","e":""},{"id":750,"q":25,"sec":"R","w":"cost","f":"","m":"비용","e":""},{"id":751,"q":25,"sec":"R","w":"rank","f":"ranked → rank","m":"순위를 차지하다","e":""},{"id":752,"q":25,"sec":"R","w":"third","f":"","m":"세 번째","e":""},{"id":753,"q":25,"sec":"R","w":"percentage","f":"","m":"백분율","e":""},{"id":754,"q":25,"sec":"R","w":"cite","f":"citing → cite","m":"언급하다","e":""},{"id":755,"q":25,"sec":"R","w":"quiet","f":"","m":"조용한","e":""},{"id":756,"q":25,"sec":"R","w":"low","f":"lower → low","m":"낮은","e":""},{"id":757,"q":25,"sec":"R","w":"gap","f":"","m":"격차","e":""},{"id":758,"q":25,"sec":"R","w":"meeting","f":"","m":"회의","e":""},{"id":759,"q":26,"sec":"R","w":"lifelong commitment","f":"","m":"평생에 걸친 헌신","e":""},{"id":760,"q":26,"sec":"R","w":"left hand","f":"","m":"왼손","e":""},{"id":761,"q":26,"sec":"R","w":"bear","f":"born → bear","m":"(be born) 태어나다","e":""},{"id":762,"q":26,"sec":"R","w":"city","f":"","m":"도시","e":""},{"id":763,"q":26,"sec":"R","w":"piano","f":"","m":"피아노","e":""},{"id":764,"q":26,"sec":"R","w":"enter","f":"entered → enter","m":"들어가다; 입학하다","e":""},{"id":765,"q":26,"sec":"R","w":"institute","f":"","m":"아카데미, 학교","e":""},{"id":766,"q":26,"sec":"R","w":"train","f":"training → train","m":"훈련하다","e":""},{"id":767,"q":26,"sec":"R","w":"foundation","f":"","m":"기초","e":""},{"id":768,"q":26,"sec":"R","w":"career","f":"","m":"경력","e":""},{"id":769,"q":26,"sec":"R","w":"award","f":"","m":"상","e":""},{"id":770,"q":26,"sec":"R","w":"worldwide","f":"","m":"세계적으로","e":""},{"id":771,"q":26,"sec":"R","w":"control","f":"","m":"통제","e":""},{"id":772,"q":26,"sec":"R","w":"finger","f":"","m":"손가락","e":""},{"id":773,"q":26,"sec":"R","w":"hand","f":"","m":"손","e":""},{"id":774,"q":26,"sec":"R","w":"never","f":"","m":"결코 ~않다","e":""},{"id":775,"q":26,"sec":"R","w":"reconsider","f":"reconsidering → reconsider","m":"재고하다","e":""},{"id":776,"q":26,"sec":"R","w":"traditional","f":"","m":"전통적인","e":""},{"id":777,"q":26,"sec":"R","w":"performance","f":"","m":"연주, 수행","e":"per(완전히)+form(형태)"},{"id":778,"q":26,"sec":"R","w":"convention","f":"","m":"관습","e":""},{"id":779,"q":26,"sec":"R","w":"alone","f":"","m":"홀로","e":""},{"id":780,"q":26,"sec":"R","w":"concerto","f":"","m":"협주곡","e":""},{"id":781,"q":26,"sec":"R","w":"faculty","f":"","m":"교수진","e":""},{"id":782,"q":26,"sec":"R","w":"teach","f":"taught → teach","m":"가르치다","e":""},{"id":783,"q":26,"sec":"R","w":"outstanding","f":"","m":"뛰어난","e":""},{"id":784,"q":26,"sec":"R","w":"musician","f":"","m":"음악가","e":""},{"id":785,"q":26,"sec":"R","w":"lifelong","f":"","m":"평생의","e":""},{"id":786,"q":26,"sec":"R","w":"commitment","f":"","m":"약속","e":""},{"id":787,"q":26,"sec":"R","w":"continue","f":"","m":"계속하다","e":""},{"id":788,"q":26,"sec":"R","w":"inspire","f":"","m":"고무하다","e":""},{"id":789,"q":27,"sec":"R","w":"parking pass","f":"","m":"주차권","e":""},{"id":790,"q":27,"sec":"R","w":"green","f":"","m":"녹색의","e":""},{"id":791,"q":27,"sec":"R","w":"convenient","f":"","m":"편리한","e":""},{"id":792,"q":27,"sec":"R","w":"safely","f":"","m":"안전하게","e":""},{"id":793,"q":27,"sec":"R","w":"public","f":"","m":"공공의","e":""},{"id":794,"q":27,"sec":"R","w":"available","f":"","m":"이용 가능한","e":""},{"id":795,"q":27,"sec":"R","w":"plus","f":"","m":"플러스","e":""},{"id":796,"q":27,"sec":"R","w":"premium","f":"","m":"프리미엄","e":""},{"id":797,"q":27,"sec":"R","w":"reserved","f":"","m":"예약된","e":""},{"id":798,"q":27,"sec":"R","w":"space","f":"","m":"공간","e":""},{"id":799,"q":27,"sec":"R","w":"purchase","f":"","m":"구매하다 // 구매, 발판","e":""},{"id":800,"q":28,"sec":"R","w":"short film","f":"","m":"단편영화","e":""},{"id":801,"q":28,"sec":"R","w":"real-time","f":"","m":"실시간","e":""},{"id":802,"q":28,"sec":"R","w":"film","f":"","m":"영화","e":""},{"id":803,"q":28,"sec":"R","w":"camp","f":"","m":"캠프","e":""},{"id":804,"q":28,"sec":"R","w":"direct","f":"","m":"감독하다","e":""},{"id":805,"q":28,"sec":"R","w":"shoot","f":"","m":"촬영하다","e":""},{"id":806,"q":28,"sec":"R","w":"edit","f":"","m":"편집하다","e":""},{"id":807,"q":28,"sec":"R","w":"experience","f":"","m":"경험","e":""},{"id":808,"q":28,"sec":"R","w":"require","f":"required → require","m":"요구하다","e":""},{"id":809,"q":28,"sec":"R","w":"weekday","f":"","m":"평일","e":""},{"id":810,"q":28,"sec":"R","w":"fee","f":"","m":"요금","e":""},{"id":811,"q":28,"sec":"R","w":"interactive","f":"","m":"상호적인","e":""},{"id":812,"q":28,"sec":"R","w":"instruction","f":"","m":"지도, 수업","e":""},{"id":813,"q":28,"sec":"R","w":"length","f":"","m":"길이","e":""},{"id":814,"q":28,"sec":"R","w":"screen","f":"screened → screen","m":"상영하다","e":""},{"id":815,"q":28,"sec":"R","w":"end","f":"","m":"종료","e":""},{"id":816,"q":28,"sec":"R","w":"apply","f":"","m":"신청하다","e":""},{"id":817,"q":28,"sec":"R","w":"send","f":"","m":"보내다","e":""},{"id":818,"q":28,"sec":"R","w":"e-mail","f":"","m":"이메일","e":""},{"id":819,"q":29,"sec":"R","w":"conceptual model","f":"","m":"개념 모델","e":""},{"id":820,"q":29,"sec":"R","w":"in the cloud","f":"","m":"클라우드에","e":""},{"id":821,"q":29,"sec":"R","w":"conceptual","f":"","m":"개념적","e":""},{"id":822,"q":29,"sec":"R","w":"model","f":"","m":"모델","e":""},{"id":823,"q":29,"sec":"R","w":"explanation","f":"","m":"설명","e":""},{"id":824,"q":29,"sec":"R","w":"highly","f":"","m":"매우","e":""},{"id":825,"q":29,"sec":"R","w":"simplify","f":"simplified → simplify","m":"단순화하다","e":""},{"id":826,"q":29,"sec":"R","w":"accurate","f":"","m":"정확한","e":""},{"id":827,"q":29,"sec":"R","w":"useful","f":"","m":"유용한","e":""},{"id":828,"q":29,"sec":"R","w":"file","f":"","m":"파일","e":""},{"id":829,"q":29,"sec":"R","w":"icon","f":"","m":"아이콘","e":""},{"id":830,"q":29,"sec":"R","w":"display","f":"displayed → display","m":"표시하다","e":""},{"id":831,"q":29,"sec":"R","w":"document","f":"","m":"문서","e":""},{"id":832,"q":29,"sec":"R","w":"app","f":"","m":"앱","e":""},{"id":833,"q":29,"sec":"R","w":"fact","f":"","m":"사실","e":""},{"id":834,"q":29,"sec":"R","w":"conceptualization","f":"","m":"개념화","e":""},{"id":835,"q":29,"sec":"R","w":"design","f":"designed → design","m":"설계하다","e":""},{"id":836,"q":29,"sec":"R","w":"depiction","f":"","m":"묘사","e":""},{"id":837,"q":29,"sec":"R","w":"add","f":"","m":"더하다","e":""},{"id":838,"q":29,"sec":"R","w":"confusion","f":"","m":"혼란","e":""},{"id":839,"q":29,"sec":"R","w":"read","f":"reading → read","m":"읽다","e":""},{"id":840,"q":29,"sec":"R","w":"website","f":"","m":"웹사이트","e":""},{"id":841,"q":29,"sec":"R","w":"case","f":"","m":"경우","e":""},{"id":842,"q":29,"sec":"R","w":"actual","f":"","m":"실제의","e":""},{"id":843,"q":29,"sec":"R","w":"cloud","f":"","m":"클라우드","e":""},{"id":844,"q":29,"sec":"R","w":"locate","f":"located → locate","m":"위치하다","e":""},{"id":845,"q":29,"sec":"R","w":"distant","f":"","m":"먼","e":""},{"id":846,"q":29,"sec":"R","w":"machine","f":"","m":"기계","e":""},{"id":847,"q":29,"sec":"R","w":"coherent","f":"","m":"일관된","e":""},{"id":848,"q":29,"sec":"R","w":"image","f":"","m":"이미지","e":""},{"id":849,"q":29,"sec":"R","w":"whereas","f":"","m":"반면에","e":""},{"id":850,"q":29,"sec":"R","w":"consist","f":"","m":"구성되다","e":""},{"id":851,"q":29,"sec":"R","w":"almost","f":"","m":"거의","e":""},{"id":852,"q":29,"sec":"R","w":"anywhere","f":"","m":"어디에나","e":""},{"id":853,"q":30,"sec":"R","w":"developing world","f":"","m":"개발도상국 세계","e":""},{"id":854,"q":30,"sec":"R","w":"transit systems","f":"","m":"대중교통 체계","e":""},{"id":855,"q":30,"sec":"R","w":"principal","f":"","m":"주요한","e":""},{"id":856,"q":30,"sec":"R","w":"transportation","f":"","m":"교통","e":"trans(건너)+port(나르다)"},{"id":857,"q":30,"sec":"R","w":"mode","f":"","m":"방식","e":""},{"id":858,"q":30,"sec":"R","w":"developing","f":"","m":"발전 중","e":""},{"id":859,"q":30,"sec":"R","w":"constraint","f":"","m":"제약","e":""},{"id":860,"q":30,"sec":"R","w":"operate","f":"","m":"운영하다","e":"oper(일하다)"},{"id":861,"q":30,"sec":"R","w":"extensive","f":"","m":"광범위한","e":"ex(밖으로)+tens(뻗다)"},{"id":862,"q":30,"sec":"R","w":"transit","f":"","m":"운송, 대중교통","e":""},{"id":863,"q":30,"sec":"R","w":"cover","f":"","m":"(거리를) 이동하다; 덮다","e":""},{"id":864,"q":30,"sec":"R","w":"foot","f":"","m":"도보로","e":""},{"id":865,"q":30,"sec":"R","w":"expend","f":"","m":"소비하다","e":""},{"id":866,"q":30,"sec":"R","w":"human","f":"","m":"인간의","e":""},{"id":867,"q":30,"sec":"R","w":"spare","f":"","m":"여유 있는","e":""},{"id":868,"q":30,"sec":"R","w":"condition","f":"","m":"조건","e":""},{"id":869,"q":30,"sec":"R","w":"unavoidable","f":"","m":"불가피한","e":""},{"id":870,"q":30,"sec":"R","w":"burden","f":"","m":"부담","e":""},{"id":871,"q":30,"sec":"R","w":"consume","f":"","m":"소비하다","e":"con(함께)+sume(취하다)"},{"id":872,"q":30,"sec":"R","w":"productive","f":"","m":"생산적인","e":"pro(앞)+duct(이끌다)"},{"id":873,"q":30,"sec":"R","w":"capability","f":"","m":"능력","e":""},{"id":874,"q":30,"sec":"R","w":"attitude","f":"","m":"태도","e":""},{"id":875,"q":30,"sec":"R","w":"policy","f":"","m":"정책","e":""},{"id":876,"q":30,"sec":"R","w":"efficient","f":"","m":"효율적인","e":"ef(밖으로)+fic(만들다)"},{"id":877,"q":30,"sec":"R","w":"healthful","f":"","m":"건강에 좋은","e":""},{"id":878,"q":30,"sec":"R","w":"natural","f":"","m":"자연스러운","e":""},{"id":879,"q":30,"sec":"R","w":"everybody","f":"","m":"모두","e":""},{"id":880,"q":30,"sec":"R","w":"current","f":"","m":"현재의","e":""},{"id":881,"q":30,"sec":"R","w":"trend","f":"","m":"추세","e":""},{"id":882,"q":30,"sec":"R","w":"reverse","f":"reversed → reverse","m":"되돌리다","e":"re(뒤로)+verse(돌다)"},{"id":883,"q":30,"sec":"R","w":"ironically","f":"","m":"아이러니하게도","e":""},{"id":884,"q":30,"sec":"R","w":"club","f":"","m":"클럽","e":""},{"id":885,"q":30,"sec":"R","w":"treadmill","f":"","m":"러닝머신, 트레드밀","e":""},{"id":886,"q":30,"sec":"R","w":"simulate","f":"","m":"모의하다, 흉내 내다","e":"simil(비슷한)"},{"id":887,"q":30,"sec":"R","w":"accomplish","f":"accomplished → accomplish","m":"성취하다","e":"ac(~로)+complish(채우다)"},{"id":888,"q":30,"sec":"R","w":"transport","f":"","m":"수송","e":""},{"id":889,"q":30,"sec":"R","w":"purpose","f":"","m":"목적","e":""},{"id":890,"q":30,"sec":"R","w":"street","f":"","m":"거리","e":""},{"id":891,"q":31,"sec":"R","w":"play space","f":"","m":"놀이 공간","e":""},{"id":892,"q":31,"sec":"R","w":"anxiety","f":"","m":"불안","e":""},{"id":893,"q":31,"sec":"R","w":"stuff","f":"","m":"물건들","e":""},{"id":894,"q":31,"sec":"R","w":"true","f":"","m":"맞는","e":""},{"id":895,"q":31,"sec":"R","w":"house","f":"","m":"수용하다 // 집","e":""},{"id":896,"q":31,"sec":"R","w":"single","f":"","m":"단 하나의","e":""},{"id":897,"q":31,"sec":"R","w":"toy","f":"","m":"장난감","e":""},{"id":898,"q":31,"sec":"R","w":"ever","f":"","m":"지금까지","e":""},{"id":899,"q":31,"sec":"R","w":"birth","f":"","m":"출생","e":""},{"id":900,"q":31,"sec":"R","w":"express","f":"","m":"표현하다","e":"ex(밖으로)+press(누르다)"},{"id":901,"q":31,"sec":"R","w":"feeling","f":"","m":"감정","e":""},{"id":902,"q":31,"sec":"R","w":"overwhelm","f":"overwhelmed → overwhelm","m":"압도하다","e":"over(위)+whelm(덮치다)"},{"id":903,"q":31,"sec":"R","w":"remind","f":"","m":"상기시키다","e":""},{"id":904,"q":31,"sec":"R","w":"woman","f":"women → woman","m":"여성","e":""},{"id":905,"q":31,"sec":"R","w":"closet","f":"","m":"옷장","e":""},{"id":906,"q":31,"sec":"R","w":"pack","f":"packed → pack","m":"가득 채우다","e":""},{"id":907,"q":31,"sec":"R","w":"clothes","f":"","m":"옷","e":""},{"id":908,"q":31,"sec":"R","w":"nothing","f":"","m":"아무것도 ~없다","e":""},{"id":909,"q":31,"sec":"R","w":"step","f":"","m":"밟다","e":""},{"id":910,"q":31,"sec":"R","w":"input","f":"","m":"자극, 입력","e":""},{"id":911,"q":31,"sec":"R","w":"streamline","f":"streamlining → streamline","m":"간소화하다","e":""},{"id":912,"q":31,"sec":"R","w":"imaginative","f":"","m":"상상력이 풍부한","e":""},{"id":913,"q":31,"sec":"R","w":"indecision","f":"","m":"우유부단","e":""},{"id":914,"q":31,"sec":"R","w":"revision","f":"","m":"개정, 정리","e":""},{"id":915,"q":31,"sec":"R","w":"invitation","f":"","m":"초대","e":""},{"id":916,"q":31,"sec":"R","w":"collection","f":"","m":"수집","e":"col(함께)+lect(모으다)"},{"id":917,"q":31,"sec":"R","w":"possession","f":"","m":"소유, 정리된 소유물","e":"posses(소유하다)"},{"id":918,"q":31,"sec":"R","w":"cooperation","f":"","m":"협력","e":"co(함께)+oper(일하다)"},{"id":919,"q":32,"sec":"R","w":"illusion of competence","f":"","m":"능력에 대한 착각","e":""},{"id":920,"q":32,"sec":"R","w":"deep processing","f":"","m":"심층 처리","e":""},{"id":921,"q":32,"sec":"R","w":"teacher mindset","f":"","m":"가르치는 사람의 사고방식","e":""},{"id":922,"q":32,"sec":"R","w":"cognitive bias","f":"","m":"인지 편향","e":""},{"id":923,"q":32,"sec":"R","w":"active recall","f":"","m":"능동적 인출","e":""},{"id":924,"q":32,"sec":"R","w":"often","f":"","m":"자주","e":""},{"id":925,"q":32,"sec":"R","w":"familiarity","f":"","m":"친숙함","e":"famil(가족)"},{"id":926,"q":32,"sec":"R","w":"mastery","f":"","m":"숙달, 통달","e":""},{"id":927,"q":32,"sec":"R","w":"dangerous","f":"","m":"위험한","e":""},{"id":928,"q":32,"sec":"R","w":"illusion","f":"","m":"착각, 환상","e":""},{"id":929,"q":32,"sec":"R","w":"competence","f":"","m":"능력, 역량","e":"compet(겨루다)"},{"id":930,"q":32,"sec":"R","w":"recognize","f":"recognizing → recognize","m":"인식하다","e":"re(다시)+cogn(알다)"},{"id":931,"q":32,"sec":"R","w":"information","f":"","m":"정보","e":""},{"id":932,"q":32,"sec":"R","w":"genuine","f":"","m":"진정한","e":""},{"id":933,"q":32,"sec":"R","w":"knowledge","f":"","m":"지식","e":""},{"id":934,"q":32,"sec":"R","w":"struggle","f":"","m":"어려움을 겪다","e":""},{"id":935,"q":32,"sec":"R","w":"recall","f":"","m":"회상하다","e":""},{"id":936,"q":32,"sec":"R","w":"independently","f":"","m":"독립적으로","e":"in(부정)+depend(의존)"},{"id":937,"q":32,"sec":"R","w":"cognitive","f":"","m":"인지의","e":"cogn(알다)"},{"id":938,"q":32,"sec":"R","w":"bias","f":"","m":"편향","e":""},{"id":939,"q":32,"sec":"R","w":"strengthen","f":"strengthened → strengthen","m":"강화하다","e":""},{"id":940,"q":32,"sec":"R","w":"passive","f":"","m":"수동적인","e":"pass(느끼다/겪다)"},{"id":941,"q":32,"sec":"R","w":"learner","f":"","m":"학습자","e":""},{"id":942,"q":32,"sec":"R","w":"overestimate","f":"","m":"과대평가하다","e":"over+estimate(평가)"},{"id":943,"q":32,"sec":"R","w":"informally","f":"","m":"비공식적으로","e":""},{"id":944,"q":32,"sec":"R","w":"imaginatively","f":"","m":"상상으로","e":""},{"id":945,"q":32,"sec":"R","w":"actively","f":"","m":"능동적으로","e":""},{"id":946,"q":32,"sec":"R","w":"counter","f":"","m":"대응하다, 반박하다","e":""},{"id":947,"q":32,"sec":"R","w":"deep","f":"","m":"깊이","e":""},{"id":948,"q":32,"sec":"R","w":"processing","f":"","m":"처리 중","e":""},{"id":949,"q":32,"sec":"R","w":"active","f":"","m":"활성","e":""},{"id":950,"q":32,"sec":"R","w":"structure","f":"structured → structure","m":"구조 // 구조화하다","e":""},{"id":951,"q":32,"sec":"R","w":"organization","f":"","m":"체계, 조직화","e":""},{"id":952,"q":32,"sec":"R","w":"powerful","f":"","m":"강력한","e":""},{"id":953,"q":32,"sec":"R","w":"imaginary","f":"","m":"가상의","e":""},{"id":954,"q":32,"sec":"R","w":"peer-teaching","f":"","m":"또래 가르치기","e":""},{"id":955,"q":32,"sec":"R","w":"employ","f":"employing → employ","m":"사용하다","e":""},{"id":956,"q":32,"sec":"R","w":"technique","f":"","m":"기법","e":""},{"id":957,"q":32,"sec":"R","w":"ultimately","f":"","m":"궁극적으로","e":""},{"id":958,"q":32,"sec":"R","w":"transform","f":"","m":"바꾸다","e":"trans(건너)+form(형태)"},{"id":959,"q":32,"sec":"R","w":"surface","f":"","m":"표면(적)인","e":""},{"id":960,"q":32,"sec":"R","w":"real","f":"","m":"진짜의","e":""},{"id":961,"q":32,"sec":"R","w":"expose","f":"exposing → expose","m":"드러내다","e":"ex(밖으로)+pose(놓다)"},{"id":962,"q":32,"sec":"R","w":"solid","f":"","m":"확실한","e":""},{"id":963,"q":32,"sec":"R","w":"reliable","f":"","m":"믿을 수 있는","e":"re(다시)+li(묶다)"},{"id":964,"q":32,"sec":"R","w":"mindset","f":"","m":"사고방식","e":""},{"id":965,"q":32,"sec":"R","w":"leisure","f":"","m":"여가","e":""},{"id":966,"q":32,"sec":"R","w":"activate","f":"activating → activate","m":"활성화하다","e":"act(행동)"},{"id":967,"q":32,"sec":"R","w":"support","f":"supporting → support","m":"지지하다, 지원하다","e":""},{"id":968,"q":32,"sec":"R","w":"emotional","f":"","m":"감정적인","e":""},{"id":969,"q":32,"sec":"R","w":"stability","f":"","m":"안정","e":""},{"id":970,"q":33,"sec":"R","w":"emancipated number","f":"","m":"대상과 분리된(해방된) 수","e":""},{"id":971,"q":33,"sec":"R","w":"clay tablets","f":"","m":"점토판","e":""},{"id":972,"q":33,"sec":"R","w":"official","f":"","m":"관리, 공무원","e":""},{"id":973,"q":33,"sec":"R","w":"mark","f":"","m":"표시하다","e":""},{"id":974,"q":33,"sec":"R","w":"list","f":"","m":"목록","e":""},{"id":975,"q":33,"sec":"R","w":"clay","f":"","m":"점토","e":""},{"id":976,"q":33,"sec":"R","w":"tablet","f":"","m":"판, 태블릿","e":""},{"id":977,"q":33,"sec":"R","w":"fish","f":"","m":"물고기","e":""},{"id":978,"q":33,"sec":"R","w":"intellectual","f":"","m":"지적인","e":"inter(사이)+lect(고르다)"},{"id":979,"q":33,"sec":"R","w":"leap","f":"","m":"도약","e":""},{"id":980,"q":33,"sec":"R","w":"word","f":"","m":"말","e":""},{"id":981,"q":33,"sec":"R","w":"represent","f":"","m":"나타내다","e":"re(다시)+present(제시)"},{"id":982,"q":33,"sec":"R","w":"numeral","f":"","m":"숫자(기호)","e":""},{"id":983,"q":33,"sec":"R","w":"number","f":"","m":"수","e":""},{"id":984,"q":33,"sec":"R","w":"alongside","f":"","m":"나란히","e":""},{"id":985,"q":33,"sec":"R","w":"symbol","f":"","m":"기호","e":""},{"id":986,"q":33,"sec":"R","w":"describe","f":"","m":"묘사하다","e":"de(아래로)+scribe(쓰다)"},{"id":987,"q":33,"sec":"R","w":"realize","f":"realized → realize","m":"깨닫다","e":"real(실제)+ize"},{"id":988,"q":33,"sec":"R","w":"trade","f":"","m":"바꾸다","e":""},{"id":989,"q":33,"sec":"R","w":"object","f":"","m":"물체","e":""},{"id":990,"q":33,"sec":"R","w":"cow","f":"","m":"소","e":""},{"id":991,"q":33,"sec":"R","w":"jar","f":"","m":"항아리","e":""},{"id":992,"q":33,"sec":"R","w":"oil","f":"","m":"기름","e":""},{"id":993,"q":33,"sec":"R","w":"whatever","f":"","m":"무엇이든","e":""},{"id":994,"q":33,"sec":"R","w":"developed","f":"","m":"발달시킨","e":""},{"id":995,"q":33,"sec":"R","w":"idea","f":"","m":"개념","e":""},{"id":996,"q":33,"sec":"R","w":"emancipated","f":"","m":"해방된","e":""},{"id":997,"q":33,"sec":"R","w":"exist","f":"existing → exist","m":"존재하다","e":""},{"id":998,"q":33,"sec":"R","w":"independent","f":"","m":"독립적인","e":"in(부정)+depend"},{"id":999,"q":33,"sec":"R","w":"count","f":"","m":"중요하다","e":""},{"id":1000,"q":33,"sec":"R","w":"grant","f":"granted → grant","m":"당연시하다(take for granted)","e":""},{"id":1001,"q":33,"sec":"R","w":"deeply","f":"","m":"깊이","e":""},{"id":1002,"q":33,"sec":"R","w":"modern","f":"","m":"현대의","e":""},{"id":1003,"q":33,"sec":"R","w":"civilization","f":"","m":"문명","e":""},{"id":1004,"q":33,"sec":"R","w":"intellectually","f":"","m":"지적으로","e":""},{"id":1005,"q":33,"sec":"R","w":"complex","f":"","m":"복잡한","e":""},{"id":1006,"q":33,"sec":"R","w":"quality","f":"","m":"품질","e":""},{"id":1007,"q":33,"sec":"R","w":"separate","f":"separating → separate","m":"분리하다","e":""},{"id":1008,"q":33,"sec":"R","w":"physical","f":"","m":"물리적인","e":""},{"id":1009,"q":33,"sec":"R","w":"shape","f":"","m":"형태","e":""},{"id":1010,"q":33,"sec":"R","w":"accurately","f":"","m":"정확하게","e":""},{"id":1011,"q":33,"sec":"R","w":"connect","f":"connecting → connect","m":"연결하다","e":""},{"id":1012,"q":33,"sec":"R","w":"market","f":"","m":"시장","e":""},{"id":1013,"q":33,"sec":"R","w":"value","f":"","m":"가치","e":""},{"id":1014,"q":34,"sec":"R","w":"puzzle box","f":"","m":"퍼즐 상자","e":""},{"id":1015,"q":34,"sec":"R","w":"emphasis","f":"","m":"강조","e":"em(안에)+phasis(나타나다)"},{"id":1016,"q":34,"sec":"R","w":"ingroup","f":"","m":"내집단","e":""},{"id":1017,"q":34,"sec":"R","w":"account","f":"","m":"고려 // 계정","e":""},{"id":1018,"q":34,"sec":"R","w":"amazingly","f":"","m":"놀랍게도","e":""},{"id":1019,"q":34,"sec":"R","w":"dislike","f":"","m":"싫어하다","e":""},{"id":1020,"q":34,"sec":"R","w":"copy","f":"","m":"모방하다","e":""},{"id":1021,"q":34,"sec":"R","w":"context","f":"","m":"맥락","e":""},{"id":1022,"q":34,"sec":"R","w":"observe","f":"observing → observe","m":"관찰하다","e":"ob(향해)+serve(지키다)"},{"id":1023,"q":34,"sec":"R","w":"puzzle","f":"","m":"퍼즐 // 당황하게 하다","e":""},{"id":1024,"q":34,"sec":"R","w":"outgroup","f":"","m":"외집단","e":""},{"id":1025,"q":34,"sec":"R","w":"distinguish","f":"distinguished → distinguish","m":"구별하다","e":"di(분리)+stingu(찌르다)"},{"id":1026,"q":34,"sec":"R","w":"minimal","f":"","m":"최소의","e":""},{"id":1027,"q":34,"sec":"R","w":"color","f":"","m":"색깔","e":""},{"id":1028,"q":34,"sec":"R","w":"wristband","f":"","m":"손목밴드","e":""},{"id":1029,"q":34,"sec":"R","w":"behave","f":"behaved → behave","m":"행동하다","e":""},{"id":1030,"q":34,"sec":"R","w":"antisocial","f":"","m":"반사회적인","e":""},{"id":1031,"q":34,"sec":"R","w":"fashion","f":"","m":"방식","e":""},{"id":1032,"q":34,"sec":"R","w":"indeed","f":"","m":"실제로","e":""},{"id":1033,"q":34,"sec":"R","w":"prosocial","f":"","m":"친사회적인","e":""},{"id":1034,"q":34,"sec":"R","w":"affect","f":"","m":"영향을 미치다","e":"af(~에)+fect(만들다)"},{"id":1035,"q":34,"sec":"R","w":"closely","f":"","m":"면밀히","e":""},{"id":1036,"q":34,"sec":"R","w":"overimitation","f":"","m":"과도한 모방","e":""},{"id":1037,"q":34,"sec":"R","w":"order","f":"","m":"~하기 위해; 순서","e":""},{"id":1038,"q":34,"sec":"R","w":"efficiently","f":"","m":"효율적으로","e":""},{"id":1039,"q":34,"sec":"R","w":"proper","f":"","m":"적절한","e":""},{"id":1040,"q":34,"sec":"R","w":"appropriately","f":"","m":"적절히","e":""},{"id":1041,"q":34,"sec":"R","w":"conform","f":"conforming → conform","m":"따르다, 순응하다","e":"con(함께)+form"},{"id":1042,"q":34,"sec":"R","w":"socially","f":"","m":"사회적으로","e":""},{"id":1043,"q":34,"sec":"R","w":"appropriate","f":"","m":"적절한","e":""},{"id":1044,"q":34,"sec":"R","w":"pursue","f":"pursuing → pursue","m":"추구하다","e":"pur(앞)+sue(따르다)"},{"id":1045,"q":34,"sec":"R","w":"task","f":"","m":"과제","e":""},{"id":1046,"q":34,"sec":"R","w":"identity","f":"","m":"정체성","e":"ident(같다)"},{"id":1047,"q":34,"sec":"R","w":"rather","f":"","m":"오히려","e":""},{"id":1048,"q":35,"sec":"R","w":"set point","f":"","m":"(체중 등의) 설정점","e":""},{"id":1049,"q":35,"sec":"R","w":"fat cells","f":"","m":"지방세포","e":""},{"id":1050,"q":35,"sec":"R","w":"theory","f":"","m":"이론","e":""},{"id":1051,"q":35,"sec":"R","w":"stable","f":"","m":"안정된","e":""},{"id":1052,"q":35,"sec":"R","w":"quantity","f":"","m":"양","e":"quant(얼마나)"},{"id":1053,"q":35,"sec":"R","w":"fat","f":"","m":"지방","e":""},{"id":1054,"q":35,"sec":"R","w":"cell","f":"","m":"세포","e":""},{"id":1055,"q":35,"sec":"R","w":"weight","f":"","m":"체중","e":""},{"id":1056,"q":35,"sec":"R","w":"carry","f":"carried → carry","m":"지니다","e":""},{"id":1057,"q":35,"sec":"R","w":"thin","f":"thinner → thin","m":"마른","e":""},{"id":1058,"q":35,"sec":"R","w":"gain","f":"","m":"늘다","e":""},{"id":1059,"q":35,"sec":"R","w":"trigger","f":"","m":"방아쇠, 촉발 요인","e":""},{"id":1060,"q":35,"sec":"R","w":"message","f":"","m":"신호","e":""},{"id":1061,"q":35,"sec":"R","w":"researcher","f":"","m":"연구자","e":""},{"id":1062,"q":35,"sec":"R","w":"report","f":"","m":"보고하다","e":""},{"id":1063,"q":35,"sec":"R","w":"release","f":"","m":"방출하다","e":"re(뒤로)+lease(놓다)"},{"id":1064,"q":35,"sec":"R","w":"hormone","f":"","m":"호르몬","e":""},{"id":1065,"q":35,"sec":"R","w":"chemical","f":"","m":"화학물질","e":""},{"id":1066,"q":35,"sec":"R","w":"treat","f":"","m":"치료하다","e":""},{"id":1067,"q":35,"sec":"R","w":"disease","f":"","m":"질병","e":""},{"id":1068,"q":35,"sec":"R","w":"battle","f":"","m":"싸우다","e":""},{"id":1069,"q":35,"sec":"R","w":"strong","f":"","m":"강한","e":""},{"id":1070,"q":35,"sec":"R","w":"desire","f":"","m":"갈망하다","e":"de+sire(별)"},{"id":1071,"q":36,"sec":"R","w":"less is more","f":"","m":"적을수록 좋다","e":""},{"id":1072,"q":36,"sec":"R","w":"initially","f":"","m":"처음에","e":""},{"id":1073,"q":36,"sec":"R","w":"catchphrase","f":"","m":"캐치프레이즈, 유행어","e":""},{"id":1074,"q":36,"sec":"R","w":"poem","f":"","m":"시","e":""},{"id":1075,"q":36,"sec":"R","w":"suggest","f":"","m":"시사하다","e":"sug(아래)+gest(나르다)"},{"id":1076,"q":36,"sec":"R","w":"beautiful","f":"","m":"아름다운","e":""},{"id":1077,"q":36,"sec":"R","w":"tangled","f":"","m":"얽힌","e":""},{"id":1078,"q":36,"sec":"R","w":"nowadays","f":"","m":"요즘","e":""},{"id":1079,"q":36,"sec":"R","w":"phrase","f":"","m":"구절","e":""},{"id":1080,"q":36,"sec":"R","w":"lie","f":"","m":"놓여 있다","e":""},{"id":1081,"q":36,"sec":"R","w":"slowly","f":"","m":"천천히","e":""},{"id":1082,"q":36,"sec":"R","w":"extinguish","f":"","m":"소멸시키다","e":"ex(밖으로)+stingu(끄다)"},{"id":1083,"q":36,"sec":"R","w":"certain","f":"","m":"특정한","e":""},{"id":1084,"q":36,"sec":"R","w":"daily","f":"","m":"일상의","e":""},{"id":1085,"q":36,"sec":"R","w":"example","f":"","m":"예","e":""},{"id":1086,"q":36,"sec":"R","w":"heavy","f":"","m":"무거운","e":""},{"id":1087,"q":36,"sec":"R","w":"massive","f":"","m":"거대한","e":""},{"id":1088,"q":36,"sec":"R","w":"radio","f":"","m":"라디오","e":""},{"id":1089,"q":36,"sec":"R","w":"receiver","f":"","m":"수신기","e":""},{"id":1090,"q":36,"sec":"R","w":"button","f":"","m":"버튼","e":""},{"id":1091,"q":36,"sec":"R","w":"extra","f":"","m":"여분의","e":""},{"id":1092,"q":36,"sec":"R","w":"reduction","f":"","m":"감소","e":"re+duct(이끌다)"},{"id":1093,"q":36,"sec":"R","w":"phone","f":"","m":"전화","e":""},{"id":1094,"q":36,"sec":"R","w":"pocket","f":"","m":"주머니","e":""},{"id":1095,"q":36,"sec":"R","w":"scale","f":"","m":"규모","e":""},{"id":1096,"q":36,"sec":"R","w":"function","f":"","m":"기능","e":"funct(수행하다)"},{"id":1097,"q":36,"sec":"R","w":"three-dot","f":"","m":"점 세 개(메뉴)","e":""},{"id":1098,"q":36,"sec":"R","w":"multilayered","f":"","m":"다층적인","e":""},{"id":1099,"q":37,"sec":"R","w":"plastics industry","f":"","m":"플라스틱 산업","e":""},{"id":1100,"q":37,"sec":"R","w":"american dream","f":"","m":"아메리칸 드림","e":""},{"id":1101,"q":37,"sec":"R","w":"plastics","f":"","m":"플라스틱","e":""},{"id":1102,"q":37,"sec":"R","w":"industry","f":"","m":"산업","e":""},{"id":1103,"q":37,"sec":"R","w":"root","f":"rooted → root","m":"뿌리내리다","e":""},{"id":1104,"q":37,"sec":"R","w":"plastic","f":"","m":"플라스틱","e":""},{"id":1105,"q":37,"sec":"R","w":"sustainably","f":"","m":"지속 가능하게","e":""},{"id":1106,"q":37,"sec":"R","w":"waste","f":"","m":"폐기물","e":""},{"id":1107,"q":37,"sec":"R","w":"invention","f":"","m":"발명","e":"in(안에)+vent(오다)"},{"id":1108,"q":37,"sec":"R","w":"rapid","f":"","m":"급속한","e":""},{"id":1109,"q":37,"sec":"R","w":"war","f":"","m":"전쟁","e":""},{"id":1110,"q":37,"sec":"R","w":"explosion","f":"","m":"폭발적 확산","e":""},{"id":1111,"q":37,"sec":"R","w":"consumer","f":"","m":"소비자","e":"con+sume(취하다)"},{"id":1112,"q":37,"sec":"R","w":"grow","f":"growing → grow","m":"성장하다","e":""},{"id":1113,"q":37,"sec":"R","w":"symbolize","f":"","m":"상징하다","e":""},{"id":1114,"q":37,"sec":"R","w":"convenience","f":"","m":"편의","e":"con(함께)+ven(오다)"},{"id":1115,"q":37,"sec":"R","w":"prosperity","f":"","m":"번영","e":"pro(앞)+sper(희망)"},{"id":1116,"q":37,"sec":"R","w":"dream","f":"","m":"꿈","e":""},{"id":1117,"q":37,"sec":"R","w":"notice","f":"","m":"알아차리다","e":""},{"id":1118,"q":37,"sec":"R","w":"seed","f":"","m":"씨앗","e":""},{"id":1119,"q":37,"sec":"R","w":"movement","f":"","m":"운동","e":""},{"id":1120,"q":37,"sec":"R","w":"concern","f":"","m":"우려","e":""},{"id":1121,"q":37,"sec":"R","w":"launch","f":"launching → launch","m":"시작하다, 개시하다","e":""},{"id":1122,"q":37,"sec":"R","w":"campaign","f":"","m":"캠페인","e":""},{"id":1123,"q":37,"sec":"R","w":"present","f":"presented → present","m":"제시하다","e":""},{"id":1124,"q":37,"sec":"R","w":"recycle","f":"recycling → recycle","m":"재활용하다","e":""},{"id":1125,"q":37,"sec":"R","w":"solution","f":"","m":"해결책","e":"so+lut(풀다)"},{"id":1126,"q":37,"sec":"R","w":"push","f":"pushed → push","m":"주장하다","e":""},{"id":1127,"q":37,"sec":"R","w":"pollution","f":"","m":"오염","e":""},{"id":1128,"q":37,"sec":"R","w":"fault","f":"","m":"잘못","e":""},{"id":1129,"q":37,"sec":"R","w":"corporation","f":"","m":"기업","e":"corpor(몸)"},{"id":1130,"q":37,"sec":"R","w":"flood","f":"flooding → flood","m":"휩쓸다","e":""},{"id":1131,"q":38,"sec":"R","w":"major","f":"","m":"주요한","e":""},{"id":1132,"q":38,"sec":"R","w":"progress","f":"","m":"진보","e":"pro(앞)+gress(가다)"},{"id":1133,"q":38,"sec":"R","w":"science","f":"","m":"과학","e":""},{"id":1134,"q":38,"sec":"R","w":"paradigm","f":"","m":"패러다임, 인식 틀","e":""},{"id":1135,"q":38,"sec":"R","w":"propose","f":"proposed → propose","m":"제안하다","e":"pro(앞)+pose(놓다)"},{"id":1136,"q":38,"sec":"R","w":"proposition","f":"","m":"명제, 주장","e":"pro+posit(놓다)"},{"id":1137,"q":38,"sec":"R","w":"embed","f":"embedded → embed","m":"깊이 박히다","e":"em(안에)+bed"},{"id":1138,"q":38,"sec":"R","w":"roughly","f":"","m":"대략","e":""},{"id":1139,"q":38,"sec":"R","w":"interrelated","f":"","m":"상호 관련된","e":""},{"id":1140,"q":38,"sec":"R","w":"particular","f":"","m":"특정한","e":""},{"id":1141,"q":38,"sec":"R","w":"conception","f":"","m":"개념","e":"con+cept(잡다)"},{"id":1142,"q":38,"sec":"R","w":"subject","f":"","m":"주제","e":""},{"id":1143,"q":38,"sec":"R","w":"matter","f":"","m":"대상","e":""},{"id":1144,"q":38,"sec":"R","w":"methodological","f":"","m":"방법론적인","e":""},{"id":1145,"q":38,"sec":"R","w":"scientist","f":"","m":"과학자","e":""},{"id":1146,"q":38,"sec":"R","w":"undertake","f":"","m":"착수하다","e":"under+take"},{"id":1147,"q":38,"sec":"R","w":"exacting","f":"","m":"엄밀한","e":""},{"id":1148,"q":38,"sec":"R","w":"measurement","f":"","m":"측정","e":""},{"id":1149,"q":38,"sec":"R","w":"sensible","f":"","m":"의미 있는, 타당한","e":""},{"id":1150,"q":38,"sec":"R","w":"microscope","f":"","m":"현미경","e":""},{"id":1151,"q":38,"sec":"R","w":"unless","f":"","m":"~하지 않는 한","e":""},{"id":1152,"q":38,"sec":"R","w":"nature","f":"","m":"본질","e":""},{"id":1153,"q":38,"sec":"R","w":"instrument","f":"","m":"도구","e":"in+stru(쌓다)"},{"id":1154,"q":38,"sec":"R","w":"horizontal","f":"","m":"수평의","e":""},{"id":1155,"q":38,"sec":"R","w":"shift","f":"","m":"전환","e":""},{"id":1156,"q":38,"sec":"R","w":"differently","f":"","m":"다르게","e":""},{"id":1157,"q":39,"sec":"R","w":"frost-coated","f":"","m":"서리가 앉은","e":""},{"id":1158,"q":39,"sec":"R","w":"never-ending","f":"","m":"끝없는","e":""},{"id":1159,"q":39,"sec":"R","w":"below-zero","f":"","m":"영하의","e":""},{"id":1160,"q":39,"sec":"R","w":"later","f":"","m":"나중에","e":""},{"id":1161,"q":39,"sec":"R","w":"sun","f":"","m":"태양","e":""},{"id":1162,"q":39,"sec":"R","w":"warm","f":"warmed → warm","m":"따뜻하게 하다","e":""},{"id":1163,"q":39,"sec":"R","w":"greenhouse","f":"","m":"온실","e":""},{"id":1164,"q":39,"sec":"R","w":"miraculous","f":"","m":"기적적인","e":""},{"id":1165,"q":39,"sec":"R","w":"contrast","f":"","m":"대조","e":"contra(반대)+st(서다)"},{"id":1166,"q":39,"sec":"R","w":"cold","f":"","m":"추운","e":""},{"id":1167,"q":39,"sec":"R","w":"dawn","f":"","m":"새벽","e":""},{"id":1168,"q":39,"sec":"R","w":"night","f":"","m":"밤","e":""},{"id":1169,"q":39,"sec":"R","w":"strike","f":"striking → strike","m":"인상적인","e":""},{"id":1170,"q":39,"sec":"R","w":"introduction","f":"","m":"소개","e":"intro(안으로)+duce"},{"id":1171,"q":39,"sec":"R","w":"winter","f":"","m":"겨울","e":""},{"id":1172,"q":39,"sec":"R","w":"harvest","f":"","m":"수확","e":""},{"id":1173,"q":39,"sec":"R","w":"crop","f":"","m":"작물","e":""},{"id":1174,"q":39,"sec":"R","w":"inner","f":"","m":"안쪽의","e":""},{"id":1175,"q":39,"sec":"R","w":"difficult","f":"","m":"어려운","e":""},{"id":1176,"q":39,"sec":"R","w":"sight","f":"","m":"광경","e":""},{"id":1177,"q":39,"sec":"R","w":"leaf","f":"","m":"잎","e":""},{"id":1178,"q":39,"sec":"R","w":"bleak","f":"","m":"황량한","e":""},{"id":1179,"q":39,"sec":"R","w":"enough","f":"","m":"충분히","e":""},{"id":1180,"q":39,"sec":"R","w":"convince","f":"","m":"납득시키다","e":"con(완전히)+vince(이기다)"},{"id":1181,"q":39,"sec":"R","w":"foolish","f":"","m":"어리석은","e":""},{"id":1182,"q":39,"sec":"R","w":"spaced","f":"","m":"간격이 둔","e":""},{"id":1183,"q":39,"sec":"R","w":"row","f":"","m":"줄","e":""},{"id":1184,"q":39,"sec":"R","w":"vigorous","f":"","m":"생기가 넘치는","e":"vigor(활력)"},{"id":1185,"q":39,"sec":"R","w":"healthy","f":"","m":"건강한","e":""},{"id":1186,"q":39,"sec":"R","w":"red","f":"","m":"빨간색","e":""},{"id":1187,"q":39,"sec":"R","w":"maroon","f":"","m":"적갈색","e":""},{"id":1188,"q":39,"sec":"R","w":"yellow","f":"","m":"노란색","e":""},{"id":1189,"q":39,"sec":"R","w":"bright","f":"","m":"밝은","e":""},{"id":1190,"q":39,"sec":"R","w":"dark","f":"","m":"어두운","e":""},{"id":1191,"q":39,"sec":"R","w":"soil","f":"","m":"흙","e":""},{"id":1192,"q":40,"sec":"R","w":"lightly supervised","f":"","m":"느슨히 감독받는","e":""},{"id":1193,"q":40,"sec":"R","w":"structural change","f":"","m":"구조적 변화","e":""},{"id":1194,"q":40,"sec":"R","w":"underparenting","f":"","m":"간섭을 줄인 양육","e":""},{"id":1195,"q":40,"sec":"R","w":"public spaces","f":"","m":"공공장소","e":""},{"id":1196,"q":40,"sec":"R","w":"family leave","f":"","m":"가족돌봄휴가","e":""},{"id":1197,"q":40,"sec":"R","w":"parenting","f":"","m":"양육","e":""},{"id":1198,"q":40,"sec":"R","w":"expert","f":"","m":"전문가","e":""},{"id":1199,"q":40,"sec":"R","w":"independence","f":"","m":"독립","e":"in(부정)+depend"},{"id":1200,"q":40,"sec":"R","w":"resilience","f":"","m":"회복탄력성","e":""},{"id":1201,"q":40,"sec":"R","w":"suburb","f":"","m":"교외","e":""},{"id":1202,"q":40,"sec":"R","w":"offer","f":"","m":"제공하다","e":""},{"id":1203,"q":40,"sec":"R","w":"safe","f":"","m":"안전한","e":""},{"id":1204,"q":40,"sec":"R","w":"route","f":"","m":"경로","e":""},{"id":1205,"q":40,"sec":"R","w":"mall","f":"","m":"쇼핑몰","e":""},{"id":1206,"q":40,"sec":"R","w":"kick","f":"","m":"쫓아내다","e":""},{"id":1207,"q":40,"sec":"R","w":"free","f":"","m":"자유로운","e":""},{"id":1208,"q":40,"sec":"R","w":"disappear","f":"","m":"사라지다","e":""},{"id":1209,"q":40,"sec":"R","w":"spreadsheet","f":"","m":"스프레드시트","e":""},{"id":1210,"q":40,"sec":"R","w":"activity","f":"","m":"활동","e":""},{"id":1211,"q":40,"sec":"R","w":"musts","f":"","m":"필수","e":""},{"id":1212,"q":40,"sec":"R","w":"parent","f":"","m":"부모","e":""},{"id":1213,"q":40,"sec":"R","w":"navigate","f":"","m":"헤쳐 나가다","e":"nav(배)+ig(가다)"},{"id":1214,"q":40,"sec":"R","w":"clinical","f":"","m":"임상의","e":"clinic(침대)"},{"id":1215,"q":40,"sec":"R","w":"psychologist","f":"","m":"심리학자","e":""},{"id":1216,"q":40,"sec":"R","w":"structural","f":"","m":"구조적","e":""},{"id":1217,"q":40,"sec":"R","w":"unlike","f":"","m":"좋아요 취소","e":""},{"id":1218,"q":40,"sec":"R","w":"political","f":"","m":"정치적인","e":""},{"id":1219,"q":40,"sec":"R","w":"economic","f":"","m":"경제의","e":"eco(집)"},{"id":1220,"q":40,"sec":"R","w":"government-supported","f":"","m":"정부 지원","e":""},{"id":1221,"q":40,"sec":"R","w":"childcare","f":"","m":"보육","e":""},{"id":1222,"q":40,"sec":"R","w":"populate","f":"","m":"채우다","e":""},{"id":1223,"q":40,"sec":"R","w":"tolerance","f":"","m":"관용","e":"toler(견디다)"},{"id":1224,"q":40,"sec":"R","w":"environment","f":"","m":"환경","e":""},{"id":1225,"q":40,"sec":"R","w":"lightly","f":"","m":"가볍게","e":""},{"id":1226,"q":40,"sec":"R","w":"supervise","f":"supervised → supervise","m":"감독하다","e":"super(위)+vise(보다)"},{"id":1227,"q":40,"sec":"R","w":"move","f":"","m":"움직이다","e":""},{"id":1228,"q":40,"sec":"R","w":"freely","f":"","m":"자유롭게","e":""},{"id":1229,"q":40,"sec":"R","w":"supportive","f":"","m":"지원하는","e":""},{"id":1230,"q":40,"sec":"R","w":"mild","f":"","m":"완만한","e":""},{"id":1231,"q":40,"sec":"R","w":"supervision","f":"","m":"감독","e":""},{"id":1232,"q":40,"sec":"R","w":"culture","f":"","m":"문화","e":""},{"id":1233,"q":40,"sec":"R","w":"educational","f":"","m":"교육적인","e":""},{"id":1234,"q":40,"sec":"R","w":"strict","f":"","m":"엄격한","e":""},{"id":1235,"q":40,"sec":"R","w":"competing","f":"","m":"경쟁하는","e":""},{"id":1236,"q":41,"sec":"R","w":"resign yourself","f":"","m":"체념하다","e":""},{"id":1237,"q":41,"sec":"R","w":"self-effacing","f":"","m":"자신을 내세우지 않는","e":""},{"id":1238,"q":41,"sec":"R","w":"gain purchase","f":"","m":"발판·영향력을 얻다","e":""},{"id":1239,"q":41,"sec":"R","w":"civil rights","f":"","m":"시민권","e":""},{"id":1240,"q":41,"sec":"R","w":"fair","f":"","m":"꽤; 공정한","e":""},{"id":1241,"q":41,"sec":"R","w":"terrible","f":"","m":"형편없는","e":""},{"id":1242,"q":41,"sec":"R","w":"name","f":"","m":"이름, 평판","e":""},{"id":1243,"q":41,"sec":"R","w":"prospect","f":"","m":"전망","e":"pro(앞)+spect(보다)"},{"id":1244,"q":41,"sec":"R","w":"anything","f":"","m":"무엇이든","e":""},{"id":1245,"q":41,"sec":"R","w":"unattractive","f":"","m":"매력 없는","e":""},{"id":1246,"q":41,"sec":"R","w":"specifically","f":"","m":"구체적으로","e":""},{"id":1247,"q":41,"sec":"R","w":"disturbingly","f":"","m":"불안할 정도로","e":""},{"id":1248,"q":41,"sec":"R","w":"virtue","f":"","m":"미덕","e":"virt(남자다움/덕)"},{"id":1249,"q":41,"sec":"R","w":"traditionally","f":"","m":"전통적으로","e":""},{"id":1250,"q":41,"sec":"R","w":"urge","f":"urged → urge","m":"촉구하다; 충동","e":""},{"id":1251,"q":41,"sec":"R","w":"housewife","f":"","m":"주부","e":""},{"id":1252,"q":41,"sec":"R","w":"husband","f":"","m":"남편","e":""},{"id":1253,"q":41,"sec":"R","w":"outside","f":"","m":"밖의","e":""},{"id":1254,"q":41,"sec":"R","w":"racial","f":"","m":"인종의","e":""},{"id":1255,"q":41,"sec":"R","w":"minority","f":"","m":"소수자","e":""},{"id":1256,"q":41,"sec":"R","w":"civil","f":"","m":"시민의","e":""},{"id":1257,"q":41,"sec":"R","w":"talented","f":"","m":"재능 있는","e":""},{"id":1258,"q":41,"sec":"R","w":"employee","f":"","m":"직원","e":""},{"id":1259,"q":41,"sec":"R","w":"waits","f":"","m":"대기","e":""},{"id":1260,"q":41,"sec":"R","w":"patiently","f":"","m":"참을성 있게","e":""},{"id":1261,"q":41,"sec":"R","w":"promotion","f":"","m":"승진","e":"pro+mot(움직이다)"},{"id":1262,"q":41,"sec":"R","w":"tend","f":"","m":"~하는 경향이 있다","e":""},{"id":1263,"q":41,"sec":"R","w":"ought","f":"","m":"~해야 한다","e":""},{"id":1264,"q":41,"sec":"R","w":"trumpet","f":"trumpeting → trumpet","m":"크게 알리다","e":""},{"id":1265,"q":41,"sec":"R","w":"achievement","f":"","m":"성취","e":""},{"id":1266,"q":41,"sec":"R","w":"psychologically","f":"","m":"심리적으로","e":""},{"id":1267,"q":41,"sec":"R","w":"accommodate","f":"accommodating → accommodate","m":"적응시키다, 수용하다","e":"ac+commod(맞추다)"},{"id":1268,"q":41,"sec":"R","w":"intend","f":"intended → intend","m":"의도하다","e":""},{"id":1269,"q":41,"sec":"R","w":"resign","f":"","m":"사임","e":"re(뒤로)+sign"},{"id":1270,"q":41,"sec":"R","w":"lowly","f":"","m":"낮은, 하위의","e":""},{"id":1271,"q":41,"sec":"R","w":"position","f":"","m":"지위","e":""},{"id":1272,"q":41,"sec":"R","w":"theoretical","f":"","m":"이론상의","e":""},{"id":1273,"q":41,"sec":"R","w":"society","f":"","m":"사회","e":""},{"id":1274,"q":41,"sec":"R","w":"accelerate","f":"","m":"가속하다","e":"ac+celer(빠르다)"},{"id":1275,"q":41,"sec":"R","w":"gear","f":"geared → gear","m":"(~에) 맞춰지다","e":""},{"id":1276,"q":41,"sec":"R","w":"hurry","f":"","m":"서두름","e":""},{"id":1277,"q":41,"sec":"R","w":"capacity","f":"","m":"능력","e":"cap(잡다)"},{"id":1278,"q":41,"sec":"R","w":"feed","f":"","m":"(욕구를) 채우다; 먹이다","e":""},{"id":1279,"q":41,"sec":"R","w":"derive","f":"","m":"얻다, 끌어내다","e":"de(아래로)+rive(흐름)"},{"id":1280,"q":41,"sec":"R","w":"satisfaction","f":"","m":"만족","e":"satis(충분)+fac(만들다)"},{"id":1281,"q":41,"sec":"R","w":"fulfillment","f":"","m":"충족","e":"ful(가득)+fill"},{"id":1282,"q":41,"sec":"R","w":"answer","f":"","m":"답변","e":""},{"id":1283,"q":41,"sec":"R","w":"truly","f":"","m":"진정으로","e":""},{"id":1284,"q":41,"sec":"R","w":"weakness","f":"","m":"약점","e":""},{"id":1285,"q":41,"sec":"R","w":"patient","f":"","m":"환자","e":""},{"id":1286,"q":41,"sec":"R","w":"long-term","f":"","m":"장기적인","e":""},{"id":1287,"q":43,"sec":"R","w":"sage","f":"","m":"현자","e":""},{"id":1288,"q":43,"sec":"R","w":"disciple","f":"","m":"제자","e":""},{"id":1289,"q":43,"sec":"R","w":"capital","f":"","m":"수도","e":""},{"id":1290,"q":43,"sec":"R","w":"prosperous","f":"","m":"번영하는","e":"pro+sper"},{"id":1291,"q":43,"sec":"R","w":"kingdom","f":"","m":"왕국","e":""},{"id":1292,"q":43,"sec":"R","w":"road","f":"","m":"길","e":""},{"id":1293,"q":43,"sec":"R","w":"coin","f":"","m":"동전","e":""},{"id":1294,"q":43,"sec":"R","w":"man","f":"men → man","m":"남자","e":""},{"id":1295,"q":43,"sec":"R","w":"king","f":"","m":"왕","e":""},{"id":1296,"q":43,"sec":"R","w":"slightly","f":"","m":"약간","e":""},{"id":1297,"q":43,"sec":"R","w":"rich","f":"richest → rich","m":"부유한","e":""},{"id":1298,"q":43,"sec":"R","w":"land","f":"","m":"땅","e":""},{"id":1299,"q":43,"sec":"R","w":"reply","f":"replied → reply","m":"대답하다","e":""},{"id":1300,"q":43,"sec":"R","w":"calmly","f":"","m":"침착하게","e":""},{"id":1301,"q":43,"sec":"R","w":"content","f":"","m":"만족한","e":""},{"id":1302,"q":43,"sec":"R","w":"urgent","f":"","m":"긴급한","e":""},{"id":1303,"q":43,"sec":"R","w":"palace","f":"","m":"궁전","e":""},{"id":1304,"q":43,"sec":"R","w":"satisfy","f":"satisfied → satisfy","m":"만족시키다","e":""},{"id":1305,"q":43,"sec":"R","w":"seek","f":"sought → seek","m":"추구하다","e":""},{"id":1306,"q":43,"sec":"R","w":"accompany","f":"accompanied → accompany","m":"동행하다","e":""},{"id":1307,"q":43,"sec":"R","w":"army","f":"","m":"군대","e":""},{"id":1308,"q":43,"sec":"R","w":"approach","f":"approached → approach","m":"다가가다","e":""},{"id":1309,"q":43,"sec":"R","w":"blessing","f":"","m":"축복","e":""},{"id":1310,"q":43,"sec":"R","w":"victory","f":"","m":"승리","e":""},{"id":1311,"q":43,"sec":"R","w":"previous","f":"","m":"이전의","e":""},{"id":1312,"q":43,"sec":"R","w":"conquer","f":"","m":"정복하다","e":"con(함께)+quer(구하다)"},{"id":1313,"q":43,"sec":"R","w":"contentment","f":"","m":"만족","e":"content(만족한)"},{"id":1314,"q":43,"sec":"R","w":"lesson","f":"","m":"교훈","e":""},{"id":1315,"q":43,"sec":"R","w":"invasion","f":"","m":"침략","e":"in(안으로)+vad(가다)"}]</script>
+<script>
+(function(){
+"use strict";
+var WORDS = JSON.parse(document.getElementById('WORD_DATA').textContent);
+var LS_KEY = 'gkc_vocab_2026_3_g1_v1';
+var state = loadState();
+var rangeMode = 'L';
+var selectedQs = {};
+var pool = [];
+var cardIdx = 0;
+var cardRevealed = false;
+var reverseMode = false;
+var quizMode = 'wm';
+var quizIdx = 0;
+var quizScore = 0;
+var quizWrong = [];
+var quizAnswered = false;
+var ttsOk = typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined';
+var ttsVoices = [];
+var ttsAudio = null;
+function refreshVoices(){
+  if (!ttsOk) return;
+  try { ttsVoices = speechSynthesis.getVoices() || []; } catch(e){ ttsVoices = []; }
+}
+if (ttsOk){
+  refreshVoices();
+  try {
+    if (typeof speechSynthesis.onvoiceschanged !== 'undefined') {
+      speechSynthesis.onvoiceschanged = refreshVoices;
+    }
+  } catch(e){}
+  // some browsers fire voices later
+  setTimeout(refreshVoices, 250);
+  setTimeout(refreshVoices, 1000);
+}
+function showToast(msg){
+  var t = byId('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+function pickEnVoice(){
+  refreshVoices();
+  if (!ttsVoices.length) return null;
+  var pref = null;
+  for (var i=0;i<ttsVoices.length;i++){
+    var v = ttsVoices[i];
+    var lang = (v.lang||'').toLowerCase();
+    if (lang === 'en-us' || lang.indexOf('en-us')===0) { pref = v; break; }
+  }
+  if (!pref){
+    for (var j=0;j<ttsVoices.length;j++){
+      if ((ttsVoices[j].lang||'').toLowerCase().indexOf('en')===0){ pref = ttsVoices[j]; break; }
+    }
+  }
+  return pref;
+}
+function playGoogleTts(word){
+  return new Promise(function(resolve, reject){
+    try {
+      if (ttsAudio){ try { ttsAudio.pause(); } catch(e){} ttsAudio = null; }
+      var url = 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=' + encodeURIComponent(word);
+      var a = new Audio(url);
+      ttsAudio = a;
+      var done = false;
+      var finish = function(ok, err){
+        if (done) return; done = true;
+        if (ok) resolve(); else reject(err || new Error('audio fail'));
+      };
+      a.onended = function(){ finish(true); };
+      a.onerror = function(){ finish(false, new Error('audio error')); };
+      var p = a.play();
+      if (p && typeof p.then === 'function'){
+        p.then(function(){ /* playing */ }).catch(function(err){ finish(false, err); });
+      }
+      // safety timeout
+      setTimeout(function(){ if (!done && a.readyState === 0) finish(false, new Error('timeout')); }, 4000);
+    } catch(err){ reject(err); }
+  });
+}
+function speakWord(word){
+  word = String(word || '').trim();
+  if (!word) return;
+  // Must be called synchronously from a user gesture on iOS.
+  var usedSynth = false;
+  if (ttsOk){
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(word);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      var voice = pickEnVoice();
+      if (voice) u.voice = voice;
+      var fellBack = false;
+      u.onerror = function(){
+        if (fellBack) return; fellBack = true;
+        playGoogleTts(word).catch(function(){
+          showToast('이 브라우저는 발음을 지원하지 않아요. 크롬이나 사파리로 열어 주세요.');
+        });
+      };
+      speechSynthesis.speak(u);
+      usedSynth = true;
+      // If synthesis silently no-ops (some WebViews), fall back shortly if nothing speaking
+      setTimeout(function(){
+        try {
+          if (!speechSynthesis.speaking && !speechSynthesis.pending && !fellBack){
+            fellBack = true;
+            playGoogleTts(word).catch(function(){
+              showToast('이 브라우저는 발음을 지원하지 않아요. 크롬이나 사파리로 열어 주세요.');
+            });
+          }
+        } catch(e){}
+      }, 700);
+    } catch(e){ usedSynth = false; }
+  }
+  if (!usedSynth){
+    playGoogleTts(word).catch(function(){
+      showToast('이 브라우저는 발음을 지원하지 않아요. 크롬이나 사파리로 열어 주세요.');
+    });
+  }
+}
+
+function loadState(){
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+      var o = JSON.parse(raw);
+      return {
+        known: o.known || {},
+        wrong: o.wrong || {},
+        qProg: o.qProg || {}
+      };
+    }
+  } catch(e){}
+  return { known:{}, wrong:{}, qProg:{} };
+}
+function saveState(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  refreshStats();
+}
+
+function byId(id){ return document.getElementById(id); }
+function showPanel(name){
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active', p.id === 'panel-'+name); });
+  document.querySelectorAll('.nav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-tab')===name); });
+}
+
+function qCounts(){
+  var m = {};
+  WORDS.forEach(function(w){ m[w.q] = (m[w.q]||0)+1; });
+  return m;
+}
+var QCOUNTS = qCounts();
+
+function buildQGrid(){
+  var grid = byId('qGrid');
+  grid.innerHTML = '';
+  for (var q=1; q<=45; q++){
+    if (!QCOUNTS[q]) continue;
+    var lab = document.createElement('label');
+    lab.innerHTML = '<input type="checkbox" data-q="'+q+'"><span>'+q+'</span><span class="cnt">'+QCOUNTS[q]+'</span>';
+    lab.addEventListener('click', function(ev){
+      ev.preventDefault();
+      var inp = this.querySelector('input');
+      var qq = +inp.getAttribute('data-q');
+      if (selectedQs[qq]) { delete selectedQs[qq]; this.classList.remove('on'); }
+      else { selectedQs[qq]=1; this.classList.add('on'); }
+      updateSelCount();
+    });
+    grid.appendChild(lab);
+  }
+}
+
+function syncQGridUI(){
+  byId('qGrid').querySelectorAll('label').forEach(function(lab){
+    var qq = +lab.querySelector('input').getAttribute('data-q');
+    lab.classList.toggle('on', !!selectedQs[qq]);
+  });
+}
+
+function getPool(){
+  var skipKnown = byId('optSkipKnown').checked;
+  var list = WORDS.filter(function(w){
+    if (rangeMode === 'L') { if (w.sec !== 'L') return false; }
+    else if (rangeMode === 'R') { if (w.sec !== 'R') return false; }
+    else if (rangeMode === 'A') { /* all */ }
+    else if (rangeMode === 'Q') {
+      if (!selectedQs[w.q]) return false;
+    } else if (rangeMode === 'W') {
+      if (!state.wrong[w.id]) return false;
+    }
+    if (skipKnown && state.known[w.id] && rangeMode !== 'W') return false;
+    return true;
+  });
+  return list;
+}
+
+function updateSelCount(){
+  var n = getPool().length;
+  byId('selCount').textContent = n;
+  var hint = byId('rangeHint');
+  if (rangeMode==='L') hint.innerHTML = '듣기 문항 1–17 · 선택 단어 <b id="selCount">'+n+'</b>개';
+  else if (rangeMode==='R') hint.innerHTML = '독해 문항 18–45 · 선택 단어 <b id="selCount">'+n+'</b>개';
+  else if (rangeMode==='A') hint.innerHTML = '전체 1–45 · 선택 단어 <b id="selCount">'+n+'</b>개';
+  else if (rangeMode==='Q') hint.innerHTML = '문항 선택 · 선택 단어 <b id="selCount">'+n+'</b>개';
+  else hint.innerHTML = '오답노트만 · 선택 단어 <b id="selCount">'+n+'</b>개';
+}
+
+function shuffle(arr){
+  var a = arr.slice();
+  for (var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+
+function refreshStats(){
+  var knownN = Object.keys(state.known).length;
+  var wrongN = Object.keys(state.wrong).length;
+  var pct = Math.round(knownN / WORDS.length * 100);
+  byId('statsBar').innerHTML =
+    '<span class="pill">전체 <b>'+WORDS.length+'</b></span>'+
+    '<span class="pill ok">외움 <b>'+knownN+'</b> ('+pct+'%)</span>'+
+    '<span class="pill bad">오답 <b>'+wrongN+'</b></span>';
+  renderQProg();
+  renderWrongList();
+}
+
+function renderQProg(){
+  var el = byId('qProg');
+  var html = '';
+  for (var q=1;q<=45;q++){
+    if (!QCOUNTS[q]) continue;
+    var total = QCOUNTS[q];
+    var known = 0;
+    WORDS.forEach(function(w){ if (w.q===q && state.known[w.id]) known++; });
+    var pct = Math.round(known/total*100);
+    html += '<div class="item"><span>'+q+'번</span><div class="bar"><i style="width:'+pct+'%"></i></div><span>'+known+'/'+total+'</span></div>';
+  }
+  el.innerHTML = html;
+}
+
+function wordById(id){
+  for (var i=0;i<WORDS.length;i++) if (WORDS[i].id===id) return WORDS[i];
+  return null;
+}
+
+function renderWrongList(){
+  var ids = Object.keys(state.wrong).map(Number).sort(function(a,b){return a-b;});
+  var ul = byId('wrongList');
+  var empty = byId('wrongEmpty');
+  if (!ids.length){ ul.innerHTML=''; empty.style.display='block'; }
+  else {
+    empty.style.display='none';
+    ul.innerHTML = ids.map(function(id){
+      var w = wordById(id); if(!w) return '';
+      return '<li data-id="'+id+'"><div><div class="w">'+esc(w.w)+' <span class="badge '+w.sec+'">'+(w.sec==='L'?'듣기':'독해')+' '+w.q+'</span></div>'+
+        '<div class="speak-slot"><button type="button" class="speak-btn sm" data-act="speak" data-word="'+esc(w.w)+'">🔊 발음</button></div>'+
+        '<div class="m">'+esc(w.m)+'</div></div>'+
+        '<div class="actions-r"><button type="button" class="btn sm good" data-act="mem">외움</button>'+
+        '<button type="button" class="btn sm ghost" data-act="del">삭제</button></div></li>';
+    }).join('');
+  }
+  var kids = Object.keys(state.known).map(Number).sort(function(a,b){return a-b;});
+  byId('knownCount').textContent = kids.length;
+  byId('knownList').innerHTML = kids.slice(0,200).map(function(id){
+    var w = wordById(id); if(!w) return '';
+    return '<li data-id="'+id+'"><div><div class="w">'+esc(w.w)+'</div><div class="m">'+esc(w.m)+'</div></div>'+
+      '<div class="actions-r"><button type="button" class="btn sm ghost" data-act="unk">취소</button></div></li>';
+  }).join('') + (kids.length>200?'<li class="hint">…외 '+ (kids.length-200) +'개</li>':'');
+}
+
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ---- Card ---- */
+function startCards(fromWrong){
+  if (fromWrong){ rangeMode='W'; syncRangeSeg(); }
+  reverseMode = byId('optReverse').checked;
+  pool = getPool();
+  if (byId('optShuffle').checked) pool = shuffle(pool);
+  if (!pool.length){ alert('선택한 범위에 단어가 없습니다.'); return; }
+  cardIdx = 0;
+  cardRevealed = false;
+  showPanel('card');
+  renderCard();
+}
+
+function renderCard(){
+  if (cardIdx >= pool.length){
+    byId('flashWord').textContent = '완료!';
+    byId('flashForm').textContent = '';
+    byId('flashMean').style.display='none';
+    byId('flashEty').style.display='none';
+    byId('flashHint').textContent = pool.length+'개 학습 완료';
+    byId('flashMeta').textContent = '';
+    byId('flashIdx').textContent = '';
+    byId('cardCounter').textContent = pool.length+' / '+pool.length;
+    byId('cardProg').style.width = '100%';
+    byId('btnKnow').disabled = true;
+    byId('btnDontKnow').disabled = true;
+    return;
+  }
+  byId('btnKnow').disabled = false;
+  byId('btnDontKnow').disabled = false;
+  var w = pool[cardIdx];
+  cardRevealed = false;
+  byId('flashMeta').innerHTML = '<span class="sec-'+w.sec+'">'+(w.sec==='L'?'듣기':'독해')+' '+w.q+'번</span>';
+  byId('flashIdx').textContent = '#'+w.id;
+  byId('cardCounter').textContent = (cardIdx+1)+' / '+pool.length;
+  byId('cardProg').style.width = ((cardIdx)/Math.max(pool.length,1)*100)+'%';
+  byId('flashEty').style.display='none';
+  byId('flashForm').textContent = w.f ? ('원형 활용: '+w.f) : '';
+
+  if (reverseMode){
+    byId('flashWord').textContent = w.m;
+    byId('flashMean').style.display='none';
+    byId('flashMean').textContent = w.w;
+    byId('flashEty').textContent = w.e || '';
+    byId('flashHint').textContent = '탭하여 단어 보기 · 좌우 스와이프';
+  } else {
+    byId('flashWord').textContent = w.w;
+    byId('flashMean').style.display='none';
+    byId('flashMean').textContent = w.m;
+    byId('flashEty').textContent = w.e || '';
+    byId('flashHint').textContent = '탭하여 뜻 보기 · 좌우 스와이프';
+  }
+  byId('ttsBtn').style.display = 'inline-flex';
+  byId('ttsBtn').hidden = false;
+  byId('flashCard').classList.remove('swipe-left','swipe-right');
+  if (byId('optAutoSpeak') && byId('optAutoSpeak').checked){
+    // auto: try synth; if blocked without gesture, Google audio may still work when online
+    try { speakWord(w.w); } catch(e){}
+  }
+}
+
+function revealCard(){
+  if (cardIdx >= pool.length) return;
+  cardRevealed = true;
+  byId('flashMean').style.display='block';
+  var w = pool[cardIdx];
+  if (w.e) byId('flashEty').style.display='block';
+  byId('flashHint').textContent = '';
+}
+
+function markCard(know){
+  if (cardIdx >= pool.length) return;
+  var w = pool[cardIdx];
+  if (know){
+    state.known[w.id] = 1;
+    delete state.wrong[w.id];
+  } else {
+    state.wrong[w.id] = 1;
+    delete state.known[w.id];
+  }
+  saveState();
+  cardIdx++;
+  cardRevealed = false;
+  renderCard();
+}
+
+function speakCurrent(){
+  if (cardIdx >= pool.length) return;
+  speakWord(pool[cardIdx].w);
+}
+
+/* swipe */
+(function(){
+  var el = byId('flashWrap');
+  var sx=0, sy=0, dx=0, active=false;
+  el.addEventListener('touchstart', function(e){
+    if (!e.changedTouches[0]) return;
+    active=true; sx=e.changedTouches[0].clientX; sy=e.changedTouches[0].clientY; dx=0;
+  }, {passive:true});
+  el.addEventListener('touchmove', function(e){
+    if (!active) return;
+    dx = e.changedTouches[0].clientX - sx;
+    var dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx)>20){
+      byId('flashCard').classList.toggle('swipe-right', dx>40);
+      byId('flashCard').classList.toggle('swipe-left', dx<-40);
+    }
+  }, {passive:true});
+  el.addEventListener('touchend', function(e){
+    if (!active) return;
+    active=false;
+    var dy = e.changedTouches[0].clientY - sy;
+    byId('flashCard').classList.remove('swipe-left','swipe-right');
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)){
+      if (dx > 0) markCard(true); else markCard(false);
+    }
+    dx=0;
+  });
+})();
+
+byId('flashCard').addEventListener('click', function(e){
+  if (e.target.closest && (e.target.closest('#ttsBtn') || e.target.closest('.speak-btn'))) return;
+  if (!cardRevealed) revealCard();
+});
+byId('ttsBtn').addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); speakCurrent(); });
+byId('btnKnow').addEventListener('click', function(){ markCard(true); });
+byId('btnDontKnow').addEventListener('click', function(){ markCard(false); });
+byId('btnCardHome').addEventListener('click', function(){ showPanel('home'); updateSelCount(); });
+
+/* ---- Quiz ---- */
+function startQuiz(){
+  pool = getPool();
+  if (byId('optShuffle').checked) pool = shuffle(pool);
+  if (pool.length < 4){ alert('테스트에는 단어가 4개 이상 필요합니다.'); return; }
+  // cap quiz length for usability
+  if (pool.length > 40) pool = pool.slice(0, 40);
+  quizIdx = 0; quizScore = 0; quizWrong = []; quizAnswered = false;
+  byId('quizCard').style.display='block';
+  byId('quizResult').style.display='none';
+  byId('quizModeSeg').style.display='flex';
+  showPanel('quiz');
+  renderQuiz();
+}
+
+function distractors(correct, mode){
+  var others = WORDS.filter(function(w){ return w.id !== correct.id && w.m && w.m !== correct.m; });
+  others = shuffle(others);
+  var out = [];
+  var seen = {};
+  for (var i=0;i<others.length && out.length<3;i++){
+    var key = mode==='wm' ? others[i].m : others[i].w;
+    if (seen[key]) continue;
+    if (mode==='wm' && key === correct.m) continue;
+    if (mode==='mw' && key === correct.w) continue;
+    seen[key]=1;
+    out.push(others[i]);
+  }
+  return out;
+}
+
+function renderQuiz(){
+  if (quizIdx >= pool.length){
+    showQuizResult();
+    return;
+  }
+  quizAnswered = false;
+  var w = pool[quizIdx];
+  byId('quizCounter').textContent = (quizIdx+1)+' / '+pool.length;
+  byId('quizProg').style.width = (quizIdx/pool.length*100)+'%';
+  var choices, prompt, sub;
+  if (quizMode === 'wm'){
+    prompt = w.w;
+    sub = '알맞은 뜻을 고르세요';
+    choices = distractors(w,'wm').map(function(x){ return {label:x.m, ok:false, id:x.id}; });
+    choices.push({label:w.m, ok:true, id:w.id});
+  } else {
+    prompt = w.m;
+    sub = '알맞은 영어 단어를 고르세요';
+    choices = distractors(w,'mw').map(function(x){ return {label:x.w, ok:false, id:x.id}; });
+    choices.push({label:w.w, ok:true, id:w.id});
+  }
+  choices = shuffle(choices);
+  byId('quizQ').textContent = prompt;
+  byId('quizSub').textContent = sub;
+  var box = byId('quizChoices');
+  box.innerHTML = '';
+  choices.forEach(function(c){
+    var b = document.createElement('button');
+    b.type='button';
+    b.textContent = c.label;
+    b.addEventListener('click', function(){
+      if (quizAnswered) return;
+      quizAnswered = true;
+      var buttons = box.querySelectorAll('button');
+      buttons.forEach(function(bb){ bb.disabled = true; });
+      if (c.ok){
+        b.classList.add('correct');
+        quizScore++;
+        // soft progress
+      } else {
+        b.classList.add('wrong');
+        buttons.forEach(function(bb){
+          if (bb.textContent === (quizMode==='wm'?w.m:w.w)) bb.classList.add('correct');
+          else if (bb !== b) bb.classList.add('dim');
+        });
+        quizWrong.push(w);
+        state.wrong[w.id] = 1;
+        delete state.known[w.id];
+        saveState();
+      }
+      setTimeout(function(){ quizIdx++; renderQuiz(); }, c.ok ? 450 : 900);
+    });
+    box.appendChild(b);
+  });
+}
+
+function showQuizResult(){
+  byId('quizCard').style.display='none';
+  byId('quizResult').style.display='block';
+  byId('quizModeSeg').style.display='none';
+  byId('quizProg').style.width='100%';
+  byId('quizCounter').textContent = pool.length+' / '+pool.length;
+  var pct = Math.round(quizScore/pool.length*100);
+  byId('resultScore').innerHTML = quizScore+'<span> / '+pool.length+' ('+pct+'%)</span>';
+  byId('resultMsg').textContent = pct>=80 ? '훌륭해요!' : pct>=50 ? '조금 더 복습해 봐요.' : '오답노트에서 다시 학습해 보세요.';
+  var wrap = byId('wrongListWrap');
+  if (!quizWrong.length){ wrap.innerHTML = '<p class="hint" style="text-align:center">틀린 문제 없음 🎉</p>'; }
+  else {
+    wrap.innerHTML = '<h2 style="font-size:.9rem;margin:14px 0 6px">틀린 단어</h2><ul class="list">'+
+      quizWrong.map(function(w){
+        return '<li><div><div class="w">'+esc(w.w)+'</div><div class="speak-slot"><button type="button" class="speak-btn sm" data-act="speak" data-word="'+esc(w.w)+'">🔊 발음</button></div><div class="m">'+esc(w.m)+'</div></div></li>';
+      }).join('')+'</ul>';
+  }
+}
+
+/* ---- Search ---- */
+var searchTimer=null;
+byId('searchInput').addEventListener('input', function(){
+  clearTimeout(searchTimer);
+  var q = this.value.trim().toLowerCase();
+  searchTimer = setTimeout(function(){
+    var box = byId('searchResults');
+    if (!q){ box.innerHTML=''; return; }
+    var hits = [];
+    for (var i=0;i<WORDS.length && hits.length<30;i++){
+      var w = WORDS[i];
+      if (w.w.toLowerCase().indexOf(q)>=0 || w.m.indexOf(q)>=0 || String(w.q)===q)
+        hits.push(w);
+    }
+    if (!hits.length){ box.innerHTML='<p class="hint">결과 없음</p>'; return; }
+    box.innerHTML = '<ul class="list">'+hits.map(function(w){
+      return '<li><div><div class="w">'+esc(w.w)+' <span class="badge '+w.sec+'">'+(w.sec==='L'?'듣기':'독해')+' '+w.q+'</span></div>'+
+        '<div class="speak-slot"><button type="button" class="speak-btn sm" data-act="speak" data-word="'+esc(w.w)+'">🔊 발음</button></div>'+
+        '<div class="m">'+esc(w.m)+(w.e?' · <span style="color:var(--bad)">'+esc(w.e)+'</span>':'')+'</div></div></li>';
+    }).join('')+'</ul>';
+  }, 120);
+});
+
+/* ---- Nav / UI ---- */
+document.querySelectorAll('.nav button').forEach(function(b){
+  b.addEventListener('click', function(){
+    var t = this.getAttribute('data-tab');
+    if (t==='card' && !pool.length){ startCards(false); return; }
+    if (t==='quiz'){ if (byId('quizResult').style.display==='block' || byId('quizCard').style.display!=='none'){ showPanel('quiz'); return; } startQuiz(); return; }
+    if (t==='wrong'){ renderWrongList(); }
+    showPanel(t);
+    if (t==='home') updateSelCount();
+  });
+});
+
+function syncRangeSeg(){
+  byId('rangeSeg').querySelectorAll('button').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-r')===rangeMode);
+  });
+  byId('qSelectWrap').style.display = rangeMode==='Q' ? 'block' : 'none';
+}
+
+byId('rangeSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  rangeMode = b.getAttribute('data-r');
+  syncRangeSeg();
+  updateSelCount();
+});
+
+byId('selListen').addEventListener('click', function(){
+  selectedQs={}; for(var q=1;q<=17;q++) if(QCOUNTS[q]) selectedQs[q]=1;
+  syncQGridUI(); updateSelCount();
+});
+byId('selRead').addEventListener('click', function(){
+  selectedQs={}; for(var q=18;q<=45;q++) if(QCOUNTS[q]) selectedQs[q]=1;
+  syncQGridUI(); updateSelCount();
+});
+byId('selClear').addEventListener('click', function(){ selectedQs={}; syncQGridUI(); updateSelCount(); });
+
+byId('btnStartCard').addEventListener('click', function(){ startCards(false); });
+byId('btnStartQuiz').addEventListener('click', function(){ startQuiz(); });
+byId('btnQuizHome').addEventListener('click', function(){ showPanel('home'); updateSelCount(); });
+byId('btnQuizRetry').addEventListener('click', function(){ startQuiz(); });
+byId('btnQuizToWrong').addEventListener('click', function(){ showPanel('wrong'); renderWrongList(); });
+byId('quizResult').addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-act="speak"]'); if(!btn) return;
+  e.preventDefault(); speakWord(btn.getAttribute('data-word')||'');
+});
+
+byId('quizModeSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  quizMode = b.getAttribute('data-m');
+  byId('quizModeSeg').querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x===b); });
+  // restart current quiz with new mode from beginning of same pool snapshot? keep index
+  if (byId('quizResult').style.display==='block') return;
+  // re-render current question
+  quizAnswered=false;
+  renderQuiz();
+});
+
+byId('btnStudyWrong').addEventListener('click', function(){ startCards(true); });
+byId('btnClearWrong').addEventListener('click', function(){
+  if (!confirm('오답노트를 모두 지울까요?')) return;
+  state.wrong = {}; saveState();
+});
+byId('btnClearKnown').addEventListener('click', function(){
+  if (!confirm('외운 표시를 모두 지울까요?')) return;
+  state.known = {}; saveState();
+});
+
+byId('wrongList').addEventListener('click', function(e){
+  var btn = e.target.closest('button'); if(!btn) return;
+  var act = btn.getAttribute('data-act');
+  if (act==='speak'){ e.preventDefault(); e.stopPropagation(); speakWord(btn.getAttribute('data-word')||''); return; }
+  var li = btn.closest('li'); if(!li) return;
+  var id = +li.getAttribute('data-id');
+  if (act==='mem'){ state.known[id]=1; delete state.wrong[id]; saveState(); }
+  else if (act==='del'){ delete state.wrong[id]; saveState(); }
+});
+byId('searchResults').addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-act="speak"]'); if(!btn) return;
+  e.preventDefault(); e.stopPropagation();
+  speakWord(btn.getAttribute('data-word')||'');
+});
+byId('knownList').addEventListener('click', function(e){
+  var btn = e.target.closest('button'); if(!btn) return;
+  var li = btn.closest('li'); if(!li) return;
+  var id = +li.getAttribute('data-id');
+  if (btn.getAttribute('data-act')==='unk'){ delete state.known[id]; saveState(); }
+});
+
+buildQGrid();
+updateSelCount();
+refreshStats();
+
+// expose for tests
+window.__VOCAB_APP__ = {
+  WORDS: WORDS,
+  getState: function(){ return state; },
+  getPool: getPool,
+  startCards: startCards,
+  startQuiz: startQuiz,
+  markCard: markCard,
+  revealCard: revealCard,
+  speakWord: speakWord,
+  speakCurrent: speakCurrent,
+  rangeMode: function(m){ if(m!==undefined){ rangeMode=m; syncRangeSeg(); updateSelCount(); } return rangeMode; },
+  counts: function(){
+    var L=0,R=0; WORDS.forEach(function(w){ if(w.sec==='L')L++; else R++; });
+    return {total:WORDS.length, listen:L, read:R};
+  }
+};
+})();
+</script>
+</body>
+</html>

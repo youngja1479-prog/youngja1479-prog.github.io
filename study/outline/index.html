@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>GKC 학습노트 — 목차·세부목차·세부내용</title>
+<style>
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --border: #e2e5ea;
+  --text: #1a1d23;
+  --text2: #5c6370;
+  --text3: #8b919c;
+  --accent: #3b6cf0;
+  --accent-soft: #e8effe;
+  --danger: #e5484d;
+  --danger-soft: #fdecec;
+  --ok: #2a9d6a;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  --radius: 12px;
+  --toolbar-h: 52px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; color: inherit; }
+button:disabled { opacity: .4; cursor: not-allowed; }
+.hidden { display: none !important; }
+
+/* ===== App Shell ===== */
+#app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+
+/* Top bar */
+.topbar {
+  display: flex; align-items: center; gap: 8px;
+  height: var(--toolbar-h); padding: 0 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; z-index: 20;
+}
+.topbar h1 { font-size: 16px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .crumb { font-size: 13px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--text2); flex-shrink: 0;
+}
+.icon-btn:hover, .icon-btn:focus-visible { background: var(--surface2); color: var(--text); }
+.icon-btn.active { background: var(--accent-soft); color: var(--accent); }
+.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.btn {
+  height: 36px; padding: 0 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface2); color: var(--text);
+}
+.btn:hover { filter: brightness(.97); }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.ghost { background: transparent; border: 1px solid var(--border); }
+.btn.danger { background: var(--danger-soft); color: var(--danger); }
+.btn.sm { height: 30px; padding: 0 10px; font-size: 12px; }
+
+/* Views */
+.view { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.view-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; padding: 16px; padding-bottom: calc(16px + var(--safe-b)); }
+
+/* ===== Home / Notebooks ===== */
+.hero {
+  background: linear-gradient(135deg, #3b6cf0 0%, #6b4de6 100%);
+  color: #fff; border-radius: var(--radius); padding: 20px 18px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.hero p { font-size: 13px; opacity: .9; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.nb-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow); cursor: pointer;
+  display: flex; flex-direction: column; gap: 8px; transition: transform .12s, box-shadow .12s;
+  position: relative; text-align: left;
+}
+.nb-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.nb-card .nb-icon { font-size: 28px; }
+.nb-card .nb-title { font-size: 15px; font-weight: 700; word-break: break-word; }
+.nb-card .nb-meta { font-size: 12px; color: var(--text3); }
+.nb-card .nb-type {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; width: fit-content;
+}
+.nb-card .nb-type.thought { background: #fff3e0; color: #c45c00; }
+.nb-card .nb-type.concept { background: #e8f5e9; color: #2e7d32; }
+.nb-card .nb-actions {
+  position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; opacity: 0; transition: opacity .15s;
+}
+.nb-card:hover .nb-actions, .nb-card:focus-within .nb-actions { opacity: 1; }
+@media (hover: none) { .nb-card .nb-actions { opacity: 1; } }
+.add-card {
+  border: 2px dashed var(--border); background: transparent; box-shadow: none;
+  align-items: center; justify-content: center; color: var(--text3); min-height: 120px;
+}
+.add-card:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ===== List (목차 / 세부목차) ===== */
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; gap: 8px; flex-wrap: wrap;
+}
+.section-head h2 { font-size: 18px; font-weight: 700; }
+.type-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+}
+.type-badge.thought { background: #fff3e0; color: #c45c00; }
+.type-badge.concept { background: #e8f5e9; color: #2e7d32; }
+
+.item-list { display: flex; flex-direction: column; gap: 8px; }
+.item-row {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow); cursor: pointer; transition: background .1s;
+}
+.item-row:hover { background: #fafbfd; }
+.item-row .drag-handle {
+  color: var(--text3); cursor: grab; font-size: 16px; padding: 4px; touch-action: none;
+  user-select: none;
+}
+.item-row .item-num {
+  width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.item-row .item-body { flex: 1; min-width: 0; }
+.item-row .item-title { font-size: 15px; font-weight: 600; word-break: break-word; }
+.item-row .item-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.item-row .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.item-row.dragging { opacity: .5; }
+.item-row.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+
+.empty-state {
+  text-align: center; padding: 48px 20px; color: var(--text3);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+
+/* ===== Tree / Overview ===== */
+.tree-list { display: flex; flex-direction: column; gap: 4px; }
+.tree-mok {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 8px;
+}
+.tree-mok-head {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  cursor: pointer; font-weight: 700; font-size: 15px;
+  background: var(--surface2);
+}
+.tree-mok-head:hover { background: #e8eaed; }
+.tree-sebu {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px 10px 40px;
+  border-top: 1px solid var(--border); cursor: pointer; font-size: 14px;
+}
+.tree-sebu:hover { background: var(--accent-soft); }
+.tree-sebu .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+/* ===== Drawing Page ===== */
+#view-draw { background: #e8e4dc; }
+.draw-toolbar {
+  display: flex; align-items: center; gap: 4px; padding: 6px 8px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  overflow-x: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.draw-toolbar::-webkit-scrollbar { display: none; }
+.tool-group {
+  display: flex; align-items: center; gap: 2px; padding: 0 4px;
+  border-right: 1px solid var(--border); flex-shrink: 0;
+}
+.tool-group:last-child { border-right: none; }
+.tool-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+  color: var(--text2); position: relative;
+}
+.tool-btn:hover { background: var(--surface2); }
+.tool-btn.active { background: var(--accent-soft); color: var(--accent); }
+.tool-btn .swatch {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent;
+}
+.tool-btn.active .swatch { border-color: var(--accent); box-shadow: 0 0 0 2px #fff inset; }
+.swatch.black { background: #1a1a1a; }
+.swatch.blue { background: #2563eb; }
+.swatch.red { background: #dc2626; }
+.swatch.hl { background: #fef08a; border: 1px solid #eab308 !important; }
+.thickness-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.thickness-btn span {
+  display: block; border-radius: 50%; background: currentColor;
+}
+.thickness-btn.active { background: var(--accent-soft); color: var(--accent); }
+.canvas-wrap {
+  flex: 1; overflow: auto; -webkit-overflow-scrolling: touch;
+  position: relative; touch-action: pan-y pan-x;
+}
+.canvas-wrap.pen-only { touch-action: pan-y pan-x; }
+.canvas-wrap.drawing { touch-action: none; overflow: hidden; }
+#drawCanvas {
+  display: block; touch-action: none; cursor: crosshair;
+  background: transparent;
+}
+.guide-label {
+  position: absolute; left: 24px; padding: 2px 0;
+  border-bottom: 1px dashed rgba(0,0,0,.08); width: calc(100% - 48px);
+}
+
+/* ===== Text boxes (자판 mode) ===== */
+.mode-toggle {
+  display: flex; align-items: center; background: var(--surface2);
+  border-radius: 10px; padding: 2px; gap: 2px; flex-shrink: 0;
+}
+.mode-toggle button {
+  height: 32px; padding: 0 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: var(--text2);
+}
+.mode-toggle button.active {
+  background: var(--accent); color: #fff;
+}
+#page-stage {
+  position: relative;
+  margin: 0 auto;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  background: #fffef8;
+}
+#bgCanvas, #drawCanvas {
+  display: block;
+  margin: 0;
+  box-shadow: none;
+  position: absolute;
+  top: 0; left: 0;
+}
+#bgCanvas { z-index: 0; pointer-events: none; }
+#drawCanvas {
+  z-index: 1;
+  touch-action: none;
+  cursor: crosshair;
+  background: transparent;
+}
+.guide-overlay {
+  position: absolute; top: 0; left: 0;
+  transform: none;
+  pointer-events: none; z-index: 1;
+  color: rgba(0,0,0,.12); font-size: 13px; font-weight: 600;
+}
+#text-layer {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2; pointer-events: none;
+}
+#text-layer.kb-active { pointer-events: auto; cursor: default; }
+#btn-add-text { display: none; height: 32px; padding: 0 12px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; background: var(--accent); color: #fff; white-space: nowrap; }
+#btn-add-text.visible { display: inline-flex; align-items: center; }
+.canvas-wrap.kb-mode #drawCanvas { cursor: default; }
+.text-box {
+  position: absolute;
+  min-width: 120px; min-height: 36px;
+  background: rgba(255,255,255,.72);
+  border: 1.5px solid rgba(59,108,240,.35);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  pointer-events: auto;
+  display: flex; flex-direction: column;
+  z-index: 3;
+}
+.text-box.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.text-box .tb-bar {
+  display: none; align-items: center; gap: 4px;
+  padding: 2px 4px; background: rgba(59,108,240,.08);
+  border-bottom: 1px solid rgba(59,108,240,.15);
+  cursor: grab; user-select: none; touch-action: none;
+}
+#text-layer.kb-active .text-box .tb-bar { display: flex; }
+.text-box .tb-bar .tb-drag { flex: 1; font-size: 11px; color: var(--text3); padding-left: 4px; }
+.text-box .tb-bar button {
+  width: 24px; height: 24px; border-radius: 6px; font-size: 12px;
+  display: flex; align-items: center; justify-content: center; color: var(--text2);
+}
+.text-box .tb-bar button:hover { background: var(--danger-soft); color: var(--danger); }
+.text-box textarea {
+  flex: 1; width: 100%; min-height: 32px; border: none; outline: none;
+  background: transparent; resize: both; padding: 6px 8px;
+  font-size: 15px; line-height: 1.45; font-family: var(--font);
+  color: var(--text); overflow: auto;
+}
+#text-layer:not(.kb-active) .text-box {
+  border-color: transparent; background: transparent; box-shadow: none;
+}
+#text-layer:not(.kb-active) .text-box textarea { resize: none; pointer-events: none; }
+.canvas-wrap.kb-mode #drawCanvas { cursor: default; pointer-events: none; }
+@media print {
+  .text-box { border: none !important; background: transparent !important; box-shadow: none !important; }
+  .text-box .tb-bar { display: none !important; }
+  .text-box textarea { resize: none !important; }
+}
+
+
+/* ===== Modals ===== */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0; animation: fadeIn .15s;
+}
+@media (min-width: 560px) {
+  .modal-backdrop { align-items: center; padding: 20px; }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--surface); border-radius: 16px 16px 0 0;
+  width: 100%; max-width: 420px; max-height: 85vh; overflow: auto;
+  padding: 20px; padding-bottom: calc(20px + var(--safe-b));
+  animation: slideUp .2s;
+}
+@media (min-width: 560px) {
+  .modal { border-radius: 16px; }
+}
+@keyframes slideUp { from { transform: translateY(40px); } to { transform: translateY(0); } }
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.modal label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.modal .field { margin-bottom: 14px; }
+.modal input[type=text], .modal textarea, .modal select {
+  width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 15px; background: var(--bg); outline: none;
+}
+.modal input:focus, .modal textarea:focus, .modal select:focus { border-color: var(--accent); }
+.modal textarea { height: auto; min-height: 80px; padding: 10px 12px; resize: vertical; }
+.type-picker { display: flex; gap: 8px; }
+.type-opt {
+  flex: 1; padding: 14px 10px; border: 2px solid var(--border); border-radius: 12px;
+  text-align: center; cursor: pointer; transition: all .15s;
+}
+.type-opt:hover { border-color: var(--accent); }
+.type-opt.selected { border-color: var(--accent); background: var(--accent-soft); }
+.type-opt .to-icon { font-size: 28px; margin-bottom: 6px; }
+.type-opt .to-title { font-size: 14px; font-weight: 700; }
+.type-opt .to-desc { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.3; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.hw-title-wrap {
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  background: #fffef8; margin-top: 6px;
+}
+.hw-title-wrap canvas { display: block; width: 100%; touch-action: none; cursor: crosshair; }
+.hw-title-bar { display: flex; gap: 4px; padding: 6px; background: var(--surface2); border-top: 1px solid var(--border); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: calc(24px + var(--safe-b)); left: 50%; transform: translateX(-50%);
+  background: #1a1d23; color: #fff; padding: 10px 18px; border-radius: 24px;
+  font-size: 13px; font-weight: 500; z-index: 200; opacity: 0; pointer-events: none;
+  transition: opacity .2s; white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+}
+.toast.show { opacity: 1; }
+
+/* Context menu */
+.ctx-menu {
+  position: fixed; z-index: 150; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; min-width: 160px;
+}
+.ctx-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px;
+  border-radius: 8px; font-size: 14px; text-align: left;
+}
+.ctx-menu button:hover { background: var(--surface2); }
+.ctx-menu button.danger { color: var(--danger); }
+
+/* Print */
+@media print {
+  .topbar, .draw-toolbar, .modal-backdrop, .toast, .ctx-menu, .mode-toggle { display: none !important; }
+  #app, .view, .canvas-wrap { overflow: visible !important; height: auto !important; }
+  #drawCanvas, #page-stage { box-shadow: none !important; }
+  .text-box .tb-bar { display: none !important; }
+}
+
+/* Landscape tweaks */
+@media (orientation: landscape) and (max-height: 500px) {
+  .topbar { height: 44px; }
+  .draw-toolbar { padding: 4px 6px; }
+  .tool-btn, .thickness-btn { width: 32px; height: 32px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HOME -->
+  <div id="view-home" class="view">
+    <div class="topbar">
+      <h1>📚 GKC 학습노트</h1>
+      <button class="icon-btn" id="btn-import" title="가져오기">📥</button>
+      <button class="icon-btn" id="btn-export" title="백업 내보내기">📤</button>
+      <input type="file" id="import-file" accept="application/json,.json" class="hidden">
+    </div>
+    <div class="view-body">
+      <div class="hero">
+        <h2>목차 → 세부목차 → 세부내용</h2>
+        <p>손으로 쓰는 학습 노트. 사고 과정과 개념 정리를 체계적으로 정리하세요.</p>
+      </div>
+      <div class="section-head">
+        <h2>내 노트</h2>
+        <button class="btn primary" id="btn-new-nb">＋ 새 노트</button>
+      </div>
+      <div id="nb-grid" class="card-grid"></div>
+    </div>
+  </div>
+
+  <!-- MOKCHA LIST -->
+  <div id="view-mokcha" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-home" title="뒤로">←</button>
+      <div class="crumb" id="mokcha-crumb"></div>
+      <button class="icon-btn" id="btn-tree-view" title="목차 한눈에">🗂</button>
+      <button class="btn primary sm" id="btn-new-mok">＋ 목차</button>
+    </div>
+    <div class="view-body">
+      <div class="section-head">
+        <h2 id="mokcha-heading">목차</h2>
+        <span class="type-badge" id="mokcha-type-badge"></span>
+      </div>
+      <div id="mokcha-list" class="item-list"></div>
+    </div>
+  </div>
+
+  <!-- SEBU MOKCHA LIST -->
+  <div id="view-sebu" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-mok" title="뒤로">←</button>
+      <div class="crumb" id="sebu-crumb"></div>
+      <button class="btn primary sm" id="btn-new-sebu">＋ 세부목차</button>
+    </div>
+    <div class="view-body">
+      <div class="section-head">
+        <h2 id="sebu-heading">세부목차</h2>
+      </div>
+      <div id="sebu-list" class="item-list"></div>
+    </div>
+  </div>
+
+  <!-- TREE OVERVIEW -->
+  <div id="view-tree" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-tree" title="뒤로">←</button>
+      <h1>목차 한눈에 보기</h1>
+    </div>
+    <div class="view-body">
+      <div id="tree-content" class="tree-list"></div>
+    </div>
+  </div>
+
+  <!-- DRAW PAGE -->
+  <div id="view-draw" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-draw" title="뒤로">←</button>
+      <div class="crumb" id="draw-crumb"></div>
+      <div class="mode-toggle" id="mode-toggle" title="입력 모드">
+        <button type="button" id="btn-mode-pen" class="active">🖊 펜</button>
+        <button type="button" id="btn-mode-kb">⌨️ 자판</button>
+      </div>
+      <button class="icon-btn" id="btn-export-png" title="PNG 저장">🖼</button>
+      <button class="icon-btn" id="btn-print" title="인쇄">🖨</button>
+    </div>
+    <div class="draw-toolbar" id="draw-toolbar">
+      <div class="tool-group">
+        <button class="tool-btn active" data-tool="pen" data-color="#1a1a1a" title="검정 펜"><span class="swatch black"></span></button>
+        <button class="tool-btn" data-tool="pen" data-color="#2563eb" title="파란 펜"><span class="swatch blue"></span></button>
+        <button class="tool-btn" data-tool="pen" data-color="#dc2626" title="빨간 펜"><span class="swatch red"></span></button>
+        <button class="tool-btn" data-tool="highlighter" data-color="#fef08a" title="형광펜"><span class="swatch hl"></span></button>
+        <button class="tool-btn" data-tool="eraser" title="지우개">🧽 지우개</button>
+      </div>
+      <div class="tool-group">
+        <button class="thickness-btn active" data-w="1.5" title="얇게"><span style="width:4px;height:4px"></span></button>
+        <button class="thickness-btn" data-w="3" title="보통"><span style="width:8px;height:8px"></span></button>
+        <button class="thickness-btn" data-w="6" title="굵게"><span style="width:12px;height:12px"></span></button>
+        <button class="thickness-btn" data-w="12" title="아주 굵게"><span style="width:16px;height:16px"></span></button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" id="btn-undo" title="실행취소">↩</button>
+        <button class="tool-btn" id="btn-redo" title="다시실행">↪</button>
+        <button class="tool-btn" id="btn-clear" title="전체 지우기">🗑</button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn active" id="btn-bg-lined" title="줄노트">≡</button>
+        <button class="tool-btn" id="btn-bg-grid" title="격자">▦</button>
+        <button class="tool-btn" id="btn-bg-blank" title="무지">□</button>
+      </div>
+      <div class="tool-group">
+        <button class="tool-btn" id="btn-pen-only" title="펜만 쓰기 (손바닥 무시)">✏</button>
+        <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
+        <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
+      </div>
+      <div class="tool-group" id="kb-actions">
+        <button type="button" id="btn-add-text" title="텍스트 상자 만들기">＋ 생성하기</button>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <div id="page-stage">
+        <canvas id="bgCanvas" aria-hidden="true"></canvas>
+        <canvas id="drawCanvas"></canvas>
+        <div class="guide-overlay hidden" id="guide-overlay"></div>
+        <div id="text-layer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="modal-root"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ========== Utils ========== */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ========== Storage (IndexedDB + localStorage fallback) ========== */
+const DB_NAME = 'gkc-study-notes';
+const DB_VER = 1;
+const STORE = 'data';
+const LS_KEY = 'gkc-study-notes-v1';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) { resolve(null); return; }
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function idbGet(key) {
+  const db = await openDB();
+  if (!db) return null;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readonly');
+      const r = tx.objectStore(STORE).get(key);
+      r.onsuccess = () => resolve(r.result || null);
+      r.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+}
+
+async function idbSet(key, val) {
+  const db = await openDB();
+  if (!db) return false;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(val, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    } catch (e) { resolve(false); }
+  });
+}
+
+const defaultData = () => ({
+  version: 1,
+  notebooks: [],
+  updatedAt: Date.now()
+});
+
+let DATA = defaultData();
+let saveTimer = null;
+
+async function loadData() {
+  let d = await idbGet('app');
+  if (!d) {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw) d = JSON.parse(raw);
+    } catch (e) {}
+  }
+  if (d && Array.isArray(d.notebooks)) DATA = d;
+  else DATA = defaultData();
+}
+
+function scheduleSave() {
+  DATA.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 300);
+}
+
+async function doSave() {
+  const ok = await idbSet('app', DATA);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+  return ok;
+}
+
+async function flushSave() {
+  clearTimeout(saveTimer);
+  await doSave();
+}
+
+/* ========== State ========== */
+const state = {
+  view: 'home',
+  nbId: null,
+  mokId: null,
+  sebuId: null,
+  tool: 'pen',
+  color: '#1a1a1a',
+  width: 1.5,
+  bg: 'lined',
+  penOnly: false,
+  showGuides: true,
+  inputMode: 'pen', /* pen | keyboard */
+  selectedTextId: null,
+  undoStack: [],
+  redoStack: [],
+  drawing: false,
+  currentStroke: null,
+  pointers: new Map()
+};
+
+function getNb() { return DATA.notebooks.find(n => n.id === state.nbId); }
+function getMok() { const nb = getNb(); return nb && nb.mokchas.find(m => m.id === state.mokId); }
+function getSebu() { const m = getMok(); return m && m.sebus.find(s => s.id === state.sebuId); }
+
+/* ========== Navigation ========== */
+function showView(name) {
+  $$('.view').forEach(v => v.classList.add('hidden'));
+  const el = $('#view-' + name);
+  if (el) el.classList.remove('hidden');
+  state.view = name;
+  if (name !== 'draw') {
+    // leave canvas alone
+  }
+}
+
+function goHome() {
+  state.nbId = state.mokId = state.sebuId = null;
+  showView('home');
+  renderHome();
+}
+
+function goMokcha(nbId) {
+  state.nbId = nbId;
+  state.mokId = state.sebuId = null;
+  showView('mokcha');
+  renderMokcha();
+}
+
+function goSebu(mokId) {
+  state.mokId = mokId;
+  state.sebuId = null;
+  showView('sebu');
+  renderSebu();
+}
+
+function goTree() {
+  showView('tree');
+  renderTree();
+}
+
+function goDraw(sebuId) {
+  state.sebuId = sebuId;
+  showView('draw');
+  initDrawPage();
+}
+
+/* ========== Templates by type ========== */
+const TEMPLATES = {
+  thought: {
+    label: '사고 과정',
+    icon: '🧠',
+    guides: [
+      { y: 48, text: '① 문제 상황 / 목표' },
+      { y: 160, text: '② 핵심 아이디어 · 접근' },
+      { y: 280, text: '③ 단계별 사고 (1 → 2 → 3…)' },
+      { y: 480, text: '④ 왜? · 근거 · 주의점' },
+      { y: 640, text: '⑤ 결론 · 점검' }
+    ],
+    sebuHint: '사고 흐름의 한 단계'
+  },
+  concept: {
+    label: '개념 정리',
+    icon: '📖',
+    guides: [
+      { y: 48, text: '📌 정의' },
+      { y: 160, text: '⭐ 핵심 포인트' },
+      { y: 300, text: '✏️ 예시' },
+      { y: 460, text: '⚠ 헷갈리는 점 / 비교' },
+      { y: 620, text: '🔗 관련 개념' }
+    ],
+    sebuHint: '개념의 한 부분'
+  }
+};
+
+/* ========== Render: Home ========== */
+function renderHome() {
+  const grid = $('#nb-grid');
+  const nbs = DATA.notebooks;
+  if (!nbs.length) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">📓</div>
+        <p>아직 노트가 없어요.<br>과목/주제별로 노트를 만들어 보세요.</p>
+        <button class="btn primary" id="btn-empty-new">＋ 첫 노트 만들기</button>
+      </div>`;
+    $('#btn-empty-new')?.addEventListener('click', openNewNbModal);
+    return;
+  }
+  grid.innerHTML = nbs.map(nb => {
+    const t = TEMPLATES[nb.type] || TEMPLATES.thought;
+    const mokCount = nb.mokchas.length;
+    const sebuCount = nb.mokchas.reduce((a, m) => a + m.sebus.length, 0);
+    return `
+      <button class="nb-card" data-id="${esc(nb.id)}" type="button">
+        <div class="nb-actions">
+          <span class="icon-btn" data-act="edit" data-id="${esc(nb.id)}" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</span>
+          <span class="icon-btn danger" data-act="del" data-id="${esc(nb.id)}" title="삭제" style="width:32px;height:32px;font-size:14px">🗑</span>
+        </div>
+        <div class="nb-icon">${t.icon}</div>
+        <div class="nb-title">${esc(nb.title)}</div>
+        <span class="nb-type ${esc(nb.type)}">${t.label}</span>
+        <div class="nb-meta">목차 ${mokCount} · 세부 ${sebuCount}</div>
+      </button>`;
+  }).join('') + `
+    <button class="nb-card add-card" id="btn-add-nb-card" type="button">
+      <div style="font-size:32px">＋</div>
+      <div>새 노트</div>
+    </button>`;
+
+  grid.querySelectorAll('.nb-card[data-id]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const act = e.target.closest('[data-act]');
+      if (act) {
+        e.stopPropagation();
+        if (act.dataset.act === 'edit') openRenameNbModal(act.dataset.id);
+        if (act.dataset.act === 'del') confirmDeleteNb(act.dataset.id);
+        return;
+      }
+      goMokcha(card.dataset.id);
+    });
+  });
+  $('#btn-add-nb-card')?.addEventListener('click', openNewNbModal);
+}
+
+/* ========== Render: Mokcha ========== */
+function renderMokcha() {
+  const nb = getNb();
+  if (!nb) { goHome(); return; }
+  const t = TEMPLATES[nb.type] || TEMPLATES.thought;
+  $('#mokcha-crumb').textContent = nb.title;
+  $('#mokcha-heading').textContent = '목차';
+  const badge = $('#mokcha-type-badge');
+  badge.textContent = t.label;
+  badge.className = 'type-badge ' + nb.type;
+
+  const list = $('#mokcha-list');
+  if (!nb.mokchas.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>${nb.type === 'thought'
+          ? '사고 과정의 큰 흐름을 목차로 나눠 보세요.<br>예: 문제 파악 → 전략 → 풀이 → 검토'
+          : '개념의 큰 주제를 목차로 나눠 보세요.<br>예: 정의 · 성질 · 활용'}</p>
+        <button class="btn primary" id="btn-empty-mok">＋ 첫 목차 추가</button>
+      </div>`;
+    $('#btn-empty-mok')?.addEventListener('click', () => openItemModal('mok', 'add'));
+    return;
+  }
+  list.innerHTML = nb.mokchas.map((m, i) => `
+    <div class="item-row" data-id="${esc(m.id)}" draggable="true">
+      <span class="drag-handle" title="끌어서 순서 변경">⋮⋮</span>
+      <span class="item-num">${i + 1}</span>
+      <div class="item-body">
+        <div class="item-title">${esc(m.title)}</div>
+        <div class="item-sub">세부목차 ${m.sebus.length}개</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" data-act="edit" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</button>
+        <button class="icon-btn danger" data-act="del" title="삭제" style="width:32px;height:32px;font-size:14px">🗑</button>
+      </div>
+    </div>`).join('');
+
+  setupListInteractions(list, nb.mokchas, (id) => goSebu(id), () => { scheduleSave(); renderMokcha(); });
+}
+
+/* ========== Render: Sebu ========== */
+function renderSebu() {
+  const nb = getNb();
+  const mok = getMok();
+  if (!nb || !mok) { goMokcha(state.nbId); return; }
+  $('#sebu-crumb').textContent = nb.title + ' › ' + mok.title;
+  $('#sebu-heading').textContent = mok.title + ' — 세부목차';
+
+  const list = $('#sebu-list');
+  if (!mok.sebus.length) {
+    const hint = (TEMPLATES[nb.type] || TEMPLATES.thought).sebuHint;
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <p>세부목차를 추가하고 손으로 세부내용을 적어 보세요.<br>(${hint})</p>
+        <button class="btn primary" id="btn-empty-sebu">＋ 첫 세부목차 추가</button>
+      </div>`;
+    $('#btn-empty-sebu')?.addEventListener('click', () => openItemModal('sebu', 'add'));
+    return;
+  }
+  list.innerHTML = mok.sebus.map((s, i) => {
+    const strokeCount = (s.pages || []).reduce((a, p) => a + (p.strokes || []).length, 0);
+    return `
+    <div class="item-row" data-id="${esc(s.id)}" draggable="true">
+      <span class="drag-handle" title="끌어서 순서 변경">⋮⋮</span>
+      <span class="item-num">${i + 1}</span>
+      <div class="item-body">
+        <div class="item-title">${esc(s.title)}</div>
+        <div class="item-sub">${strokeCount ? '필기 ' + strokeCount + '획' : '빈 페이지'} · 탭하여 필기</div>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" data-act="edit" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</button>
+        <button class="icon-btn danger" data-act="del" title="삭제" style="width:32px;height:32px;font-size:14px">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  setupListInteractions(list, mok.sebus, (id) => goDraw(id), () => { scheduleSave(); renderSebu(); });
+}
+
+/* ========== Drag reorder ========== */
+function setupListInteractions(list, arr, onOpen, onChange) {
+  list.querySelectorAll('.item-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.drag-handle')) return;
+      const act = e.target.closest('[data-act]');
+      if (act) {
+        e.stopPropagation();
+        const id = row.dataset.id;
+        if (act.dataset.act === 'edit') {
+          const kind = state.view === 'mokcha' ? 'mok' : 'sebu';
+          openItemModal(kind, 'edit', id);
+        }
+        if (act.dataset.act === 'del') {
+          const kind = state.view === 'mokcha' ? 'mok' : 'sebu';
+          confirmDeleteItem(kind, id);
+        }
+        return;
+      }
+      onOpen(row.dataset.id);
+    });
+
+    row.addEventListener('dragstart', (e) => {
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', row.dataset.id);
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      $$('.drag-over', list).forEach(el => el.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const dragging = list.querySelector('.dragging');
+      if (!dragging || dragging === row) return;
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      const fromId = e.dataTransfer.getData('text/plain');
+      const toId = row.dataset.id;
+      if (!fromId || fromId === toId) return;
+      const fromIdx = arr.findIndex(x => x.id === fromId);
+      const toIdx = arr.findIndex(x => x.id === toId);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [item] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, item);
+      onChange();
+    });
+  });
+
+  // Touch-friendly reorder: long-press not needed; HTML5 drag works on desktop.
+  // For mobile, provide up/down via context — keep simple with drag on supported devices.
+}
+
+/* ========== Tree ========== */
+function renderTree() {
+  const nb = getNb();
+  if (!nb) { goHome(); return; }
+  const root = $('#tree-content');
+  if (!nb.mokchas.length) {
+    root.innerHTML = `<div class="empty-state"><div class="empty-icon">🗂</div><p>아직 목차가 없습니다.</p></div>`;
+    return;
+  }
+  root.innerHTML = nb.mokchas.map((m, i) => `
+    <div class="tree-mok">
+      <div class="tree-mok-head" data-mok="${esc(m.id)}">
+        <span class="item-num">${i + 1}</span>
+        <span style="flex:1">${esc(m.title)}</span>
+        <span style="font-size:12px;color:var(--text3);font-weight:400">${m.sebus.length}개</span>
+      </div>
+      ${m.sebus.map((s, j) => `
+        <div class="tree-sebu" data-mok="${esc(m.id)}" data-sebu="${esc(s.id)}">
+          <span class="dot"></span>
+          <span>${j + 1}. ${esc(s.title)}</span>
+        </div>`).join('') || `<div class="tree-sebu" style="color:var(--text3);cursor:default">세부목차 없음</div>`}
+    </div>`).join('');
+
+  root.querySelectorAll('.tree-mok-head').forEach(el => {
+    el.addEventListener('click', () => goSebu(el.dataset.mok));
+  });
+  root.querySelectorAll('.tree-sebu[data-sebu]').forEach(el => {
+    el.addEventListener('click', () => {
+      state.mokId = el.dataset.mok;
+      goDraw(el.dataset.sebu);
+    });
+  });
+}
+
+/* ========== Modals ========== */
+function openModal(html) {
+  const root = $('#modal-root');
+  root.innerHTML = `<div class="modal-backdrop" id="modal-bd"><div class="modal" role="dialog">${html}</div></div>`;
+  $('#modal-bd').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-bd') closeModal();
+  });
+  return root.querySelector('.modal');
+}
+function closeModal() { $('#modal-root').innerHTML = ''; }
+
+function openNewNbModal() {
+  let selected = 'thought';
+  openModal(`
+    <h3>새 노트 만들기</h3>
+    <div class="field">
+      <label>노트 이름 (과목/주제)</label>
+      <input type="text" id="nb-title" placeholder="예: 수학 — 함수" maxlength="80" autofocus>
+    </div>
+    <div class="field">
+      <label>노트 유형</label>
+      <div class="type-picker">
+        <div class="type-opt selected" data-type="thought">
+          <div class="to-icon">🧠</div>
+          <div class="to-title">사고 과정</div>
+          <div class="to-desc">문제 풀이·사고 흐름을 단계로 정리</div>
+        </div>
+        <div class="type-opt" data-type="concept">
+          <div class="to-icon">📖</div>
+          <div class="to-title">개념 정리</div>
+          <div class="to-desc">정의·핵심·예시·비교로 지식 정리</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn primary" id="m-ok">만들기</button>
+    </div>`);
+  $$('.type-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      $$('.type-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      selected = opt.dataset.type;
+    });
+  });
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    const title = ($('#nb-title').value || '').trim() || '새 노트';
+    const nb = {
+      id: uid(),
+      title,
+      type: selected,
+      mokchas: [],
+      createdAt: Date.now()
+    };
+    DATA.notebooks.push(nb);
+    scheduleSave();
+    closeModal();
+    toast('노트를 만들었습니다');
+    goMokcha(nb.id);
+  };
+  $('#nb-title').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#m-ok').click(); });
+}
+
+function openRenameNbModal(id) {
+  const nb = DATA.notebooks.find(n => n.id === id);
+  if (!nb) return;
+  openModal(`
+    <h3>노트 이름 변경</h3>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="nb-title" value="${esc(nb.title)}" maxlength="80" autofocus>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn primary" id="m-ok">저장</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    nb.title = ($('#nb-title').value || '').trim() || nb.title;
+    scheduleSave();
+    closeModal();
+    renderHome();
+    toast('저장됨');
+  };
+}
+
+function confirmDeleteNb(id) {
+  const nb = DATA.notebooks.find(n => n.id === id);
+  if (!nb) return;
+  openModal(`
+    <h3>노트 삭제</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">「${esc(nb.title)}」와 안의 모든 목차·필기가 삭제됩니다. 되돌릴 수 없습니다.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn danger" id="m-ok">삭제</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    DATA.notebooks = DATA.notebooks.filter(n => n.id !== id);
+    scheduleSave();
+    closeModal();
+    renderHome();
+    toast('삭제됨');
+  };
+}
+
+function openItemModal(kind, mode, id) {
+  const isMok = kind === 'mok';
+  const nb = getNb();
+  const mok = getMok();
+  let item = null;
+  if (mode === 'edit') {
+    item = isMok ? nb.mokchas.find(m => m.id === id) : mok.sebus.find(s => s.id === id);
+  }
+  const title = mode === 'add'
+    ? (isMok ? '목차 추가' : '세부목차 추가')
+    : (isMok ? '목차 이름 변경' : '세부목차 이름 변경');
+  const placeholder = isMok
+    ? (nb.type === 'thought' ? '예: ① 문제 상황 파악' : '예: 함수의 정의')
+    : (nb.type === 'thought' ? '예: 변수 설정하기' : '예: 정의역과 치역');
+
+  openModal(`
+    <h3>${title}</h3>
+    <div class="field">
+      <label>제목 (키보드 입력)</label>
+      <input type="text" id="item-title" value="${esc(item ? item.title : '')}" placeholder="${esc(placeholder)}" maxlength="100" autofocus>
+    </div>
+    <div class="field">
+      <label>또는 손으로 쓰기 <span style="font-weight:400;color:var(--text3)">(선택)</span></label>
+      <div class="hw-title-wrap">
+        <canvas id="hw-title-canvas" width="360" height="80"></canvas>
+        <div class="hw-title-bar">
+          <button class="btn sm" type="button" id="hw-clear">지우기</button>
+          <button class="btn sm" type="button" id="hw-use">손글씨를 제목으로 사용</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn primary" id="m-ok">${mode === 'add' ? '추가' : '저장'}</button>
+    </div>`);
+
+  // Mini handwriting canvas for titles
+  const hwc = $('#hw-title-canvas');
+  const hwCtx = hwc.getContext('2d');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = hwc.getBoundingClientRect();
+  hwc.width = Math.floor(rect.width * dpr) || 360 * dpr;
+  hwc.height = 80 * dpr;
+  hwc.style.width = (rect.width || 360) + 'px';
+  hwc.style.height = '80px';
+  hwCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  hwCtx.fillStyle = '#fffef8';
+  hwCtx.fillRect(0, 0, hwc.width, hwc.height);
+  // guide line
+  hwCtx.strokeStyle = '#d0d7e2';
+  hwCtx.lineWidth = 1;
+  hwCtx.beginPath();
+  hwCtx.moveTo(8, 56);
+  hwCtx.lineTo((rect.width || 360) - 8, 56);
+  hwCtx.stroke();
+
+  let hwDrawing = false;
+  let hwHasInk = false;
+  const hwPts = [];
+  function hwPos(e) {
+    const r = hwc.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  hwc.addEventListener('pointerdown', (e) => {
+    if (state.penOnly && e.pointerType === 'touch') return;
+    hwDrawing = true;
+    hwc.setPointerCapture(e.pointerId);
+    const p = hwPos(e);
+    hwPts.length = 0;
+    hwPts.push(p);
+    hwCtx.beginPath();
+    hwCtx.strokeStyle = '#1a1a1a';
+    hwCtx.lineWidth = 2;
+    hwCtx.lineCap = 'round';
+    hwCtx.lineJoin = 'round';
+    hwCtx.moveTo(p.x, p.y);
+  });
+  hwc.addEventListener('pointermove', (e) => {
+    if (!hwDrawing) return;
+    const p = hwPos(e);
+    hwPts.push(p);
+    hwCtx.lineTo(p.x, p.y);
+    hwCtx.stroke();
+    hwCtx.beginPath();
+    hwCtx.moveTo(p.x, p.y);
+    hwHasInk = true;
+  });
+  const hwEnd = () => { hwDrawing = false; };
+  hwc.addEventListener('pointerup', hwEnd);
+  hwc.addEventListener('pointercancel', hwEnd);
+
+  $('#hw-clear').onclick = () => {
+    hwCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hwCtx.fillStyle = '#fffef8';
+    hwCtx.fillRect(0, 0, hwc.width / dpr, hwc.height / dpr);
+    hwCtx.strokeStyle = '#d0d7e2';
+    hwCtx.lineWidth = 1;
+    hwCtx.beginPath();
+    hwCtx.moveTo(8, 56);
+    hwCtx.lineTo((rect.width || 360) - 8, 56);
+    hwCtx.stroke();
+    hwHasInk = false;
+  };
+  $('#hw-use').onclick = () => {
+    if (!hwHasInk) { toast('먼저 손글씨를 써 주세요'); return; }
+    // Use a timestamp-based handwritten label
+    const stamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    $('#item-title').value = '✍️ 손글씨 제목 (' + stamp + ')';
+    // Store data URL on the input for later
+    $('#item-title').dataset.hw = hwc.toDataURL('image/png');
+    toast('손글씨 제목으로 설정됨');
+  };
+
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    let titleVal = ($('#item-title').value || '').trim();
+    if (!titleVal) titleVal = isMok ? '새 목차' : '새 세부목차';
+    const hwData = $('#item-title').dataset.hw || null;
+    if (mode === 'add') {
+      if (isMok) {
+        nb.mokchas.push({ id: uid(), title: titleVal, titleHw: hwData, sebus: [] });
+        scheduleSave();
+        closeModal();
+        renderMokcha();
+        toast('목차 추가됨');
+      } else {
+        const pageH = 1200;
+        mok.sebus.push({
+          id: uid(),
+          title: titleVal,
+          titleHw: hwData,
+          bg: 'lined',
+          pageHeight: pageH,
+          pages: [{ strokes: [], texts: [] }],
+          guidesVisible: true
+        });
+        scheduleSave();
+        closeModal();
+        renderSebu();
+        toast('세부목차 추가됨');
+      }
+    } else {
+      item.title = titleVal;
+      if (hwData) item.titleHw = hwData;
+      scheduleSave();
+      closeModal();
+      if (isMok) renderMokcha(); else renderSebu();
+      toast('저장됨');
+    }
+  };
+  $('#item-title').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#m-ok').click(); });
+}
+
+function confirmDeleteItem(kind, id) {
+  const isMok = kind === 'mok';
+  const nb = getNb();
+  const mok = getMok();
+  const item = isMok ? nb.mokchas.find(m => m.id === id) : mok.sebus.find(s => s.id === id);
+  if (!item) return;
+  openModal(`
+    <h3>${isMok ? '목차' : '세부목차'} 삭제</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">「${esc(item.title)}」${isMok ? '와 안의 세부목차·필기' : '와 필기'}가 삭제됩니다.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn danger" id="m-ok">삭제</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    if (isMok) {
+      nb.mokchas = nb.mokchas.filter(m => m.id !== id);
+      scheduleSave();
+      closeModal();
+      renderMokcha();
+    } else {
+      mok.sebus = mok.sebus.filter(s => s.id !== id);
+      scheduleSave();
+      closeModal();
+      renderSebu();
+    }
+    toast('삭제됨');
+  };
+}
+
+/* ========== Drawing Engine ========== */
+const canvas = () => $('#drawCanvas');
+const bgCanvas = () => $('#bgCanvas');
+const wrap = () => $('#canvas-wrap');
+
+let CSS_W = 720;
+let CSS_H = 1200;
+let DPR = 1;
+
+function ensurePage() {
+  const s = getSebu();
+  if (!s) return null;
+  if (!s.pages || !s.pages[0]) s.pages = [{ strokes: [], texts: [] }];
+  if (!Array.isArray(s.pages[0].strokes)) s.pages[0].strokes = [];
+  if (!Array.isArray(s.pages[0].texts)) s.pages[0].texts = [];
+  return s.pages[0];
+}
+
+function getStrokes() {
+  const p = ensurePage();
+  return p ? p.strokes : [];
+}
+
+function setStrokes(strokes) {
+  const p = ensurePage();
+  if (p) p.strokes = strokes;
+}
+
+function getTexts() {
+  const p = ensurePage();
+  return p ? p.texts : [];
+}
+
+function setTexts(texts) {
+  const p = ensurePage();
+  if (p) p.texts = texts;
+}
+
+/* ========== Text boxes (자판) ========== */
+function setInputMode(mode) {
+  state.inputMode = mode;
+  const kb = mode === 'keyboard';
+  $('#btn-mode-pen').classList.toggle('active', !kb);
+  $('#btn-mode-kb').classList.toggle('active', kb);
+  const layer = $('#text-layer');
+  const w = wrap();
+  if (layer) layer.classList.toggle('kb-active', kb);
+  if (w) w.classList.toggle('kb-mode', kb);
+  const addBtn = $('#btn-add-text');
+  if (addBtn) addBtn.classList.toggle('visible', kb);
+  if (kb) toast('자판 모드 — 「생성하기」로 텍스트 추가');
+  else toast('펜 모드');
+  renderTextLayer();
+}
+
+function renderTextLayer() {
+  const layer = $('#text-layer');
+  if (!layer) return;
+  const texts = getTexts();
+  const selected = state.selectedTextId;
+  layer.innerHTML = texts.map(t => `
+    <div class="text-box${t.id === selected ? ' selected' : ''}" data-id="${esc(t.id)}"
+         style="left:${t.x}px;top:${t.y}px;width:${t.w || 200}px;height:${t.h || 48}px;">
+      <div class="tb-bar">
+        <span class="tb-drag">⋮⋮ 이동</span>
+        <button type="button" class="tb-del" title="삭제">✕</button>
+      </div>
+      <textarea placeholder="내용을 입력하세요…">${esc(t.text || '')}</textarea>
+    </div>`).join('');
+
+  layer.querySelectorAll('.text-box').forEach(box => {
+    const id = box.dataset.id;
+    const ta = box.querySelector('textarea');
+    const bar = box.querySelector('.tb-bar');
+    const del = box.querySelector('.tb-del');
+
+    ta.addEventListener('focus', () => {
+      state.selectedTextId = id;
+      layer.querySelectorAll('.text-box').forEach(b => b.classList.toggle('selected', b.dataset.id === id));
+    });
+    ta.addEventListener('input', () => {
+      const texts = getTexts();
+      const item = texts.find(x => x.id === id);
+      if (item) { item.text = ta.value; scheduleSave(); }
+    });
+    // persist size on resize (mouseup / blur)
+    const saveSize = () => {
+      const texts = getTexts();
+      const item = texts.find(x => x.id === id);
+      if (!item) return;
+      item.w = Math.max(80, box.offsetWidth);
+      item.h = Math.max(36, box.offsetHeight);
+      scheduleSave();
+    };
+    ta.addEventListener('mouseup', saveSize);
+    ta.addEventListener('blur', saveSize);
+
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setTexts(getTexts().filter(x => x.id !== id));
+      if (state.selectedTextId === id) state.selectedTextId = null;
+      scheduleSave();
+      renderTextLayer();
+      toast('텍스트 삭제됨');
+    });
+
+    // Drag to move
+    let dragging = false, ox = 0, oy = 0, startX = 0, startY = 0;
+    const onMove = (e) => {
+      if (!dragging) return;
+      const cx = e.clientX != null ? e.clientX : (e.touches && e.touches[0].clientX);
+      const cy = e.clientY != null ? e.clientY : (e.touches && e.touches[0].clientY);
+      let nx = startX + (cx - ox);
+      let ny = startY + (cy - oy);
+      nx = Math.max(0, Math.min(CSS_W - 40, nx));
+      ny = Math.max(0, Math.min(CSS_H - 24, ny));
+      box.style.left = nx + 'px';
+      box.style.top = ny + 'px';
+    };
+    const onUp = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      const texts = getTexts();
+      const item = texts.find(x => x.id === id);
+      if (item) {
+        item.x = parseFloat(box.style.left) || 0;
+        item.y = parseFloat(box.style.top) || 0;
+        scheduleSave();
+      }
+    };
+    bar.addEventListener('pointerdown', (e) => {
+      if (state.inputMode !== 'keyboard') return;
+      if (e.target.closest('.tb-del')) return;
+      e.preventDefault();
+      dragging = true;
+      state.selectedTextId = id;
+      ox = e.clientX; oy = e.clientY;
+      startX = parseFloat(box.style.left) || 0;
+      startY = parseFloat(box.style.top) || 0;
+      try { bar.setPointerCapture(e.pointerId); } catch (_) {}
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    });
+  });
+}
+
+function overlapsExisting(x, y, w, h, texts) {
+  const pad = 8;
+  return texts.some(t => {
+    const tw = t.w || 200, th = t.h || 56;
+    return !(x + w + pad < t.x || t.x + tw + pad < x || y + h + pad < t.y || t.y + th + pad < y);
+  });
+}
+
+/** Create a text box at the center of the current scroll viewport (page coords), offset if overlapping. */
+function createTextBoxFromButton() {
+  if (state.inputMode !== 'keyboard') {
+    setInputMode('keyboard');
+  }
+  const wEl = wrap();
+  const stage = $('#page-stage');
+  if (!wEl || !stage) return;
+  const wrapRect = wEl.getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+  // Center of visible viewport, mapped into page-stage CSS coords
+  const viewCx = wrapRect.left + wrapRect.width / 2;
+  const viewCy = wrapRect.top + wrapRect.height / 2;
+  const scaleX = CSS_W / Math.max(1, stageRect.width);
+  const scaleY = CSS_H / Math.max(1, stageRect.height);
+  const boxW = Math.min(240, CSS_W - 40);
+  const boxH = 56;
+  let x = (viewCx - stageRect.left) * scaleX - boxW / 2;
+  let y = (viewCy - stageRect.top) * scaleY - boxH / 2;
+  x = Math.max(8, Math.min(CSS_W - boxW - 8, x));
+  y = Math.max(8, Math.min(CSS_H - boxH - 8, y));
+
+  const texts = getTexts();
+  let guard = 0;
+  while (overlapsExisting(x, y, boxW, boxH, texts) && guard < 24) {
+    x = Math.max(8, Math.min(CSS_W - boxW - 8, x + 28));
+    y = Math.max(8, Math.min(CSS_H - boxH - 8, y + 36));
+    guard++;
+  }
+
+  const t = { id: uid(), x, y, w: boxW, h: boxH, text: '' };
+  texts.push(t);
+  setTexts(texts);
+  state.selectedTextId = t.id;
+  scheduleSave();
+  renderTextLayer();
+  requestAnimationFrame(() => {
+    const ta = $(`.text-box[data-id="${t.id}"] textarea`);
+    if (ta) ta.focus();
+  });
+}
+
+/* Tap on empty page in 자판 mode: do nothing (only edit existing boxes). */
+function onTextLayerPointerDown(e) {
+  // intentionally no-op for empty area; .text-box handles its own events
+}
+
+function drawTextsOnCtx(ctx) {
+  const texts = getTexts();
+  ctx.save();
+  ctx.textBaseline = 'top';
+  for (const t of texts) {
+    if (!t.text) continue;
+    const fontSize = 15;
+    ctx.font = fontSize + 'px ' + getComputedStyle(document.body).fontFamily;
+    ctx.fillStyle = '#1a1d23';
+    const maxW = (t.w || 200) - 16;
+    const lines = [];
+    const paragraphs = String(t.text).split('\n');
+    for (const para of paragraphs) {
+      if (!para) { lines.push(''); continue; }
+      let line = '';
+      for (const ch of para) {
+        const test = line + ch;
+        if (ctx.measureText(test).width > maxW && line) {
+          lines.push(line);
+          line = ch;
+        } else line = test;
+      }
+      lines.push(line);
+    }
+    let yy = t.y + 8;
+    // if bar was shown in kb mode we don't draw bar in export
+    for (const line of lines) {
+      ctx.fillText(line, t.x + 8, yy);
+      yy += fontSize * 1.45;
+    }
+  }
+  ctx.restore();
+}
+
+function initDrawPage() {
+  const nb = getNb();
+  const mok = getMok();
+  const sebu = getSebu();
+  if (!nb || !mok || !sebu) { goSebu(state.mokId); return; }
+
+  $('#draw-crumb').textContent = mok.title + ' › ' + sebu.title;
+  state.bg = sebu.bg || 'lined';
+  state.showGuides = sebu.guidesVisible !== false;
+  state.undoStack = [];
+  state.redoStack = [];
+  state.drawing = false;
+  state.currentStroke = null;
+  state.pointers.clear();
+
+  // sync toolbar
+  $$('.tool-btn[data-tool]').forEach(b => {
+    const isPen = b.dataset.tool === 'pen' && b.dataset.color === state.color && state.tool === 'pen';
+    const isHl = b.dataset.tool === 'highlighter' && state.tool === 'highlighter';
+    const isEr = b.dataset.tool === 'eraser' && state.tool === 'eraser';
+    b.classList.toggle('active', isPen || isHl || isEr || (state.tool === 'pen' && b.dataset.tool === 'pen' && b.dataset.color === state.color));
+  });
+  // Fix active color buttons
+  $$('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+  if (state.tool === 'pen') {
+    const btn = $(`.tool-btn[data-tool="pen"][data-color="${state.color}"]`);
+    if (btn) btn.classList.add('active');
+  } else {
+    const btn = $(`.tool-btn[data-tool="${state.tool}"]`);
+    if (btn) btn.classList.add('active');
+  }
+  $$('.thickness-btn').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.w) === state.width));
+  $('#btn-bg-lined').classList.toggle('active', state.bg === 'lined');
+  $('#btn-bg-grid').classList.toggle('active', state.bg === 'grid');
+  $('#btn-bg-blank').classList.toggle('active', state.bg === 'blank');
+  $('#btn-pen-only').classList.toggle('active', state.penOnly);
+  $('#btn-guides').classList.toggle('active', state.showGuides);
+
+  CSS_H = sebu.pageHeight || 1200;
+  resizeCanvas();
+  redrawAll();
+  updateGuideOverlay();
+  renderTextLayer();
+  // sync mode UI without toast
+  {
+    const kb = state.inputMode === 'keyboard';
+    $('#btn-mode-pen').classList.toggle('active', !kb);
+    $('#btn-mode-kb').classList.toggle('active', kb);
+    const layer = $('#text-layer');
+    const w = wrap();
+    if (layer) layer.classList.toggle('kb-active', kb);
+    if (w) w.classList.toggle('kb-mode', kb);
+    const addBtn = $('#btn-add-text');
+    if (addBtn) addBtn.classList.toggle('visible', kb);
+  }
+  updateUndoBtns();
+}
+
+function sizeOneCanvas(c) {
+  if (!c) return;
+  c.width = Math.floor(CSS_W * DPR);
+  c.height = Math.floor(CSS_H * DPR);
+  c.style.width = CSS_W + 'px';
+  c.style.height = CSS_H + 'px';
+  const ctx = c.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function resizeCanvas() {
+  const c = canvas();
+  const bg = bgCanvas();
+  const w = wrap();
+  if (!c || !w) return;
+  DPR = Math.min(window.devicePixelRatio || 1, 3);
+  // Fit width to container with max
+  const avail = Math.min(w.clientWidth - 16, 800);
+  CSS_W = Math.max(320, avail);
+  sizeOneCanvas(c);
+  sizeOneCanvas(bg);
+  const stage = $('#page-stage');
+  if (stage) {
+    stage.style.width = CSS_W + 'px';
+    stage.style.height = CSS_H + 'px';
+  }
+  const layer = $('#text-layer');
+  if (layer) {
+    layer.style.width = CSS_W + 'px';
+    layer.style.height = CSS_H + 'px';
+  }
+}
+
+function drawBackground(ctx) {
+  ctx.save();
+  ctx.fillStyle = '#fffef8';
+  ctx.fillRect(0, 0, CSS_W, CSS_H);
+  if (state.bg === 'lined') {
+    ctx.strokeStyle = '#c5d0e0';
+    ctx.lineWidth = 1;
+    const gap = 28;
+    const top = 40;
+    for (let y = top; y < CSS_H; y += gap) {
+      ctx.beginPath();
+      ctx.moveTo(20, y);
+      ctx.lineTo(CSS_W - 20, y);
+      ctx.stroke();
+    }
+    // left margin
+    ctx.strokeStyle = '#f0a0a0';
+    ctx.beginPath();
+    ctx.moveTo(48, 0);
+    ctx.lineTo(48, CSS_H);
+    ctx.stroke();
+  } else if (state.bg === 'grid') {
+    ctx.strokeStyle = '#d5dde8';
+    ctx.lineWidth = 1;
+    const gap = 24;
+    for (let x = 0; x < CSS_W; x += gap) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, CSS_H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < CSS_H; y += gap) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CSS_W, y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawStroke(ctx, stroke) {
+  if (!stroke || !stroke.points || stroke.points.length < 1) return;
+  const pts = stroke.points;
+  ctx.save();
+  if (stroke.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = stroke.width * 4;
+  } else if (stroke.tool === 'highlighter') {
+    // source-over + alpha so it composites over the bg canvas underneath
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = stroke.color;
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = stroke.width * 3;
+  } else {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+  }
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (pts.length === 1) {
+    ctx.beginPath();
+    const r = (stroke.tool === 'eraser' ? stroke.width * 2 : stroke.width / 2);
+    ctx.arc(pts[0].x, pts[0].y, Math.max(r, 0.5), 0, Math.PI * 2);
+    ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+    if (stroke.tool === 'highlighter') ctx.globalAlpha = 0.4;
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  if (pts.length === 2) {
+    ctx.lineTo(pts[1].x, pts[1].y);
+  } else {
+    for (let i = 1; i < pts.length - 1; i++) {
+      const midX = (pts[i].x + pts[i + 1].x) / 2;
+      const midY = (pts[i].y + pts[i + 1].y) / 2;
+      // pressure-aware width if available
+      if (pts[i].p != null && stroke.tool === 'pen') {
+        ctx.lineWidth = stroke.width * (0.5 + pts[i].p);
+      }
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.x, last.y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function redrawBackground() {
+  const bg = bgCanvas();
+  if (!bg) return;
+  const ctx = bg.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, CSS_W, CSS_H);
+  drawBackground(ctx);
+}
+
+function redrawInk() {
+  const c = canvas();
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // clear to transparent — eraser destination-out only affects ink here
+  ctx.clearRect(0, 0, CSS_W, CSS_H);
+  const strokes = getStrokes();
+  for (const s of strokes) drawStroke(ctx, s);
+  if (state.currentStroke) drawStroke(ctx, state.currentStroke);
+}
+
+function redrawAll() {
+  redrawBackground();
+  redrawInk();
+}
+
+function updateGuideOverlay() {
+  const ov = $('#guide-overlay');
+  const nb = getNb();
+  const sebu = getSebu();
+  if (!ov || !nb || !sebu) return;
+  if (!state.showGuides) {
+    ov.classList.add('hidden');
+    return;
+  }
+  const guides = (TEMPLATES[nb.type] || TEMPLATES.thought).guides;
+  ov.classList.remove('hidden');
+  ov.style.width = CSS_W + 'px';
+  ov.style.height = CSS_H + 'px';
+  ov.innerHTML = guides.map(g =>
+    `<div class="guide-label" style="top:${g.y}px">${esc(g.text)}</div>`
+  ).join('');
+}
+
+function canvasPos(e) {
+  const c = canvas();
+  const r = c.getBoundingClientRect();
+  const scaleX = CSS_W / r.width;
+  const scaleY = CSS_H / r.height;
+  return {
+    x: (e.clientX - r.left) * scaleX,
+    y: (e.clientY - r.top) * scaleY,
+    p: e.pressure > 0 ? e.pressure : 0.5
+  };
+}
+
+function onPointerDown(e) {
+  if (state.inputMode === 'keyboard') return;
+  if (state.penOnly && e.pointerType === 'touch') return;
+  // Allow only primary button for mouse
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  const c = canvas();
+  try { c.setPointerCapture(e.pointerId); } catch (_) {}
+  wrap().classList.add('drawing');
+  state.drawing = true;
+  state.pointers.set(e.pointerId, true);
+
+  const p = canvasPos(e);
+  state.currentStroke = {
+    tool: state.tool,
+    color: state.color,
+    width: state.width,
+    points: [p]
+  };
+  // Immediate feedback for tap
+  redrawAll();
+  e.preventDefault();
+}
+
+function onPointerMove(e) {
+  if (!state.drawing || !state.currentStroke) return;
+  if (!state.pointers.has(e.pointerId)) return;
+  if (state.penOnly && e.pointerType === 'touch') return;
+
+  const p = canvasPos(e);
+  const pts = state.currentStroke.points;
+  const last = pts[pts.length - 1];
+  const dx = p.x - last.x, dy = p.y - last.y;
+  if (dx * dx + dy * dy < 0.8) return; // thin sampling
+  pts.push(p);
+
+  // Incremental draw for smoothness
+  const c = canvas();
+  const ctx = c.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // For eraser/highlighter we need full redraw; for pen we can stroke segment
+  if (state.currentStroke.tool === 'pen' && pts.length >= 2) {
+    const stroke = state.currentStroke;
+    const a = pts[pts.length - 2];
+    const b = pts[pts.length - 1];
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width * (0.5 + (b.p || 0.5));
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    redrawAll();
+  }
+  e.preventDefault();
+}
+
+function onPointerUp(e) {
+  if (!state.drawing) return;
+  state.pointers.delete(e.pointerId);
+  if (state.pointers.size > 0) return;
+
+  wrap().classList.remove('drawing');
+  state.drawing = false;
+  if (state.currentStroke && state.currentStroke.points.length) {
+    const strokes = getStrokes();
+    // push undo
+    state.undoStack.push(strokes.slice());
+    if (state.undoStack.length > 50) state.undoStack.shift();
+    state.redoStack = [];
+    strokes.push(state.currentStroke);
+    setStrokes(strokes);
+    scheduleSave();
+    updateUndoBtns();
+  }
+  state.currentStroke = null;
+  redrawAll();
+}
+
+function updateUndoBtns() {
+  $('#btn-undo').disabled = state.undoStack.length === 0;
+  $('#btn-redo').disabled = state.redoStack.length === 0;
+}
+
+function doUndo() {
+  if (!state.undoStack.length) return;
+  const strokes = getStrokes();
+  state.redoStack.push(strokes.slice());
+  setStrokes(state.undoStack.pop());
+  scheduleSave();
+  redrawAll();
+  updateUndoBtns();
+}
+
+function doRedo() {
+  if (!state.redoStack.length) return;
+  const strokes = getStrokes();
+  state.undoStack.push(strokes.slice());
+  setStrokes(state.redoStack.pop());
+  scheduleSave();
+  redrawAll();
+  updateUndoBtns();
+}
+
+function doClear() {
+  openModal(`
+    <h3>페이지 전체 지우기</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px">이 페이지의 모든 필기·텍스트가 지워집니다.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn danger" id="m-ok">지우기</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = () => {
+    const strokes = getStrokes();
+    state.undoStack.push(strokes.slice());
+    state.redoStack = [];
+    setStrokes([]);
+    setTexts([]);
+    state.selectedTextId = null;
+    scheduleSave();
+    closeModal();
+    redrawAll();
+    renderTextLayer();
+    updateUndoBtns();
+    toast('지웠습니다');
+  };
+}
+
+function extendPage() {
+  const sebu = getSebu();
+  if (!sebu) return;
+  sebu.pageHeight = (sebu.pageHeight || 1200) + 600;
+  CSS_H = sebu.pageHeight;
+  scheduleSave();
+  resizeCanvas();
+  redrawAll();
+  updateGuideOverlay();
+  renderTextLayer();
+  // scroll to new area
+  wrap().scrollTop = wrap().scrollHeight;
+  toast('페이지를 늘렸습니다');
+}
+
+function exportPng() {
+  redrawAll();
+  const out = document.createElement('canvas');
+  out.width = Math.floor(CSS_W * DPR);
+  out.height = Math.floor(CSS_H * DPR);
+  const ctx = out.getContext('2d');
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // background + ink + text
+  const bg = bgCanvas();
+  const ink = canvas();
+  if (bg) ctx.drawImage(bg, 0, 0, CSS_W, CSS_H);
+  if (ink) ctx.drawImage(ink, 0, 0, CSS_W, CSS_H);
+  drawTextsOnCtx(ctx);
+  const link = document.createElement('a');
+  const sebu = getSebu();
+  link.download = (sebu ? sebu.title : 'page') + '.png';
+  link.href = out.toDataURL('image/png');
+  link.click();
+  toast('PNG 저장');
+}
+
+/* ========== Export / Import ========== */
+async function exportBackup() {
+  await flushSave();
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gkc-notes-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('백업 파일을 저장했습니다');
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d || !Array.isArray(d.notebooks)) throw new Error('형식 오류');
+      openModal(`
+        <h3>백업 가져오기</h3>
+        <p style="font-size:14px;color:var(--text2);margin-bottom:16px">
+          노트 ${d.notebooks.length}개가 들어 있습니다.<br>
+          현재 데이터를 덮어쓸까요?
+        </p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="m-cancel">취소</button>
+          <button class="btn primary" id="m-ok">가져오기</button>
+        </div>`);
+      $('#m-cancel').onclick = closeModal;
+      $('#m-ok').onclick = () => {
+        DATA = d;
+        DATA.version = 1;
+        scheduleSave();
+        closeModal();
+        goHome();
+        toast('가져오기 완료');
+      };
+    } catch (err) {
+      toast('파일을 읽을 수 없습니다');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ========== Event wiring ========== */
+function wireEvents() {
+  $('#btn-new-nb').addEventListener('click', openNewNbModal);
+  $('#btn-back-home').addEventListener('click', goHome);
+  $('#btn-back-mok').addEventListener('click', () => goMokcha(state.nbId));
+  $('#btn-back-draw').addEventListener('click', () => {
+    flushSave();
+    goSebu(state.mokId);
+  });
+  $('#btn-back-tree').addEventListener('click', () => goMokcha(state.nbId));
+  $('#btn-tree-view').addEventListener('click', goTree);
+  $('#btn-new-mok').addEventListener('click', () => openItemModal('mok', 'add'));
+  $('#btn-new-sebu').addEventListener('click', () => openItemModal('sebu', 'add'));
+
+  $('#btn-export').addEventListener('click', exportBackup);
+  $('#btn-import').addEventListener('click', () => $('#import-file').click());
+  $('#import-file').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) importBackup(f);
+    e.target.value = '';
+  });
+
+  // Draw toolbar
+  $$('.tool-btn[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.tool = btn.dataset.tool;
+      if (btn.dataset.color) state.color = btn.dataset.color;
+      $$('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  $$('.thickness-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.width = parseFloat(btn.dataset.w);
+      $$('.thickness-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  $('#btn-undo').addEventListener('click', doUndo);
+  $('#btn-redo').addEventListener('click', doRedo);
+  $('#btn-clear').addEventListener('click', doClear);
+  $('#btn-bg-lined').addEventListener('click', () => {
+    state.bg = 'lined';
+    const s = getSebu(); if (s) s.bg = 'lined';
+    scheduleSave();
+    ['lined','grid','blank'].forEach(b => $('#btn-bg-' + b).classList.toggle('active', b === 'lined'));
+    redrawAll();
+  });
+  $('#btn-bg-grid').addEventListener('click', () => {
+    state.bg = 'grid';
+    const s = getSebu(); if (s) s.bg = 'grid';
+    scheduleSave();
+    ['lined','grid','blank'].forEach(b => $('#btn-bg-' + b).classList.toggle('active', b === 'grid'));
+    redrawAll();
+  });
+  $('#btn-bg-blank').addEventListener('click', () => {
+    state.bg = 'blank';
+    const s = getSebu(); if (s) s.bg = 'blank';
+    scheduleSave();
+    ['lined','grid','blank'].forEach(b => $('#btn-bg-' + b).classList.toggle('active', b === 'blank'));
+    redrawAll();
+  });
+  $('#btn-pen-only').addEventListener('click', () => {
+    state.penOnly = !state.penOnly;
+    $('#btn-pen-only').classList.toggle('active', state.penOnly);
+    toast(state.penOnly ? '펜만 쓰기 ON — 손가락은 스크롤' : '펜만 쓰기 OFF');
+  });
+  $('#btn-extend').addEventListener('click', extendPage);
+  $('#btn-guides').addEventListener('click', () => {
+    state.showGuides = !state.showGuides;
+    const s = getSebu(); if (s) s.guidesVisible = state.showGuides;
+    scheduleSave();
+    $('#btn-guides').classList.toggle('active', state.showGuides);
+    updateGuideOverlay();
+  });
+  $('#btn-export-png').addEventListener('click', exportPng);
+  $('#btn-print').addEventListener('click', () => window.print());
+
+  // Mode toggle 펜 / 자판
+  $('#btn-mode-pen').addEventListener('click', () => setInputMode('pen'));
+  $('#btn-mode-kb').addEventListener('click', () => setInputMode('keyboard'));
+  $('#btn-add-text').addEventListener('click', createTextBoxFromButton);
+  $('#text-layer').addEventListener('pointerdown', onTextLayerPointerDown);
+
+  // Canvas pointer events
+  const c = canvas();
+  c.addEventListener('pointerdown', onPointerDown);
+  c.addEventListener('pointermove', onPointerMove);
+  c.addEventListener('pointerup', onPointerUp);
+  c.addEventListener('pointercancel', onPointerUp);
+  c.addEventListener('pointerleave', (e) => {
+    if (state.drawing && state.pointers.has(e.pointerId)) onPointerUp(e);
+  });
+
+  // Prevent context menu on long press canvas
+  c.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  window.addEventListener('resize', () => {
+    if (state.view === 'draw') {
+      resizeCanvas();
+      redrawAll();
+      updateGuideOverlay();
+      renderTextLayer();
+    }
+  });
+
+  // Autosave on visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
+  window.addEventListener('beforeunload', () => { flushSave(); });
+}
+
+/* ========== Boot ========== */
+async function boot() {
+  await loadData();
+  wireEvents();
+  goHome();
+}
+
+boot();
+})();
+</script>
+</body>
+</html>
