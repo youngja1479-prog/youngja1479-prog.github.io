@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==">
+<!-- CARD_NAV_V3_20261101 -->
 <title>단어암기 · 2026 3월 고1</title>
 <style>
 :root {
@@ -146,6 +147,12 @@ main { flex: 1; padding: 12px 14px; }
 .badge.R { background: #ede9fe; color: #6d28d9; }
 .swipe-left { transform: translateX(-40px) rotate(-3deg); opacity: .6; }
 .swipe-right { transform: translateX(40px) rotate(3deg); opacity: .6; }
+.nav-hint { position: absolute; top: 50%; transform: translateY(-50%);
+  font-size: 1.6rem; color: #c5cad3; font-weight: 300; line-height: 1;
+  pointer-events: none; user-select: none; z-index: 2; opacity: .55; }
+.nav-hint.left { left: 8px; }
+.nav-hint.right { right: 8px; }
+.flash-wrap { position: relative; }
 @media (min-width: 700px) {
   .app { max-width: 640px; }
   .flash .word { font-size: 2.1rem; }
@@ -214,6 +221,8 @@ main { flex: 1; padding: 12px 14px; }
         <button type="button" class="btn sm ghost" id="btnCardHome">홈으로</button>
       </div>
       <div class="card flash-wrap" id="flashWrap" style="padding:0;overflow:hidden;position:relative">
+        <div class="nav-hint left" aria-hidden="true">‹</div>
+        <div class="nav-hint right" aria-hidden="true">›</div>
         <div class="flash" id="flashCard">
           <div class="meta"><span id="flashMeta"></span><span id="flashIdx"></span></div>
           <div class="word" id="flashWord"></div>
@@ -223,14 +232,14 @@ main { flex: 1; padding: 12px 14px; }
           <div class="form" id="flashForm"></div>
           <div class="meaning" id="flashMean" style="display:none"></div>
           <div class="ety" id="flashEty" style="display:none"></div>
-          <div class="tap-hint" id="flashHint">탭하여 뜻 보기 · 좌우 스와이프</div>
+          <div class="tap-hint" id="flashHint">가운데: 뜻 · 왼쪽: 이전 · 오른쪽: 다음</div>
         </div>
       </div>
       <div class="actions">
         <button type="button" class="btn bad" id="btnDontKnow">모르겠어요</button>
         <button type="button" class="btn good" id="btnKnow">알아요</button>
       </div>
-      <p class="hint" style="text-align:center">알아요 → 외운 것으로 저장 · 모르겠어요 → 오답노트</p>
+      <p class="hint" style="text-align:center">알아요/모르겠어요로 표시 · 좌우 탭·스와이프·←→키로 이동(표시 변경 없음)</p>
     </section>
 
     <!-- QUIZ -->
@@ -305,6 +314,7 @@ var rangeMode = 'L';
 var selectedQs = {};
 var pool = [];
 var cardIdx = 0;
+var cardNavHistory = [];
 var cardRevealed = false;
 var reverseMode = false;
 var quizMode = 'wm';
@@ -582,28 +592,64 @@ function startCards(fromWrong){
   if (byId('optShuffle').checked) pool = shuffle(pool);
   if (!pool.length){ alert('선택한 범위에 단어가 없습니다.'); return; }
   cardIdx = 0;
+  cardNavHistory = [];
   cardRevealed = false;
   showPanel('card');
   renderCard();
 }
 
+function currentCardWord(){
+  if (cardIdx < 0 || cardIdx >= pool.length) return null;
+  return pool[cardIdx];
+}
+
+function goCardNext(fromMark){
+  if (!pool.length) return;
+  if (cardIdx < pool.length){
+    cardNavHistory.push(cardIdx);
+  }
+  if (cardIdx < pool.length) cardIdx++;
+  cardRevealed = false;
+  renderCard();
+}
+
+function goCardPrev(){
+  if (!pool.length) return;
+  if (cardNavHistory.length){
+    cardIdx = cardNavHistory.pop();
+  } else if (cardIdx > 0){
+    cardIdx--;
+  } else {
+    return;
+  }
+  cardRevealed = false;
+  renderCard();
+}
+
 function renderCard(){
+  var leftH = document.querySelector('.nav-hint.left');
+  var rightH = document.querySelector('.nav-hint.right');
   if (cardIdx >= pool.length){
     byId('flashWord').textContent = '완료!';
     byId('flashForm').textContent = '';
     byId('flashMean').style.display='none';
     byId('flashEty').style.display='none';
-    byId('flashHint').textContent = pool.length+'개 학습 완료';
+    byId('flashHint').textContent = pool.length+'개 학습 완료 · 왼쪽 탭으로 이전 카드';
     byId('flashMeta').textContent = '';
     byId('flashIdx').textContent = '';
     byId('cardCounter').textContent = pool.length+' / '+pool.length;
     byId('cardProg').style.width = '100%';
     byId('btnKnow').disabled = true;
     byId('btnDontKnow').disabled = true;
+    byId('ttsBtn').style.visibility = 'hidden';
+    if (leftH) leftH.style.opacity = cardNavHistory.length || cardIdx>0 ? '0.55' : '0.15';
+    if (rightH) rightH.style.opacity = '0.15';
+    byId('flashCard').classList.remove('swipe-left','swipe-right');
     return;
   }
   byId('btnKnow').disabled = false;
   byId('btnDontKnow').disabled = false;
+  byId('ttsBtn').style.visibility = 'visible';
   var w = pool[cardIdx];
   cardRevealed = false;
   byId('flashMeta').innerHTML = '<span class="sec-'+w.sec+'">'+(w.sec==='L'?'듣기':'독해')+' '+w.q+'번</span>';
@@ -618,19 +664,20 @@ function renderCard(){
     byId('flashMean').style.display='none';
     byId('flashMean').textContent = w.w;
     byId('flashEty').textContent = w.e || '';
-    byId('flashHint').textContent = '탭하여 단어 보기 · 좌우 스와이프';
+    byId('flashHint').textContent = '가운데: 단어 · 왼쪽: 이전 · 오른쪽: 다음';
   } else {
     byId('flashWord').textContent = w.w;
     byId('flashMean').style.display='none';
     byId('flashMean').textContent = w.m;
     byId('flashEty').textContent = w.e || '';
-    byId('flashHint').textContent = '탭하여 뜻 보기 · 좌우 스와이프';
+    byId('flashHint').textContent = '가운데: 뜻 · 왼쪽: 이전 · 오른쪽: 다음';
   }
   byId('ttsBtn').style.display = 'inline-flex';
   byId('ttsBtn').hidden = false;
   byId('flashCard').classList.remove('swipe-left','swipe-right');
+  if (leftH) leftH.style.opacity = (cardNavHistory.length || cardIdx>0) ? '0.55' : '0.2';
+  if (rightH) rightH.style.opacity = '0.55';
   if (byId('optAutoSpeak') && byId('optAutoSpeak').checked){
-    // auto: try synth; if blocked without gesture, Google audio may still work when online
     try { speakWord(w.w); } catch(e){}
   }
 }
@@ -655,9 +702,7 @@ function markCard(know){
     delete state.known[w.id];
   }
   saveState();
-  cardIdx++;
-  cardRevealed = false;
-  renderCard();
+  goCardNext(true);
 }
 
 function speakCurrent(){
@@ -665,19 +710,31 @@ function speakCurrent(){
   speakWord(pool[cardIdx].w);
 }
 
-/* swipe */
+function handleCardPointerNav(clientX, target){
+  if (target && target.closest && (target.closest('#ttsBtn') || target.closest('.speak-btn'))) return 'speak';
+  var wrap = byId('flashWrap');
+  var rect = wrap.getBoundingClientRect();
+  var x = (clientX - rect.left) / Math.max(rect.width, 1);
+  if (x <= 0.30){ goCardPrev(); return 'prev'; }
+  if (x >= 0.70){ goCardNext(false); return 'next'; }
+  if (!cardRevealed) revealCard();
+  return 'reveal';
+}
+
+/* swipe: right=back, left=next (does not change marks) */
 (function(){
   var el = byId('flashWrap');
-  var sx=0, sy=0, dx=0, active=false;
+  var sx=0, sy=0, dx=0, active=false, moved=false;
   el.addEventListener('touchstart', function(e){
     if (!e.changedTouches[0]) return;
-    active=true; sx=e.changedTouches[0].clientX; sy=e.changedTouches[0].clientY; dx=0;
+    active=true; moved=false; sx=e.changedTouches[0].clientX; sy=e.changedTouches[0].clientY; dx=0;
   }, {passive:true});
   el.addEventListener('touchmove', function(e){
     if (!active) return;
     dx = e.changedTouches[0].clientX - sx;
     var dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx)>20){
+      moved = true;
       byId('flashCard').classList.toggle('swipe-right', dx>40);
       byId('flashCard').classList.toggle('swipe-left', dx<-40);
     }
@@ -687,21 +744,32 @@ function speakCurrent(){
     active=false;
     var dy = e.changedTouches[0].clientY - sy;
     byId('flashCard').classList.remove('swipe-left','swipe-right');
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)){
-      if (dx > 0) markCard(true); else markCard(false);
+    if (moved && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)){
+      if (dx > 0) goCardPrev(); else goCardNext(false);
+      dx=0;
+      return;
     }
     dx=0;
   });
 })();
 
-byId('flashCard').addEventListener('click', function(e){
+byId('flashWrap').addEventListener('click', function(e){
   if (e.target.closest && (e.target.closest('#ttsBtn') || e.target.closest('.speak-btn'))) return;
-  if (!cardRevealed) revealCard();
+  handleCardPointerNav(e.clientX, e.target);
 });
 byId('ttsBtn').addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); speakCurrent(); });
 byId('btnKnow').addEventListener('click', function(){ markCard(true); });
 byId('btnDontKnow').addEventListener('click', function(){ markCard(false); });
 byId('btnCardHome').addEventListener('click', function(){ showPanel('home'); updateSelCount(); });
+
+document.addEventListener('keydown', function(e){
+  if (!byId('panel-card').classList.contains('active')) return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft'){ e.preventDefault(); goCardPrev(); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); goCardNext(false); }
+  else if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); if (!cardRevealed) revealCard(); }
+});
 
 /* ---- Quiz ---- */
 function startQuiz(){
@@ -935,6 +1003,12 @@ window.__VOCAB_APP__ = {
   revealCard: revealCard,
   speakWord: speakWord,
   speakCurrent: speakCurrent,
+  goCardNext: function(){ goCardNext(false); },
+  goCardPrev: goCardPrev,
+  getCardIdx: function(){ return cardIdx; },
+  getCardWord: currentCardWord,
+  getNavHistory: function(){ return cardNavHistory.slice(); },
+  marker: "CARD_NAV_V3_20261101",
   rangeMode: function(m){ if(m!==undefined){ rangeMode=m; syncRangeSeg(); updateSelCount(); } return rangeMode; },
   counts: function(){
     var L=0,R=0; WORDS.forEach(function(w){ if(w.sec==='L')L++; else R++; });
