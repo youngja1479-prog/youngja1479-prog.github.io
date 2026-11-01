@@ -207,8 +207,10 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .canvas-wrap {
   flex: 1; overflow: auto; -webkit-overflow-scrolling: touch;
   position: relative; touch-action: pan-y pan-x;
+  overscroll-behavior: contain;
 }
-.canvas-wrap.pen-only { touch-action: pan-y pan-x; }
+.canvas-wrap.finger-pan { touch-action: pan-y pan-x; }
+.canvas-wrap.finger-draw { touch-action: none; }
 .canvas-wrap.drawing { touch-action: none; overflow: hidden; }
 .canvas-wrap.pinching { touch-action: none; overflow: hidden; }
 #zoom-sizer {
@@ -216,8 +218,17 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   position: relative;
 }
 #drawCanvas {
-  display: block; touch-action: none; cursor: crosshair;
+  display: block; cursor: crosshair;
   background: transparent;
+}
+/* Canvas always none: JS handles 이동(pan) vs 쓰기(draw); wrap still scrolls. */
+#drawCanvas, .canvas-wrap.finger-draw #drawCanvas,
+.canvas-wrap.finger-pan #drawCanvas,
+.canvas-wrap.drawing #drawCanvas,
+.canvas-wrap.pinching #drawCanvas { touch-action: none; }
+.finger-mode-btn {
+  width: auto !important; min-width: 36px; padding: 0 8px !important;
+  font-size: 11px !important; font-weight: 700; white-space: nowrap;
 }
 .zoom-group { display: flex; align-items: center; gap: 2px; }
 .zoom-btn {
@@ -267,7 +278,6 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 #bgCanvas { z-index: 0; pointer-events: none; }
 #drawCanvas {
   z-index: 1;
-  touch-action: none;
   cursor: crosshair;
   background: transparent;
 }
@@ -545,7 +555,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" id="btn-bg-blank" title="무지">□</button>
       </div>
       <div class="tool-group">
-        <button class="tool-btn" id="btn-pen-only" title="펜만 쓰기 (손바닥 무시)">✏</button>
+        <button type="button" class="tool-btn finger-mode-btn" id="btn-finger-mode" title="손가락으로 화면 이동 (탭하면 쓰기로 전환)">✋ 손가락: 이동</button>
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
         <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
       </div>
@@ -1186,7 +1196,7 @@ const state = {
   color: '#1a1a1a',
   width: 1.5,
   bg: 'lined',
-  penOnly: false,
+  fingerMode: 'pan', /* pan | draw — touch only; pen/mouse always draw */
   showGuides: true,
   inputMode: 'pen', /* pen | keyboard */
   selectedTextId: null,
@@ -1671,7 +1681,6 @@ function openItemModal(kind, mode, id) {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
   hwc.addEventListener('pointerdown', (e) => {
-    if (state.penOnly && e.pointerType === 'touch') return;
     hwDrawing = true;
     hwc.setPointerCapture(e.pointerId);
     const p = hwPos(e);
@@ -1811,6 +1820,50 @@ try {
 } catch (e) {}
 let pinchState = null; /* { dist0, zoom0, focalX, focalY, scrollL, scrollT } */
 let lastViewportW = 0;
+let panDrag = null; /* single-finger pan fallback { id, x, y, sl, st } */
+
+const FINGER_KEY = 'gkc-finger-mode';
+try {
+  const fm = localStorage.getItem(FINGER_KEY);
+  if (fm === 'pan' || fm === 'draw') state.fingerMode = fm;
+} catch (e) {}
+
+function applyFingerModeUI() {
+  const mode = state.fingerMode === 'draw' ? 'draw' : 'pan';
+  state.fingerMode = mode;
+  const btn = $('#btn-finger-mode');
+  const w = wrap();
+  if (btn) {
+    if (mode === 'pan') {
+      btn.textContent = '✋ 손가락: 이동';
+      btn.title = '손가락으로 화면 이동 (탭하면 쓰기로 전환)';
+      btn.classList.remove('active');
+    } else {
+      btn.textContent = '✍️ 손가락: 쓰기';
+      btn.title = '손가락으로 그리기 (탭하면 이동으로 전환)';
+      btn.classList.add('active');
+    }
+  }
+  if (w) {
+    w.classList.toggle('finger-pan', mode === 'pan');
+    w.classList.toggle('finger-draw', mode === 'draw');
+  }
+}
+function setFingerMode(mode, opts) {
+  opts = opts || {};
+  state.fingerMode = (mode === 'draw') ? 'draw' : 'pan';
+  try { localStorage.setItem(FINGER_KEY, state.fingerMode); } catch (e) {}
+  applyFingerModeUI();
+  if (!opts.silent) {
+    toast(state.fingerMode === 'pan' ? '손가락: 이동 (한 손가락 스크롤)' : '손가락: 쓰기');
+  }
+}
+function toggleFingerMode() {
+  setFingerMode(state.fingerMode === 'pan' ? 'draw' : 'pan');
+}
+function touchShouldDraw() {
+  return state.fingerMode === 'draw';
+}
 
 function clampZoom(z) {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
@@ -1870,6 +1923,7 @@ function zoomOut() { setDrawZoom(drawZoom - ZOOM_STEP, { snap: true }); }
 function zoomReset() { setDrawZoom(1, { snap: true, force: true }); }
 
 function cancelDrawingForPinch() {
+  panDrag = null;
   if (!state.drawing && !state.currentStroke && state.pointers.size === 0) return;
   state.drawing = false;
   state.currentStroke = null;
@@ -1882,6 +1936,7 @@ function cancelDrawingForPinch() {
 function onPinchTouchStart(e) {
   if (e.touches.length !== 2) return;
   if (state.inputMode === 'keyboard') return; // allow text selection gestures
+  panDrag = null;
   cancelDrawingForPinch();
   const t0 = e.touches[0], t1 = e.touches[1];
   const dist0 = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
@@ -2190,7 +2245,7 @@ function initDrawPage() {
   $('#btn-bg-lined').classList.toggle('active', state.bg === 'lined');
   $('#btn-bg-grid').classList.toggle('active', state.bg === 'grid');
   $('#btn-bg-blank').classList.toggle('active', state.bg === 'blank');
-  $('#btn-pen-only').classList.toggle('active', state.penOnly);
+  applyFingerModeUI();
   $('#btn-guides').classList.toggle('active', state.showGuides);
 
   CSS_H = sebu.pageHeight || 1200;
@@ -2402,15 +2457,35 @@ function canvasPos(e) {
 function onPointerDown(e) {
   if (state.inputMode === 'keyboard') return;
   if (pinchState) return;
-  if (state.penOnly && e.pointerType === 'touch') return;
   // Allow only primary button for mouse
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  // Second finger while drawing with touch → pinch, not multi-stroke
-  if (e.pointerType === 'touch' && state.pointers.size >= 1) {
-    cancelDrawingForPinch();
-    return;
+
+  // Touch: default = pan/scroll; optional 쓰기 mode draws. Pen/mouse always draw.
+  if (e.pointerType === 'touch') {
+    if (!touchShouldDraw()) {
+      // Smooth pan: drive wrap scroll 1:1 (works reliably when zoomed too)
+      const wEl = wrap();
+      if (!wEl) return;
+      panDrag = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        sl: wEl.scrollLeft,
+        st: wEl.scrollTop
+      };
+      // Capture on canvas (listener target) so pointermove keeps firing
+      try { canvas().setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+      return;
+    }
+    // Second finger while drawing with touch → pinch, not multi-stroke
+    if (state.pointers.size >= 1) {
+      cancelDrawingForPinch();
+      return;
+    }
   }
 
+  panDrag = null;
   const c = canvas();
   try { c.setPointerCapture(e.pointerId); } catch (_) {}
   wrap().classList.add('drawing');
@@ -2431,9 +2506,17 @@ function onPointerDown(e) {
 
 function onPointerMove(e) {
   if (pinchState) return;
+  if (panDrag && panDrag.id === e.pointerId) {
+    const wEl = wrap();
+    if (wEl) {
+      wEl.scrollLeft = panDrag.sl - (e.clientX - panDrag.x);
+      wEl.scrollTop = panDrag.st - (e.clientY - panDrag.y);
+    }
+    e.preventDefault();
+    return;
+  }
   if (!state.drawing || !state.currentStroke) return;
   if (!state.pointers.has(e.pointerId)) return;
-  if (state.penOnly && e.pointerType === 'touch') return;
 
   const p = canvasPos(e);
   const pts = state.currentStroke.points;
@@ -2469,6 +2552,14 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (panDrag && panDrag.id === e.pointerId) {
+    panDrag = null;
+    try {
+      const c = canvas();
+      if (c && c.hasPointerCapture && c.hasPointerCapture(e.pointerId)) c.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    return;
+  }
   try {
     const c = canvas();
     if (c && c.hasPointerCapture && c.hasPointerCapture(e.pointerId)) c.releasePointerCapture(e.pointerId);
@@ -2687,11 +2778,8 @@ function wireEvents() {
     ['lined','grid','blank'].forEach(b => $('#btn-bg-' + b).classList.toggle('active', b === 'blank'));
     redrawAll();
   });
-  $('#btn-pen-only').addEventListener('click', () => {
-    state.penOnly = !state.penOnly;
-    $('#btn-pen-only').classList.toggle('active', state.penOnly);
-    toast(state.penOnly ? '펜만 쓰기 ON — 손가락은 스크롤' : '펜만 쓰기 OFF');
-  });
+  $('#btn-finger-mode').addEventListener('click', () => toggleFingerMode());
+  applyFingerModeUI();
   $('#btn-extend').addEventListener('click', extendPage);
   $('#btn-guides').addEventListener('click', () => {
     state.showGuides = !state.showGuides;
@@ -2826,6 +2914,11 @@ window.__gkcZoom = {
   ZOOM_MIN,
   ZOOM_MAX,
   ZOOM_STEP
+};
+window.__gkcFinger = {
+  get: () => state.fingerMode,
+  set: (m) => setFingerMode(m, { silent: true }),
+  touchShouldDraw
 };
 window.__gkcNav = {
   goHome, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
