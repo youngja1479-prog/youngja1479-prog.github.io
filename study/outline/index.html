@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>GKC 학습노트 — 목차·세부목차·세부내용</title>
@@ -29,7 +29,11 @@
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-input, textarea, select { font-family: inherit; color: inherit; }
+input, textarea, select {
+  font-family: inherit; color: inherit;
+  font-size: 16px; /* iOS: <16px + max-scale=1 blocks/breaks typing */
+  -webkit-user-select: text; user-select: text;
+}
 button:disabled { opacity: .4; cursor: not-allowed; }
 .hidden { display: none !important; }
 
@@ -206,10 +210,28 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 .canvas-wrap.pen-only { touch-action: pan-y pan-x; }
 .canvas-wrap.drawing { touch-action: none; overflow: hidden; }
+.canvas-wrap.pinching { touch-action: none; overflow: hidden; }
+#zoom-sizer {
+  margin: 8px auto;
+  position: relative;
+}
 #drawCanvas {
   display: block; touch-action: none; cursor: crosshair;
   background: transparent;
 }
+.zoom-group { display: flex; align-items: center; gap: 2px; }
+.zoom-btn {
+  min-width: 36px; height: 36px; padding: 0 8px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--text2);
+}
+.zoom-btn:hover { background: var(--surface2); color: var(--text); }
+.zoom-label {
+  min-width: 48px; height: 36px; padding: 0 6px; border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+}
+.zoom-label:hover { background: var(--accent-soft); color: var(--accent); }
 .guide-label {
   position: absolute; left: 24px; padding: 2px 0;
   border-bottom: 1px dashed rgba(0,0,0,.08); width: calc(100% - 48px);
@@ -229,10 +251,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 #page-stage {
   position: relative;
-  margin: 0 auto;
+  margin: 0;
   width: fit-content;
   box-shadow: 0 2px 8px rgba(0,0,0,.1);
   background: #fffef8;
+  transform-origin: 0 0;
 }
 #bgCanvas, #drawCanvas {
   display: block;
@@ -292,8 +315,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .text-box textarea {
   flex: 1; width: 100%; min-height: 32px; border: none; outline: none;
   background: transparent; resize: both; padding: 6px 8px;
-  font-size: 15px; line-height: 1.45; font-family: var(--font);
+  font-size: 16px; line-height: 1.45; font-family: var(--font);
   color: var(--text); overflow: auto;
+  -webkit-user-select: text; user-select: text;
 }
 #text-layer:not(.kb-active) .text-box {
   border-color: transparent; background: transparent; box-shadow: none;
@@ -332,7 +356,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .modal .field { margin-bottom: 14px; }
 .modal input[type=text], .modal textarea, .modal select {
   width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border);
-  border-radius: 10px; font-size: 15px; background: var(--bg); outline: none;
+  border-radius: 10px; font-size: 16px; background: var(--bg); outline: none;
+  -webkit-user-select: text; user-select: text;
 }
 .modal input:focus, .modal textarea:focus, .modal select:focus { border-color: var(--accent); }
 .modal textarea { height: auto; min-height: 80px; padding: 10px 12px; resize: vertical; }
@@ -378,7 +403,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 
 .modal input[type=password] {
   width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border);
-  border-radius: 10px; font-size: 15px; background: var(--bg); outline: none;
+  border-radius: 10px; font-size: 16px; background: var(--bg); outline: none;
+  -webkit-user-select: text; user-select: text;
 }
 .modal input[type=password]:focus { border-color: var(--accent); }
 .sync-status {
@@ -400,6 +426,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .topbar, .draw-toolbar, .modal-backdrop, .toast, .ctx-menu, .mode-toggle { display: none !important; }
   #app, .view, .canvas-wrap { overflow: visible !important; height: auto !important; }
   #drawCanvas, #page-stage { box-shadow: none !important; }
+  #page-stage { transform: none !important; }
+  #zoom-sizer { width: auto !important; height: auto !important; }
   .text-box .tb-bar { display: none !important; }
 }
 
@@ -521,16 +549,23 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
         <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
       </div>
+      <div class="tool-group zoom-group" title="확대/축소">
+        <button type="button" class="zoom-btn" id="btn-zoom-out" title="축소" aria-label="축소">−</button>
+        <button type="button" class="zoom-label" id="btn-zoom-reset" title="원래 크기(100%)" aria-label="원래 크기">100%</button>
+        <button type="button" class="zoom-btn" id="btn-zoom-in" title="확대" aria-label="확대">+</button>
+      </div>
       <div class="tool-group" id="kb-actions">
         <button type="button" id="btn-add-text" title="텍스트 상자 만들기">＋ 생성하기</button>
       </div>
     </div>
     <div class="canvas-wrap" id="canvas-wrap">
-      <div id="page-stage">
-        <canvas id="bgCanvas" aria-hidden="true"></canvas>
-        <canvas id="drawCanvas"></canvas>
-        <div class="guide-overlay hidden" id="guide-overlay"></div>
-        <div id="text-layer"></div>
+      <div id="zoom-sizer">
+        <div id="page-stage">
+          <canvas id="bgCanvas" aria-hidden="true"></canvas>
+          <canvas id="drawCanvas"></canvas>
+          <div class="guide-overlay hidden" id="guide-overlay"></div>
+          <div id="text-layer"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1081,7 +1116,7 @@ function openSyncModal() {
     </div>
     <div class="field">
       <label>동기화 비밀번호</label>
-      <input type="password" id="sync-pw" placeholder="최소 4자" minlength="4" autocomplete="off" ${connected ? '' : 'autofocus'}>
+      <input type="password" id="sync-pw" placeholder="최소 4자" minlength="4" autocomplete="current-password" enterkeyhint="done" ${connected ? '' : 'autofocus'}>
     </div>
     <p style="font-size:12px;color:var(--text3);margin:-6px 0 12px;line-height:1.4">
       같은 비밀번호를 쓰는 기기끼리 노트가 동기화됩니다. 다른 비밀번호는 완전히 다른 보관함이에요.
@@ -1465,7 +1500,14 @@ function openModal(html) {
   $('#modal-bd').addEventListener('click', (e) => {
     if (e.target.id === 'modal-bd') closeModal();
   });
-  return root.querySelector('.modal');
+  const modal = root.querySelector('.modal');
+  const autofocusEl = root.querySelector('[autofocus], input, textarea');
+  if (autofocusEl && (autofocusEl.tagName === 'INPUT' || autofocusEl.tagName === 'TEXTAREA')) {
+    setTimeout(() => {
+      try { autofocusEl.focus(); } catch (_) {}
+    }, 50);
+  }
+  return modal;
 }
 function closeModal() { $('#modal-root').innerHTML = ''; }
 
@@ -1757,6 +1799,124 @@ let CSS_W = 720;
 let CSS_H = 1200;
 let DPR = 1;
 
+/* ========== Zoom (확대/축소) ========== */
+const ZOOM_KEY = 'gkc-draw-zoom';
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.25;
+let drawZoom = 1;
+try {
+  const z = parseFloat(localStorage.getItem(ZOOM_KEY));
+  if (!isNaN(z) && z >= ZOOM_MIN && z <= ZOOM_MAX) drawZoom = z;
+} catch (e) {}
+let pinchState = null; /* { dist0, zoom0, focalX, focalY, scrollL, scrollT } */
+let lastViewportW = 0;
+
+function clampZoom(z) {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+}
+function snapZoom(z) {
+  return Math.round(clampZoom(z) / ZOOM_STEP) * ZOOM_STEP;
+}
+function zoomLabelText() {
+  return Math.round(drawZoom * 100) + '%';
+}
+function updateZoomLabel() {
+  const btn = $('#btn-zoom-reset');
+  if (btn) btn.textContent = zoomLabelText();
+}
+function applyZoomTransform() {
+  const stage = $('#page-stage');
+  const sizer = $('#zoom-sizer');
+  if (stage) {
+    stage.style.transform = (Math.abs(drawZoom - 1) < 0.001) ? 'none' : ('scale(' + drawZoom + ')');
+  }
+  if (sizer) {
+    sizer.style.width = Math.round(CSS_W * drawZoom) + 'px';
+    sizer.style.height = Math.round(CSS_H * drawZoom) + 'px';
+  }
+  updateZoomLabel();
+}
+function setDrawZoom(z, opts) {
+  opts = opts || {};
+  const prev = drawZoom;
+  let nz = clampZoom(z);
+  if (opts.snap) nz = snapZoom(nz);
+  // avoid float noise
+  nz = Math.round(nz * 1000) / 1000;
+  if (Math.abs(nz - prev) < 0.001 && !opts.force) {
+    updateZoomLabel();
+    return;
+  }
+  const wEl = wrap();
+  let anchorX = null, anchorY = null, pageX = 0, pageY = 0;
+  if (wEl && opts.focalClientX != null) {
+    const rect = wEl.getBoundingClientRect();
+    anchorX = opts.focalClientX - rect.left;
+    anchorY = opts.focalClientY - rect.top;
+    pageX = (wEl.scrollLeft + anchorX) / prev;
+    pageY = (wEl.scrollTop + anchorY) / prev;
+  }
+  drawZoom = nz;
+  try { localStorage.setItem(ZOOM_KEY, String(drawZoom)); } catch (e) {}
+  applyZoomTransform();
+  if (wEl && anchorX != null) {
+    wEl.scrollLeft = Math.max(0, pageX * drawZoom - anchorX);
+    wEl.scrollTop = Math.max(0, pageY * drawZoom - anchorY);
+  }
+}
+function zoomIn() { setDrawZoom(drawZoom + ZOOM_STEP, { snap: true }); }
+function zoomOut() { setDrawZoom(drawZoom - ZOOM_STEP, { snap: true }); }
+function zoomReset() { setDrawZoom(1, { snap: true, force: true }); }
+
+function cancelDrawingForPinch() {
+  if (!state.drawing && !state.currentStroke && state.pointers.size === 0) return;
+  state.drawing = false;
+  state.currentStroke = null;
+  state.pointers.clear();
+  const w = wrap();
+  if (w) w.classList.remove('drawing');
+  redrawAll();
+}
+
+function onPinchTouchStart(e) {
+  if (e.touches.length !== 2) return;
+  if (state.inputMode === 'keyboard') return; // allow text selection gestures
+  cancelDrawingForPinch();
+  const t0 = e.touches[0], t1 = e.touches[1];
+  const dist0 = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+  const wEl = wrap();
+  pinchState = {
+    dist0,
+    zoom0: drawZoom,
+    focalClientX: (t0.clientX + t1.clientX) / 2,
+    focalClientY: (t0.clientY + t1.clientY) / 2
+  };
+  if (wEl) wEl.classList.add('pinching');
+  e.preventDefault();
+}
+function onPinchTouchMove(e) {
+  if (!pinchState || e.touches.length !== 2) return;
+  const t0 = e.touches[0], t1 = e.touches[1];
+  const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+  const ratio = dist / pinchState.dist0;
+  const focalClientX = (t0.clientX + t1.clientX) / 2;
+  const focalClientY = (t0.clientY + t1.clientY) / 2;
+  setDrawZoom(pinchState.zoom0 * ratio, { focalClientX, focalClientY });
+  e.preventDefault();
+}
+function onPinchTouchEnd(e) {
+  if (!pinchState) return;
+  if (e.touches.length < 2) {
+    // snap lightly to step for tidy % label, keep continuous feel nearby
+    setDrawZoom(drawZoom, { snap: false });
+    updateZoomLabel();
+    pinchState = null;
+    const wEl = wrap();
+    if (wEl) wEl.classList.remove('pinching');
+  }
+}
+
 function ensurePage() {
   const s = getSebu();
   if (!s) return null;
@@ -1828,6 +1988,12 @@ function renderTextLayer() {
       state.selectedTextId = id;
       layer.querySelectorAll('.text-box').forEach(b => b.classList.toggle('selected', b.dataset.id === id));
     });
+    // Ensure soft keyboard can target the field (some tablet WebViews blur on remount/resize)
+    ta.addEventListener('pointerdown', (e) => {
+      if (state.inputMode !== 'keyboard') return;
+      e.stopPropagation();
+      try { ta.focus(); } catch (_) {}
+    });
     ta.addEventListener('input', () => {
       const texts = getTexts();
       const item = texts.find(x => x.id === id);
@@ -1860,8 +2026,9 @@ function renderTextLayer() {
       if (!dragging) return;
       const cx = e.clientX != null ? e.clientX : (e.touches && e.touches[0].clientX);
       const cy = e.clientY != null ? e.clientY : (e.touches && e.touches[0].clientY);
-      let nx = startX + (cx - ox);
-      let ny = startY + (cy - oy);
+      const z = drawZoom || 1;
+      let nx = startX + (cx - ox) / z;
+      let ny = startY + (cy - oy) / z;
       nx = Math.max(0, Math.min(CSS_W - 40, nx));
       ny = Math.max(0, Math.min(CSS_H - 24, ny));
       box.style.left = nx + 'px';
@@ -1940,10 +2107,13 @@ function createTextBoxFromButton() {
   state.selectedTextId = t.id;
   scheduleSave();
   renderTextLayer();
-  requestAnimationFrame(() => {
+  const focusTa = () => {
     const ta = $(`.text-box[data-id="${t.id}"] textarea`);
-    if (ta) ta.focus();
-  });
+    if (!ta) return;
+    try { ta.focus({ preventScroll: false }); } catch (_) { ta.focus(); }
+  };
+  focusTa();
+  requestAnimationFrame(focusTa);
 }
 
 /* Tap on empty page in 자판 mode: do nothing (only edit existing boxes). */
@@ -2040,6 +2210,7 @@ function initDrawPage() {
     const addBtn = $('#btn-add-text');
     if (addBtn) addBtn.classList.toggle('visible', kb);
   }
+  applyZoomTransform();
   updateUndoBtns();
 }
 
@@ -2074,6 +2245,7 @@ function resizeCanvas() {
     layer.style.width = CSS_W + 'px';
     layer.style.height = CSS_H + 'px';
   }
+  applyZoomTransform();
 }
 
 function drawBackground(ctx) {
@@ -2229,9 +2401,15 @@ function canvasPos(e) {
 
 function onPointerDown(e) {
   if (state.inputMode === 'keyboard') return;
+  if (pinchState) return;
   if (state.penOnly && e.pointerType === 'touch') return;
   // Allow only primary button for mouse
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+  // Second finger while drawing with touch → pinch, not multi-stroke
+  if (e.pointerType === 'touch' && state.pointers.size >= 1) {
+    cancelDrawingForPinch();
+    return;
+  }
 
   const c = canvas();
   try { c.setPointerCapture(e.pointerId); } catch (_) {}
@@ -2252,6 +2430,7 @@ function onPointerDown(e) {
 }
 
 function onPointerMove(e) {
+  if (pinchState) return;
   if (!state.drawing || !state.currentStroke) return;
   if (!state.pointers.has(e.pointerId)) return;
   if (state.penOnly && e.pointerType === 'touch') return;
@@ -2290,6 +2469,10 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  try {
+    const c = canvas();
+    if (c && c.hasPointerCapture && c.hasPointerCapture(e.pointerId)) c.releasePointerCapture(e.pointerId);
+  } catch (_) {}
   if (!state.drawing) return;
   state.pointers.delete(e.pointerId);
   if (state.pointers.size > 0) return;
@@ -2526,6 +2709,12 @@ function wireEvents() {
   $('#btn-add-text').addEventListener('click', createTextBoxFromButton);
   $('#text-layer').addEventListener('pointerdown', onTextLayerPointerDown);
 
+  // Zoom controls
+  $('#btn-zoom-in').addEventListener('click', zoomIn);
+  $('#btn-zoom-out').addEventListener('click', zoomOut);
+  $('#btn-zoom-reset').addEventListener('click', zoomReset);
+  updateZoomLabel();
+
   // Canvas pointer events
   const c = canvas();
   c.addEventListener('pointerdown', onPointerDown);
@@ -2539,13 +2728,43 @@ function wireEvents() {
   // Prevent context menu on long press canvas
   c.addEventListener('contextmenu', (e) => e.preventDefault());
 
+  // Two-finger pinch zoom on the scroll wrap (does not affect pen / single-finger draw)
+  const wrapEl = wrap();
+  if (wrapEl) {
+    wrapEl.addEventListener('touchstart', onPinchTouchStart, { passive: false });
+    wrapEl.addEventListener('touchmove', onPinchTouchMove, { passive: false });
+    wrapEl.addEventListener('touchend', onPinchTouchEnd, { passive: false });
+    wrapEl.addEventListener('touchcancel', onPinchTouchEnd, { passive: false });
+  }
+
+  // Soft keyboard on phones fires resize (height only). Remounting #text-layer
+  // there stole focus and broke 자판/IME typing — only relayout on width changes.
+  lastViewportW = window.innerWidth;
   window.addEventListener('resize', () => {
-    if (state.view === 'draw') {
-      resizeCanvas();
-      redrawAll();
-      updateGuideOverlay();
-      renderTextLayer();
+    if (state.view !== 'draw') return;
+    const wNow = window.innerWidth;
+    const widthChanged = Math.abs(wNow - lastViewportW) > 2;
+    lastViewportW = wNow;
+    const typing = document.activeElement && (
+      document.activeElement.closest('#text-layer') ||
+      document.activeElement.closest('.modal') ||
+      document.activeElement.tagName === 'INPUT' ||
+      document.activeElement.tagName === 'TEXTAREA'
+    );
+    if (!widthChanged || typing) {
+      // keep layer box size in sync without destroying focused inputs
+      const layer = $('#text-layer');
+      if (layer) {
+        layer.style.width = CSS_W + 'px';
+        layer.style.height = CSS_H + 'px';
+      }
+      applyZoomTransform();
+      return;
     }
+    resizeCanvas();
+    redrawAll();
+    updateGuideOverlay();
+    renderTextLayer();
   });
 
   $('#btn-sync').addEventListener('click', openSyncModal);
@@ -2598,6 +2817,19 @@ window.__gkcSync = {
   startSyncPolling,
   stopSyncPolling,
   getSyncLastError: () => syncLastError
+};
+window.__gkcZoom = {
+  get: () => drawZoom,
+  set: (z, opts) => setDrawZoom(z, opts || { snap: true, force: true }),
+  canvasPos,
+  applyZoomTransform,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP
+};
+window.__gkcNav = {
+  goHome, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
+  initDrawPage, renderTextLayer, setInputMode
 };
 })();
 </script>
