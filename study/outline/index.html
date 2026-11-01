@@ -1822,6 +1822,17 @@ let pinchState = null; /* { dist0, zoom0, focalX, focalY, scrollL, scrollT } */
 let lastViewportW = 0;
 let panDrag = null; /* single-finger pan fallback { id, x, y, sl, st } */
 
+/* ===== Ink feel (constant width; coalesced + smooth + low-latency) ===== */
+let inkCtxCache = null;
+let inkCtxCanvas = null;
+let liveRaf = 0;
+let liveDrawnCount = 0;
+let smoothPrev = null; /* {x,y} EMA state for light stabilization */
+let activePenPointerId = null;
+let palmBlockUntil = 0; /* ignore touch briefly after pen lifts */
+const SMOOTH_ALPHA = 0.42; /* 0..1 — higher = closer to raw, less lag */
+const MIN_POINT_DIST2 = 0.35 * 0.35;
+
 const FINGER_KEY = 'gkc-finger-mode';
 try {
   const fm = localStorage.getItem(FINGER_KEY);
@@ -1924,6 +1935,7 @@ function zoomReset() { setDrawZoom(1, { snap: true, force: true }); }
 
 function cancelDrawingForPinch() {
   panDrag = null;
+  resetStrokeSmoothing();
   if (!state.drawing && !state.currentStroke && state.pointers.size === 0) return;
   state.drawing = false;
   state.currentStroke = null;
@@ -2269,14 +2281,33 @@ function initDrawPage() {
   updateUndoBtns();
 }
 
+function getInkCtx() {
+  const c = canvas();
+  if (!c) return null;
+  if (inkCtxCache && inkCtxCanvas === c) return inkCtxCache;
+  let ctx = null;
+  try { ctx = c.getContext('2d', { desynchronized: true, alpha: true }); } catch (_) {}
+  if (!ctx) {
+    try { ctx = c.getContext('2d', { alpha: true }); } catch (_) {}
+  }
+  if (!ctx) ctx = c.getContext('2d');
+  inkCtxCache = ctx;
+  inkCtxCanvas = c;
+  return ctx;
+}
+
 function sizeOneCanvas(c) {
   if (!c) return;
   c.width = Math.floor(CSS_W * DPR);
   c.height = Math.floor(CSS_H * DPR);
   c.style.width = CSS_W + 'px';
   c.style.height = CSS_H + 'px';
-  const ctx = c.getContext('2d');
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (c.id === 'drawCanvas') {
+    inkCtxCache = null;
+    inkCtxCanvas = null;
+  }
+  const ctx = (c.id === 'drawCanvas') ? getInkCtx() : c.getContext('2d');
+  if (ctx) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 
 function resizeCanvas() {
@@ -2344,6 +2375,14 @@ function drawBackground(ctx) {
   ctx.restore();
 }
 
+/** Constant selected width (no pressure / velocity). Old points may still carry `p`. */
+function strokeLineWidth(stroke) {
+  const w = stroke.width || 1.5;
+  if (stroke.tool === 'eraser') return w * 4;
+  if (stroke.tool === 'highlighter') return w * 3;
+  return w;
+}
+
 function drawStroke(ctx, stroke) {
   if (!stroke || !stroke.points || stroke.points.length < 1) return;
   const pts = stroke.points;
@@ -2351,24 +2390,22 @@ function drawStroke(ctx, stroke) {
   if (stroke.tool === 'eraser') {
     ctx.globalCompositeOperation = 'destination-out';
     ctx.strokeStyle = 'rgba(0,0,0,1)';
-    ctx.lineWidth = stroke.width * 4;
   } else if (stroke.tool === 'highlighter') {
-    // source-over + alpha so it composites over the bg canvas underneath
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = stroke.color;
     ctx.globalAlpha = 0.4;
-    ctx.lineWidth = stroke.width * 3;
   } else {
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.width;
   }
+  const lineW = strokeLineWidth(stroke);
+  ctx.lineWidth = lineW;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
   if (pts.length === 1) {
     ctx.beginPath();
-    const r = (stroke.tool === 'eraser' ? stroke.width * 2 : stroke.width / 2);
+    const r = (stroke.tool === 'eraser' ? lineW / 2 : lineW / 2);
     ctx.arc(pts[0].x, pts[0].y, Math.max(r, 0.5), 0, Math.PI * 2);
     ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
     if (stroke.tool === 'highlighter') ctx.globalAlpha = 0.4;
@@ -2377,19 +2414,20 @@ function drawStroke(ctx, stroke) {
     return;
   }
 
+  // Midpoint quadratic curves — smooth without changing stored points
   ctx.beginPath();
   ctx.moveTo(pts[0].x, pts[0].y);
   if (pts.length === 2) {
     ctx.lineTo(pts[1].x, pts[1].y);
   } else {
+    let prevMidX = pts[0].x;
+    let prevMidY = pts[0].y;
     for (let i = 1; i < pts.length - 1; i++) {
       const midX = (pts[i].x + pts[i + 1].x) / 2;
       const midY = (pts[i].y + pts[i + 1].y) / 2;
-      // pressure-aware width if available
-      if (pts[i].p != null && stroke.tool === 'pen') {
-        ctx.lineWidth = stroke.width * (0.5 + pts[i].p);
-      }
       ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+      prevMidX = midX;
+      prevMidY = midY;
     }
     const last = pts[pts.length - 1];
     ctx.lineTo(last.x, last.y);
@@ -2410,13 +2448,14 @@ function redrawBackground() {
 function redrawInk() {
   const c = canvas();
   if (!c) return;
-  const ctx = c.getContext('2d');
+  const ctx = getInkCtx() || c.getContext('2d');
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   // clear to transparent — eraser destination-out only affects ink here
   ctx.clearRect(0, 0, CSS_W, CSS_H);
   const strokes = getStrokes();
   for (const s of strokes) drawStroke(ctx, s);
   if (state.currentStroke) drawStroke(ctx, state.currentStroke);
+  if (state.currentStroke) liveDrawnCount = state.currentStroke.points.length;
 }
 
 function redrawAll() {
@@ -2442,16 +2481,128 @@ function updateGuideOverlay() {
   ).join('');
 }
 
-function canvasPos(e) {
-  const c = canvas();
-  const r = c.getBoundingClientRect();
-  const scaleX = CSS_W / r.width;
-  const scaleY = CSS_H / r.height;
+function canvasPosFromEvent(e, rect) {
+  const r = rect || canvas().getBoundingClientRect();
+  const scaleX = CSS_W / Math.max(1, r.width);
+  const scaleY = CSS_H / Math.max(1, r.height);
+  // Keep `p` on points for format compatibility; width does NOT use it
+  let p = 0.5;
+  if (typeof e.pressure === 'number' && e.pressure > 0) p = e.pressure;
   return {
     x: (e.clientX - r.left) * scaleX,
     y: (e.clientY - r.top) * scaleY,
-    p: e.pressure > 0 ? e.pressure : 0.5
+    p,
+    t: (typeof e.timeStamp === 'number' && e.timeStamp) ? e.timeStamp : performance.now()
   };
+}
+
+function canvasPos(e) {
+  return canvasPosFromEvent(e);
+}
+
+function stabilizePoint(raw) {
+  if (!smoothPrev) {
+    smoothPrev = { x: raw.x, y: raw.y };
+    return { x: raw.x, y: raw.y, p: raw.p, t: raw.t };
+  }
+  const a = SMOOTH_ALPHA;
+  const x = smoothPrev.x + a * (raw.x - smoothPrev.x);
+  const y = smoothPrev.y + a * (raw.y - smoothPrev.y);
+  smoothPrev = { x, y };
+  return { x, y, p: raw.p, t: raw.t };
+}
+
+function isPalmRejectedTouch(e) {
+  if (e.pointerType !== 'touch') return false;
+  if (activePenPointerId != null) return true;
+  if (performance.now() < palmBlockUntil) return true;
+  return false;
+}
+
+function scheduleLiveInk() {
+  if (liveRaf) return;
+  liveRaf = requestAnimationFrame(() => {
+    liveRaf = 0;
+    flushLiveInk();
+  });
+}
+
+/** Incremental live stroke (constant width). Pen uses quadratic segments; eraser/hl full redraw. */
+function flushLiveInk() {
+  if (!state.drawing || !state.currentStroke) return;
+  const stroke = state.currentStroke;
+  const pts = stroke.points;
+  const ctx = getInkCtx();
+  if (!ctx) return;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  if (stroke.tool !== 'pen') {
+    redrawInk();
+    return;
+  }
+
+  const lineW = strokeLineWidth(stroke);
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (pts.length === 1 && liveDrawnCount < 1) {
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, Math.max(lineW / 2, 0.5), 0, Math.PI * 2);
+    ctx.fill();
+    liveDrawnCount = 1;
+    ctx.restore();
+    return;
+  }
+
+  while (liveDrawnCount < pts.length) {
+    const i = liveDrawnCount;
+    if (i === 0) { liveDrawnCount++; continue; }
+    const a = pts[i - 1];
+    const b = pts[i];
+    ctx.beginPath();
+    if (i >= 2) {
+      const c0 = pts[i - 2];
+      const mid0x = (c0.x + a.x) / 2;
+      const mid0y = (c0.y + a.y) / 2;
+      const mid1x = (a.x + b.x) / 2;
+      const mid1y = (a.y + b.y) / 2;
+      ctx.moveTo(mid0x, mid0y);
+      ctx.quadraticCurveTo(a.x, a.y, mid1x, mid1y);
+    } else {
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+    }
+    ctx.stroke();
+    liveDrawnCount++;
+  }
+  ctx.restore();
+}
+
+function appendStrokePoint(raw) {
+  if (!state.currentStroke) return false;
+  const p = stabilizePoint(raw);
+  const pts = state.currentStroke.points;
+  if (pts.length) {
+    const last = pts[pts.length - 1];
+    const dx = p.x - last.x, dy = p.y - last.y;
+    if (dx * dx + dy * dy < MIN_POINT_DIST2) return false;
+  }
+  pts.push(p);
+  return true;
+}
+
+function resetStrokeSmoothing() {
+  smoothPrev = null;
+  liveDrawnCount = 0;
+  if (liveRaf) {
+    cancelAnimationFrame(liveRaf);
+    liveRaf = 0;
+  }
 }
 
 function onPointerDown(e) {
@@ -2459,6 +2610,17 @@ function onPointerDown(e) {
   if (pinchState) return;
   // Allow only primary button for mouse
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  // Palm rejection: ignore touch while a pen stroke is active (or just ended)
+  if (isPalmRejectedTouch(e)) {
+    e.preventDefault();
+    return;
+  }
+
+  if (e.pointerType === 'pen') {
+    activePenPointerId = e.pointerId;
+    panDrag = null;
+  }
 
   // Touch: default = pan/scroll; optional 쓰기 mode draws. Pen/mouse always draw.
   if (e.pointerType === 'touch') {
@@ -2488,24 +2650,29 @@ function onPointerDown(e) {
   panDrag = null;
   const c = canvas();
   try { c.setPointerCapture(e.pointerId); } catch (_) {}
-  wrap().classList.add('drawing');
+  wrap().classList.add('drawing'); // touch-action: none while inking
   state.drawing = true;
   state.pointers.set(e.pointerId, true);
+  resetStrokeSmoothing();
 
-  const p = canvasPos(e);
+  const raw = canvasPosFromEvent(e);
+  const p = stabilizePoint(raw);
   state.currentStroke = {
     tool: state.tool,
     color: state.color,
     width: state.width,
     points: [p]
   };
-  // Immediate feedback for tap
-  redrawAll();
+  scheduleLiveInk();
   e.preventDefault();
 }
 
 function onPointerMove(e) {
   if (pinchState) return;
+  if (isPalmRejectedTouch(e) && !(panDrag && panDrag.id === e.pointerId)) {
+    e.preventDefault();
+    return;
+  }
   if (panDrag && panDrag.id === e.pointerId) {
     const wEl = wrap();
     if (wEl) {
@@ -2518,40 +2685,30 @@ function onPointerMove(e) {
   if (!state.drawing || !state.currentStroke) return;
   if (!state.pointers.has(e.pointerId)) return;
 
-  const p = canvasPos(e);
-  const pts = state.currentStroke.points;
-  const last = pts[pts.length - 1];
-  const dx = p.x - last.x, dy = p.y - last.y;
-  if (dx * dx + dy * dy < 0.8) return; // thin sampling
-  pts.push(p);
+  const rect = canvas().getBoundingClientRect();
+  let events;
+  try {
+    events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : null;
+  } catch (_) { events = null; }
+  if (!events || !events.length) events = [e];
 
-  // Incremental draw for smoothness
-  const c = canvas();
-  const ctx = c.getContext('2d');
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  // For eraser/highlighter we need full redraw; for pen we can stroke segment
-  if (state.currentStroke.tool === 'pen' && pts.length >= 2) {
-    const stroke = state.currentStroke;
-    const a = pts[pts.length - 2];
-    const b = pts[pts.length - 1];
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.width * (0.5 + (b.p || 0.5));
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    ctx.restore();
-  } else {
-    redrawAll();
+  let added = false;
+  for (let i = 0; i < events.length; i++) {
+    const raw = canvasPosFromEvent(events[i], rect);
+    if (appendStrokePoint(raw)) added = true;
   }
+  // Always include the latest event sample (coalesced list can lag the tip on some devices)
+  if (appendStrokePoint(canvasPosFromEvent(e, rect))) added = true;
+
+  if (added) scheduleLiveInk();
   e.preventDefault();
 }
 
 function onPointerUp(e) {
+  if (e.pointerType === 'pen' && e.pointerId === activePenPointerId) {
+    activePenPointerId = null;
+    palmBlockUntil = performance.now() + 180;
+  }
   if (panDrag && panDrag.id === e.pointerId) {
     panDrag = null;
     try {
@@ -2568,6 +2725,19 @@ function onPointerUp(e) {
   state.pointers.delete(e.pointerId);
   if (state.pointers.size > 0) return;
 
+  // Include final coalesced samples if any
+  if (state.currentStroke) {
+    const rect = canvas().getBoundingClientRect();
+    let events;
+    try {
+      events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : null;
+    } catch (_) { events = null; }
+    if (events && events.length) {
+      for (let i = 0; i < events.length; i++) appendStrokePoint(canvasPosFromEvent(events[i], rect));
+    }
+    appendStrokePoint(canvasPosFromEvent(e, rect));
+  }
+
   wrap().classList.remove('drawing');
   state.drawing = false;
   if (state.currentStroke && state.currentStroke.points.length) {
@@ -2582,6 +2752,7 @@ function onPointerUp(e) {
     updateUndoBtns();
   }
   state.currentStroke = null;
+  resetStrokeSmoothing();
   redrawAll();
 }
 
@@ -2919,6 +3090,14 @@ window.__gkcFinger = {
   get: () => state.fingerMode,
   set: (m) => setFingerMode(m, { silent: true }),
   touchShouldDraw
+};
+window.__gkcInk = {
+  strokeLineWidth,
+  getInkCtx,
+  SMOOTH_ALPHA,
+  drawStroke,
+  getActivePenId: () => activePenPointerId,
+  isPalmRejectedTouch
 };
 window.__gkcNav = {
   goHome, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
