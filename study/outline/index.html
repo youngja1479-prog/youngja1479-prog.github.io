@@ -388,6 +388,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .sync-status.ok { color: var(--ok); }
 .sync-status.busy { color: var(--accent); }
 .sync-status.warn { color: #c45c00; }
+.sync-status.err { color: var(--danger); }
 .sync-warn {
   font-size: 12px; color: var(--text2); line-height: 1.45;
   background: #fff8e6; border: 1px solid #f5e0a0; border-radius: 10px;
@@ -417,6 +418,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
     <div class="topbar">
       <h1>📚 GKC 학습노트</h1>
       <span id="sync-status" class="sync-status" aria-live="polite"></span>
+      <button class="btn sm" id="btn-sync-now" title="지금 동기화" style="display:none">지금 동기화</button>
       <button class="btn sm" id="btn-sync" title="동기화">🔒 동기화</button>
       <button class="icon-btn" id="btn-import" title="가져오기">📥</button>
       <button class="icon-btn" id="btn-export" title="백업 내보내기">📤</button>
@@ -608,7 +610,7 @@ async function idbSet(key, val) {
 const defaultData = () => ({
   version: 1,
   notebooks: [],
-  updatedAt: Date.now()
+  updatedAt: 0
 });
 
 let DATA = defaultData();
@@ -647,12 +649,16 @@ async function flushSave() {
 /* ========== Cross-device sync (password vault) ========== */
 const SYNC_PW_KEY = 'gkc-sync-pw';
 const PBKDF2_ITERS = 150000;
+const SYNC_POLL_MS = 5000;
 
 let syncPassword = null;
 let syncVaultId = null;
 let syncPushTimer = null;
+let syncPollTimer = null;
 let syncPendingPush = false;
 let syncBusy = false;
+let syncLastError = '';
+let syncApplyingRemote = false;
 
 function bufToB64(buf) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -712,17 +718,40 @@ async function decryptEnvelope(env, password) {
   return JSON.parse(new TextDecoder().decode(plain));
 }
 
+function syncKoreanError(err) {
+  const msg = (err && err.message) ? String(err.message) : String(err || '');
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(msg)) return '네트워크 오류 — 연결을 확인해 주세요';
+  if (/GET 4|PUT 4|GET 5|PUT 5|\b413\b|\b429\b|\b500\b|\b502\b|\b503\b/.test(msg)) return '서버 오류 (' + msg + ')';
+  if (/decrypt|OperationError|AES/i.test(msg)) return '비밀번호가 맞지 않아요';
+  if (/JSON|parse/i.test(msg)) return '서버 데이터 형식 오류';
+  if (msg) return '동기화 실패: ' + msg;
+  return '동기화 실패';
+}
+
 function setSyncStatus(kind, text) {
   const el = $('#sync-status');
   if (!el) return;
   el.className = 'sync-status' + (kind ? ' ' + kind : '');
   el.textContent = text || '';
+  el.title = text || '';
+}
+function updateSyncNowButton() {
+  const btn = $('#btn-sync-now');
+  if (!btn) return;
+  btn.style.display = syncPassword ? '' : 'none';
 }
 function updateSyncStatusUI(mode) {
+  updateSyncNowButton();
   if (!syncPassword) { setSyncStatus('', ''); return; }
+  if (mode === 'error' || syncLastError) {
+    if (mode === 'error' || (syncLastError && mode !== 'syncing' && mode !== 'synced')) {
+      setSyncStatus('err', syncLastError);
+      return;
+    }
+  }
   if (mode === 'syncing' || syncBusy) setSyncStatus('busy', '동기화 중…');
-  else if (mode === 'offline' || (!navigator.onLine && syncPendingPush)) setSyncStatus('warn', '오프라인(나중에 올라감)');
-  else if (syncPendingPush) setSyncStatus('warn', '오프라인(나중에 올라감)');
+  else if (!navigator.onLine) setSyncStatus('warn', '오프라인(나중에 올라감)');
+  else if (mode === 'offline' || syncPendingPush) setSyncStatus('warn', syncPendingPush ? '오프라인(나중에 올라감)' : '동기화 대기');
   else setSyncStatus('ok', '동기화됨');
 }
 
@@ -735,7 +764,10 @@ async function syncFetchGet(vaultId) {
   if (!res.ok) throw new Error('GET ' + res.status);
   const text = await res.text();
   if (!text || text === 'null') return null;
-  return JSON.parse(text);
+  const parsed = JSON.parse(text);
+  // Stored envelope must have ct; ignore garbage keys
+  if (!parsed || typeof parsed !== 'object' || parsed.ct == null) return null;
+  return parsed;
 }
 async function syncFetchPut(vaultId, envelope) {
   const res = await fetch(syncUrlFor(vaultId), {
@@ -748,30 +780,55 @@ async function syncFetchPut(vaultId, envelope) {
 
 function scheduleSyncPush() {
   if (!syncPassword || !syncVaultId) return;
+  if (syncApplyingRemote) return; // don't bounce a just-pulled payload
   syncPendingPush = true;
   clearTimeout(syncPushTimer);
   syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+  updateSyncStatusUI();
+}
+
+function startSyncPolling() {
+  stopSyncPolling();
+  if (!syncPassword || !syncVaultId) return;
+  syncPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (!syncPassword || !syncVaultId) return;
+    if (syncBusy) return;
+    syncPullAndMaybeApply({ quiet: true });
+  }, SYNC_POLL_MS);
+}
+function stopSyncPolling() {
+  if (syncPollTimer) {
+    clearInterval(syncPollTimer);
+    syncPollTimer = null;
+  }
 }
 
 async function syncPushNow() {
-  if (!syncPassword || !syncVaultId) return;
+  if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
   if (!navigator.onLine) {
     syncPendingPush = true;
+    syncLastError = '';
     updateSyncStatusUI('offline');
-    return;
+    return { ok: false, reason: 'offline' };
   }
   syncBusy = true;
+  syncLastError = '';
   updateSyncStatusUI('syncing');
   try {
     const env = await encryptData(DATA, syncPassword);
     await syncFetchPut(syncVaultId, env);
     syncPendingPush = false;
     syncBusy = false;
+    syncLastError = '';
     updateSyncStatusUI('synced');
+    return { ok: true };
   } catch (e) {
     syncPendingPush = true;
     syncBusy = false;
-    updateSyncStatusUI('offline');
+    syncLastError = syncKoreanError(e);
+    updateSyncStatusUI('error');
+    return { ok: false, reason: 'error', error: e };
   }
 }
 
@@ -785,25 +842,25 @@ function reRenderAfterSync() {
   else if (state.view === 'sebu') renderSebu();
   else if (state.view === 'tree') renderTree();
   else if (state.view === 'draw') {
-    // leave draw page; strokes already in DATA — refresh if still valid
     const s = getSebu();
-    if (s) {
-      initDrawPage();
-    } else {
-      goHome();
-    }
+    if (s) initDrawPage();
+    else goHome();
   } else {
     goHome();
   }
 }
 
 async function applyRemoteData(remoteData) {
+  syncApplyingRemote = true;
+  clearTimeout(syncPushTimer);
+  clearTimeout(saveTimer);
   DATA = remoteData;
   if (!DATA.version) DATA.version = 1;
-  clearTimeout(saveTimer);
+  if (DATA.updatedAt == null) DATA.updatedAt = Date.now();
   const ok = await idbSet('app', DATA);
   try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
   reRenderAfterSync();
+  syncApplyingRemote = false;
   return ok;
 }
 
@@ -811,16 +868,20 @@ async function syncPullAndMaybeApply(opts) {
   opts = opts || {};
   if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
   if (!navigator.onLine) {
-    updateSyncStatusUI('offline');
+    if (!opts.quiet) updateSyncStatusUI('offline');
     return { ok: false, reason: 'offline' };
   }
+  if (syncBusy && opts.quiet) return { ok: false, reason: 'busy' };
   syncBusy = true;
-  updateSyncStatusUI('syncing');
+  if (!opts.quiet) {
+    syncLastError = '';
+    updateSyncStatusUI('syncing');
+  }
   try {
     const env = await syncFetchGet(syncVaultId);
     if (!env) {
       syncBusy = false;
-      updateSyncStatusUI('synced');
+      if (!opts.quiet) updateSyncStatusUI('synced');
       return { ok: true, remote: null };
     }
     let remoteData;
@@ -828,54 +889,88 @@ async function syncPullAndMaybeApply(opts) {
       remoteData = await decryptEnvelope(env, syncPassword);
     } catch (de) {
       syncBusy = false;
-      updateSyncStatusUI('synced');
+      syncLastError = '비밀번호가 맞지 않아요';
       if (opts.showDecryptError) toast('비밀번호가 맞지 않아요');
+      updateSyncStatusUI('error');
       return { ok: false, reason: 'decrypt' };
     }
     const remoteAt = (env.updatedAt != null ? env.updatedAt : remoteData.updatedAt) || 0;
     const localAt = DATA.updatedAt || 0;
-    if (remoteAt > localAt) {
+    const localEmpty = !dataHasContent(DATA);
+    const remoteHas = dataHasContent(remoteData);
+    // Empty local must never beat non-empty remote (fresh defaultData timestamps used to wipe cloud)
+    if (remoteHas && (localEmpty || remoteAt > localAt)) {
       await applyRemoteData(remoteData);
       syncPendingPush = false;
+      if (opts.toastOnApply) toast('다른 기기 내용을 불러왔어요');
     }
     syncBusy = false;
+    syncLastError = '';
     updateSyncStatusUI('synced');
     return { ok: true, remote: env, remoteData, remoteAt };
   } catch (e) {
     syncBusy = false;
-    updateSyncStatusUI('offline');
-    return { ok: false, reason: 'network' };
+    syncLastError = syncKoreanError(e);
+    updateSyncStatusUI('error');
+    return { ok: false, reason: 'network', error: e };
+  }
+}
+
+async function syncNowManual() {
+  if (!syncPassword || !syncVaultId) {
+    openSyncModal();
+    return;
+  }
+  syncLastError = '';
+  const pull = await syncPullAndMaybeApply({ toastOnApply: true });
+  const remoteAt = pull.remoteAt || 0;
+  const localAt = DATA.updatedAt || 0;
+  if (syncPendingPush || (dataHasContent(DATA) && localAt > remoteAt)) {
+    await syncPushNow();
+    toast('이 기기 내용을 올렸어요');
+  } else if (pull.ok) {
+    toast('최신 상태예요');
+  } else if (syncLastError) {
+    toast(syncLastError);
   }
 }
 
 function rememberSyncPassword(pw) {
   syncPassword = pw;
   try { localStorage.setItem(SYNC_PW_KEY, pw); } catch (e) {}
+  updateSyncNowButton();
+  startSyncPolling();
 }
 function clearSyncPassword() {
   syncPassword = null;
   syncVaultId = null;
   syncPendingPush = false;
+  syncLastError = '';
   clearTimeout(syncPushTimer);
+  stopSyncPolling();
   try { localStorage.removeItem(SYNC_PW_KEY); } catch (e) {}
   updateSyncStatusUI();
+  updateSyncNowButton();
 }
 
 async function connectWithPassword(pw) {
+  // Do not trim — password is the key; spaces may be intentional
   if (!pw || pw.length < 4) {
     toast('비밀번호는 4자 이상이어야 해요');
     return false;
   }
   const vid = await vaultIdFromPassword(pw);
   syncBusy = true;
+  syncLastError = '';
   updateSyncStatusUI('syncing');
   let remoteEnv = null;
   try {
     remoteEnv = await syncFetchGet(vid);
   } catch (e) {
     syncBusy = false;
-    updateSyncStatusUI('offline');
-    toast('서버에 연결할 수 없어요');
+    syncLastError = syncKoreanError(e);
+    updateSyncStatusUI('error');
+    toast(syncLastError || '서버에 연결할 수 없어요');
     return false;
   }
 
@@ -885,14 +980,31 @@ async function connectWithPassword(pw) {
       remoteData = await decryptEnvelope(remoteEnv, pw);
     } catch (de) {
       syncBusy = false;
-      updateSyncStatusUI();
+      syncLastError = '비밀번호가 맞지 않아요';
+      updateSyncStatusUI('error');
       toast('비밀번호가 맞지 않아요');
       return false;
     }
     const remoteAt = (remoteEnv.updatedAt != null ? remoteEnv.updatedAt : remoteData.updatedAt) || 0;
     const localAt = DATA.updatedAt || 0;
-    const both = dataHasContent(DATA) && dataHasContent(remoteData);
+    const localHas = dataHasContent(DATA);
+    const remoteHas = dataHasContent(remoteData);
+    const both = localHas && remoteHas;
     const differ = remoteAt !== localAt || JSON.stringify(DATA.notebooks) !== JSON.stringify(remoteData.notebooks);
+
+    // Empty local + remote content => always take remote (fixes wipe bug)
+    if (!localHas && remoteHas) {
+      syncVaultId = vid;
+      rememberSyncPassword(pw);
+      await applyRemoteData(remoteData);
+      syncPendingPush = false;
+      syncBusy = false;
+      syncLastError = '';
+      updateSyncStatusUI('synced');
+      toast('클라우드에서 불러왔어요');
+      return true;
+    }
+
     if (both && differ) {
       const ok = confirm('이 기기 내용과 저장된 내용 중 최신 것을 사용할게요');
       if (!ok) {
@@ -903,25 +1015,31 @@ async function connectWithPassword(pw) {
     }
     syncVaultId = vid;
     rememberSyncPassword(pw);
-    if (remoteAt > localAt) {
+    if (!remoteHas && localHas) {
+      syncBusy = false;
+      await syncPushNow();
+      toast('이 기기 내용을 올렸어요');
+    } else if (remoteHas && (remoteAt > localAt || !localHas)) {
       await applyRemoteData(remoteData);
       syncPendingPush = false;
       syncBusy = false;
+      syncLastError = '';
       updateSyncStatusUI('synced');
       toast('클라우드에서 불러왔어요');
-    } else if (localAt > remoteAt || (localAt === remoteAt && differ && dataHasContent(DATA))) {
+    } else if (localHas && localAt > remoteAt) {
       syncBusy = false;
       await syncPushNow();
       toast('이 기기 내용을 올렸어요');
     } else {
       syncBusy = false;
+      syncLastError = '';
       updateSyncStatusUI('synced');
       toast('동기화 연결됨');
     }
     return true;
   }
 
-  // remote null — new vault or wrong password (indistinguishable)
+  // remote null — new vault or wrong password (indistinguishable by design)
   const localHas = dataHasContent(DATA);
   if (localHas) {
     const upload = confirm('저장된 내용이 없어요. 이 기기 노트를 올릴까요?\n취소하면 빈 노트로 시작합니다.');
@@ -947,6 +1065,7 @@ async function connectWithPassword(pw) {
   syncVaultId = vid;
   rememberSyncPassword(pw);
   syncBusy = false;
+  syncLastError = '';
   updateSyncStatusUI('synced');
   toast('동기화 연결됨');
   return true;
@@ -969,6 +1088,7 @@ function openSyncModal() {
     </p>
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" id="m-cancel">닫기</button>
+      ${connected ? '<button class="btn" id="m-sync-now">지금 동기화</button>' : ''}
       ${connected ? '<button class="btn danger" id="m-disconnect">연결 끊기</button>' : ''}
       <button class="btn primary" id="m-connect">연결</button>
     </div>`);
@@ -976,7 +1096,7 @@ function openSyncModal() {
   const pwInput = $('#sync-pw');
   if (connected && syncPassword) pwInput.value = syncPassword;
   $('#m-connect').onclick = async () => {
-    const pw = (pwInput.value || '').trim();
+    const pw = pwInput.value || '';
     const btn = $('#m-connect');
     if (btn) btn.disabled = true;
     const ok = await connectWithPassword(pw);
@@ -986,6 +1106,13 @@ function openSyncModal() {
   pwInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#m-connect').click();
   });
+  const nowBtn = $('#m-sync-now');
+  if (nowBtn) {
+    nowBtn.onclick = async () => {
+      closeModal();
+      await syncNowManual();
+    };
+  }
   const disc = $('#m-disconnect');
   if (disc) {
     disc.onclick = () => {
@@ -1002,14 +1129,16 @@ async function tryAutoReconnect() {
   if (!pw || pw.length < 4) return;
   syncPassword = pw;
   syncVaultId = await vaultIdFromPassword(pw);
+  updateSyncNowButton();
   updateSyncStatusUI('syncing');
   const result = await syncPullAndMaybeApply({ showDecryptError: true });
+  // Only push if local has real content AND is newer than remote (never push empty over remote)
   if (result.ok && result.remote == null && dataHasContent(DATA)) {
-    // connected vault empty but we have local — push
     await syncPushNow();
-  } else if (result.ok && result.remote && (DATA.updatedAt || 0) > (result.remoteAt || 0)) {
+  } else if (result.ok && result.remote && dataHasContent(DATA) && (DATA.updatedAt || 0) > (result.remoteAt || 0)) {
     await syncPushNow();
   }
+  startSyncPolling();
 }
 
 /* ========== State ========== */
@@ -2420,16 +2549,26 @@ function wireEvents() {
   });
 
   $('#btn-sync').addEventListener('click', openSyncModal);
+  $('#btn-sync-now').addEventListener('click', () => { syncNowManual(); });
 
   // Autosave on visibility change + sync pull when visible
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushSave();
-    if (document.visibilityState === 'visible') syncPullAndMaybeApply({ showDecryptError: false });
+    if (document.visibilityState === 'visible') {
+      syncPullAndMaybeApply({ showDecryptError: false });
+      startSyncPolling();
+    } else {
+      stopSyncPolling();
+    }
   });
   window.addEventListener('beforeunload', () => { flushSave(); });
   window.addEventListener('online', () => {
+    syncLastError = '';
     if (syncPendingPush) syncPushNow();
     else syncPullAndMaybeApply({ showDecryptError: false });
+  });
+  window.addEventListener('offline', () => {
+    if (syncPassword) updateSyncStatusUI('offline');
   });
 }
 
@@ -2454,7 +2593,11 @@ window.__gkcSync = {
   getSyncPassword: () => syncPassword,
   connectWithPassword,
   syncPushNow,
-  syncPullAndMaybeApply
+  syncPullAndMaybeApply,
+  syncNowManual,
+  startSyncPolling,
+  stopSyncPolling,
+  getSyncLastError: () => syncLastError
 };
 })();
 </script>
