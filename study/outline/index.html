@@ -375,6 +375,25 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .ctx-menu button:hover { background: var(--surface2); }
 .ctx-menu button.danger { color: var(--danger); }
 
+
+.modal input[type=password] {
+  width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border);
+  border-radius: 10px; font-size: 15px; background: var(--bg); outline: none;
+}
+.modal input[type=password]:focus { border-color: var(--accent); }
+.sync-status {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+}
+.sync-status.ok { color: var(--ok); }
+.sync-status.busy { color: var(--accent); }
+.sync-status.warn { color: #c45c00; }
+.sync-warn {
+  font-size: 12px; color: var(--text2); line-height: 1.45;
+  background: #fff8e6; border: 1px solid #f5e0a0; border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 14px;
+}
+
 /* Print */
 @media print {
   .topbar, .draw-toolbar, .modal-backdrop, .toast, .ctx-menu, .mode-toggle { display: none !important; }
@@ -397,6 +416,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <div id="view-home" class="view">
     <div class="topbar">
       <h1>📚 GKC 학습노트</h1>
+      <span id="sync-status" class="sync-status" aria-live="polite"></span>
+      <button class="btn sm" id="btn-sync" title="동기화">🔒 동기화</button>
       <button class="icon-btn" id="btn-import" title="가져오기">📥</button>
       <button class="icon-btn" id="btn-export" title="백업 내보내기">📤</button>
       <input type="file" id="import-file" accept="application/json,.json" class="hidden">
@@ -520,6 +541,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 (function () {
 'use strict';
 
+const SYNC_URL = 'https://gkc-notes-sync.youngja1479.workers.dev';
+
 /* ========== Utils ========== */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const $ = (s, el) => (el || document).querySelector(s);
@@ -612,12 +635,381 @@ function scheduleSave() {
 async function doSave() {
   const ok = await idbSet('app', DATA);
   try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+  scheduleSyncPush();
   return ok;
 }
 
 async function flushSave() {
   clearTimeout(saveTimer);
   await doSave();
+}
+
+/* ========== Cross-device sync (password vault) ========== */
+const SYNC_PW_KEY = 'gkc-sync-pw';
+const PBKDF2_ITERS = 150000;
+
+let syncPassword = null;
+let syncVaultId = null;
+let syncPushTimer = null;
+let syncPendingPush = false;
+let syncBusy = false;
+
+function bufToB64(buf) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+function b64ToBuf(b64) {
+  const s = atob(b64);
+  const bytes = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+  return bytes;
+}
+function bufToHex(buf) {
+  return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(str) {
+  const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return bufToHex(dig);
+}
+async function vaultIdFromPassword(pw) {
+  return sha256Hex('gkc-study-vault:' + pw);
+}
+async function deriveAesKey(password, saltU8) {
+  const baseKey = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: saltU8, iterations: PBKDF2_ITERS, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+async function encryptData(dataObj, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveAesKey(password, salt);
+  const plain = new TextEncoder().encode(JSON.stringify(dataObj));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain);
+  return {
+    v: 1,
+    salt: bufToB64(salt),
+    iv: bufToB64(iv),
+    ct: bufToB64(ct),
+    updatedAt: dataObj.updatedAt || Date.now()
+  };
+}
+async function decryptEnvelope(env, password) {
+  const salt = b64ToBuf(env.salt);
+  const iv = b64ToBuf(env.iv);
+  const ct = b64ToBuf(env.ct);
+  const key = await deriveAesKey(password, salt);
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+function setSyncStatus(kind, text) {
+  const el = $('#sync-status');
+  if (!el) return;
+  el.className = 'sync-status' + (kind ? ' ' + kind : '');
+  el.textContent = text || '';
+}
+function updateSyncStatusUI(mode) {
+  if (!syncPassword) { setSyncStatus('', ''); return; }
+  if (mode === 'syncing' || syncBusy) setSyncStatus('busy', '동기화 중…');
+  else if (mode === 'offline' || (!navigator.onLine && syncPendingPush)) setSyncStatus('warn', '오프라인(나중에 올라감)');
+  else if (syncPendingPush) setSyncStatus('warn', '오프라인(나중에 올라감)');
+  else setSyncStatus('ok', '동기화됨');
+}
+
+function syncUrlFor(vaultId) {
+  return SYNC_URL.replace(/\/$/, '') + '/v1/' + vaultId;
+}
+
+async function syncFetchGet(vaultId) {
+  const res = await fetch(syncUrlFor(vaultId), { method: 'GET', cache: 'no-store' });
+  if (!res.ok) throw new Error('GET ' + res.status);
+  const text = await res.text();
+  if (!text || text === 'null') return null;
+  return JSON.parse(text);
+}
+async function syncFetchPut(vaultId, envelope) {
+  const res = await fetch(syncUrlFor(vaultId), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(envelope)
+  });
+  if (!res.ok) throw new Error('PUT ' + res.status);
+}
+
+function scheduleSyncPush() {
+  if (!syncPassword || !syncVaultId) return;
+  syncPendingPush = true;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+}
+
+async function syncPushNow() {
+  if (!syncPassword || !syncVaultId) return;
+  if (!navigator.onLine) {
+    syncPendingPush = true;
+    updateSyncStatusUI('offline');
+    return;
+  }
+  syncBusy = true;
+  updateSyncStatusUI('syncing');
+  try {
+    const env = await encryptData(DATA, syncPassword);
+    await syncFetchPut(syncVaultId, env);
+    syncPendingPush = false;
+    syncBusy = false;
+    updateSyncStatusUI('synced');
+  } catch (e) {
+    syncPendingPush = true;
+    syncBusy = false;
+    updateSyncStatusUI('offline');
+  }
+}
+
+function dataHasContent(d) {
+  return !!(d && Array.isArray(d.notebooks) && d.notebooks.length > 0);
+}
+
+function reRenderAfterSync() {
+  if (state.view === 'home') renderHome();
+  else if (state.view === 'mokcha') renderMokcha();
+  else if (state.view === 'sebu') renderSebu();
+  else if (state.view === 'tree') renderTree();
+  else if (state.view === 'draw') {
+    // leave draw page; strokes already in DATA — refresh if still valid
+    const s = getSebu();
+    if (s) {
+      initDrawPage();
+    } else {
+      goHome();
+    }
+  } else {
+    goHome();
+  }
+}
+
+async function applyRemoteData(remoteData) {
+  DATA = remoteData;
+  if (!DATA.version) DATA.version = 1;
+  clearTimeout(saveTimer);
+  const ok = await idbSet('app', DATA);
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+  reRenderAfterSync();
+  return ok;
+}
+
+async function syncPullAndMaybeApply(opts) {
+  opts = opts || {};
+  if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
+  if (!navigator.onLine) {
+    updateSyncStatusUI('offline');
+    return { ok: false, reason: 'offline' };
+  }
+  syncBusy = true;
+  updateSyncStatusUI('syncing');
+  try {
+    const env = await syncFetchGet(syncVaultId);
+    if (!env) {
+      syncBusy = false;
+      updateSyncStatusUI('synced');
+      return { ok: true, remote: null };
+    }
+    let remoteData;
+    try {
+      remoteData = await decryptEnvelope(env, syncPassword);
+    } catch (de) {
+      syncBusy = false;
+      updateSyncStatusUI('synced');
+      if (opts.showDecryptError) toast('비밀번호가 맞지 않아요');
+      return { ok: false, reason: 'decrypt' };
+    }
+    const remoteAt = (env.updatedAt != null ? env.updatedAt : remoteData.updatedAt) || 0;
+    const localAt = DATA.updatedAt || 0;
+    if (remoteAt > localAt) {
+      await applyRemoteData(remoteData);
+      syncPendingPush = false;
+    }
+    syncBusy = false;
+    updateSyncStatusUI('synced');
+    return { ok: true, remote: env, remoteData, remoteAt };
+  } catch (e) {
+    syncBusy = false;
+    updateSyncStatusUI('offline');
+    return { ok: false, reason: 'network' };
+  }
+}
+
+function rememberSyncPassword(pw) {
+  syncPassword = pw;
+  try { localStorage.setItem(SYNC_PW_KEY, pw); } catch (e) {}
+}
+function clearSyncPassword() {
+  syncPassword = null;
+  syncVaultId = null;
+  syncPendingPush = false;
+  clearTimeout(syncPushTimer);
+  try { localStorage.removeItem(SYNC_PW_KEY); } catch (e) {}
+  updateSyncStatusUI();
+}
+
+async function connectWithPassword(pw) {
+  if (!pw || pw.length < 4) {
+    toast('비밀번호는 4자 이상이어야 해요');
+    return false;
+  }
+  const vid = await vaultIdFromPassword(pw);
+  syncBusy = true;
+  updateSyncStatusUI('syncing');
+  let remoteEnv = null;
+  try {
+    remoteEnv = await syncFetchGet(vid);
+  } catch (e) {
+    syncBusy = false;
+    updateSyncStatusUI('offline');
+    toast('서버에 연결할 수 없어요');
+    return false;
+  }
+
+  if (remoteEnv) {
+    let remoteData;
+    try {
+      remoteData = await decryptEnvelope(remoteEnv, pw);
+    } catch (de) {
+      syncBusy = false;
+      updateSyncStatusUI();
+      toast('비밀번호가 맞지 않아요');
+      return false;
+    }
+    const remoteAt = (remoteEnv.updatedAt != null ? remoteEnv.updatedAt : remoteData.updatedAt) || 0;
+    const localAt = DATA.updatedAt || 0;
+    const both = dataHasContent(DATA) && dataHasContent(remoteData);
+    const differ = remoteAt !== localAt || JSON.stringify(DATA.notebooks) !== JSON.stringify(remoteData.notebooks);
+    if (both && differ) {
+      const ok = confirm('이 기기 내용과 저장된 내용 중 최신 것을 사용할게요');
+      if (!ok) {
+        syncBusy = false;
+        updateSyncStatusUI();
+        return false;
+      }
+    }
+    syncVaultId = vid;
+    rememberSyncPassword(pw);
+    if (remoteAt > localAt) {
+      await applyRemoteData(remoteData);
+      syncPendingPush = false;
+      syncBusy = false;
+      updateSyncStatusUI('synced');
+      toast('클라우드에서 불러왔어요');
+    } else if (localAt > remoteAt || (localAt === remoteAt && differ && dataHasContent(DATA))) {
+      syncBusy = false;
+      await syncPushNow();
+      toast('이 기기 내용을 올렸어요');
+    } else {
+      syncBusy = false;
+      updateSyncStatusUI('synced');
+      toast('동기화 연결됨');
+    }
+    return true;
+  }
+
+  // remote null — new vault or wrong password (indistinguishable)
+  const localHas = dataHasContent(DATA);
+  if (localHas) {
+    const upload = confirm('저장된 내용이 없어요. 이 기기 노트를 올릴까요?\n취소하면 빈 노트로 시작합니다.');
+    syncVaultId = vid;
+    rememberSyncPassword(pw);
+    if (upload) {
+      syncBusy = false;
+      await syncPushNow();
+      toast('이 기기 내용을 올렸어요');
+    } else {
+      DATA = defaultData();
+      clearTimeout(saveTimer);
+      await idbSet('app', DATA);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+      reRenderAfterSync();
+      syncBusy = false;
+      await syncPushNow();
+      toast('빈 노트로 시작해요');
+    }
+    return true;
+  }
+
+  syncVaultId = vid;
+  rememberSyncPassword(pw);
+  syncBusy = false;
+  updateSyncStatusUI('synced');
+  toast('동기화 연결됨');
+  return true;
+}
+
+function openSyncModal() {
+  const connected = !!syncPassword;
+  openModal(`
+    <h3>🔒 동기화</h3>
+    <div class="sync-warn">
+      비밀번호가 암호화 키예요. 서버는 내용을 읽을 수 없고, 비밀번호를 잊으면
+      <b>복구할 수 없어요</b>. 안전한 곳에 따로 기억해 두세요.
+    </div>
+    <div class="field">
+      <label>동기화 비밀번호</label>
+      <input type="password" id="sync-pw" placeholder="최소 4자" minlength="4" autocomplete="off" ${connected ? '' : 'autofocus'}>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:-6px 0 12px;line-height:1.4">
+      같은 비밀번호를 쓰는 기기끼리 노트가 동기화됩니다. 다른 비밀번호는 완전히 다른 보관함이에요.
+    </p>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn ghost" id="m-cancel">닫기</button>
+      ${connected ? '<button class="btn danger" id="m-disconnect">연결 끊기</button>' : ''}
+      <button class="btn primary" id="m-connect">연결</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  const pwInput = $('#sync-pw');
+  if (connected && syncPassword) pwInput.value = syncPassword;
+  $('#m-connect').onclick = async () => {
+    const pw = (pwInput.value || '').trim();
+    const btn = $('#m-connect');
+    if (btn) btn.disabled = true;
+    const ok = await connectWithPassword(pw);
+    if (btn) btn.disabled = false;
+    if (ok) closeModal();
+  };
+  pwInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('#m-connect').click();
+  });
+  const disc = $('#m-disconnect');
+  if (disc) {
+    disc.onclick = () => {
+      clearSyncPassword();
+      closeModal();
+      toast('동기화 연결을 끊었어요');
+    };
+  }
+}
+
+async function tryAutoReconnect() {
+  let pw = null;
+  try { pw = localStorage.getItem(SYNC_PW_KEY); } catch (e) {}
+  if (!pw || pw.length < 4) return;
+  syncPassword = pw;
+  syncVaultId = await vaultIdFromPassword(pw);
+  updateSyncStatusUI('syncing');
+  const result = await syncPullAndMaybeApply({ showDecryptError: true });
+  if (result.ok && result.remote == null && dataHasContent(DATA)) {
+    // connected vault empty but we have local — push
+    await syncPushNow();
+  } else if (result.ok && result.remote && (DATA.updatedAt || 0) > (result.remoteAt || 0)) {
+    await syncPushNow();
+  }
 }
 
 /* ========== State ========== */
@@ -2027,11 +2419,18 @@ function wireEvents() {
     }
   });
 
-  // Autosave on visibility change
+  $('#btn-sync').addEventListener('click', openSyncModal);
+
+  // Autosave on visibility change + sync pull when visible
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') flushSave();
+    if (document.visibilityState === 'visible') syncPullAndMaybeApply({ showDecryptError: false });
   });
   window.addEventListener('beforeunload', () => { flushSave(); });
+  window.addEventListener('online', () => {
+    if (syncPendingPush) syncPushNow();
+    else syncPullAndMaybeApply({ showDecryptError: false });
+  });
 }
 
 /* ========== Boot ========== */
@@ -2039,9 +2438,24 @@ async function boot() {
   await loadData();
   wireEvents();
   goHome();
+  tryAutoReconnect();
 }
 
 boot();
+
+/* test hooks */
+window.__gkcSync = {
+  SYNC_URL: () => SYNC_URL,
+  encryptData,
+  decryptEnvelope,
+  vaultIdFromPassword,
+  getData: () => DATA,
+  setData: (d) => { DATA = d; },
+  getSyncPassword: () => syncPassword,
+  connectWithPassword,
+  syncPushNow,
+  syncPullAndMaybeApply
+};
 })();
 </script>
 </body>
