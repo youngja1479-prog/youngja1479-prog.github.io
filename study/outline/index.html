@@ -293,6 +293,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   z-index: 2; pointer-events: none;
 }
 #text-layer.kb-active { pointer-events: auto; cursor: default; }
+.canvas-wrap:not(.kb-mode) #text-layer:not(.kb-active),
+.canvas-wrap:not(.kb-mode) #text-layer:not(.kb-active) * { pointer-events: none !important; touch-action: none !important; }
 #btn-add-text { display: none; height: 32px; padding: 0 12px; border-radius: 8px;
   font-size: 12px; font-weight: 700; background: var(--accent); color: #fff; white-space: nowrap; }
 #btn-add-text.visible { display: inline-flex; align-items: center; }
