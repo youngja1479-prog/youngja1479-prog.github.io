@@ -2664,6 +2664,7 @@ function onPointerDown(e) {
   try { c.setPointerCapture(e.pointerId); } catch (_) {}
   wrap().classList.add('drawing'); // touch-action: none while inking
   state.drawing = true;
+  state.pointers.clear();
   state.pointers.set(e.pointerId, true);
   resetStrokeSmoothing();
 
@@ -2696,6 +2697,11 @@ function onPointerMove(e) {
   }
   if (!state.drawing || !state.currentStroke) return;
   if (!state.pointers.has(e.pointerId)) return;
+  // Pen lifted but pointerup was lost → end stroke instead of dragging a line on hover
+  if ((e.pointerType === 'pen' || e.pointerType === 'mouse') && e.buttons === 0) {
+    onPointerUp(e);
+    return;
+  }
 
   const rect = canvas().getBoundingClientRect();
   let events;
@@ -2738,7 +2744,7 @@ function onPointerUp(e) {
   if (state.pointers.size > 0) return;
 
   // Include final coalesced samples if any
-  if (state.currentStroke) {
+  if (state.currentStroke && e.type === 'pointerup') {
     const rect = canvas().getBoundingClientRect();
     let events;
     try {
@@ -2999,6 +3005,12 @@ function wireEvents() {
   c.addEventListener('pointermove', onPointerMove);
   c.addEventListener('pointerup', onPointerUp);
   c.addEventListener('pointercancel', onPointerUp);
+  c.addEventListener('lostpointercapture', (e) => {
+    if (state.drawing && state.pointers.has(e.pointerId)) onPointerUp(e);
+  });
+  document.addEventListener('pointerup', (e) => {
+    if (state.drawing && state.pointers.has(e.pointerId)) onPointerUp(e);
+  }, true);
   c.addEventListener('pointerleave', (e) => {
     if (state.drawing && state.pointers.has(e.pointerId)) onPointerUp(e);
   });
