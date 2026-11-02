@@ -2594,6 +2594,7 @@ function appendStrokePoint(raw) {
     const last = pts[pts.length - 1];
     const dx = p.x - last.x, dy = p.y - last.y;
     if (dx * dx + dy * dy < MIN_POINT_DIST2) return false;
+    if (dx * dx + dy * dy > 40000) return false; // stray jump guard
   }
   pts.push(p);
   return true;
@@ -2970,6 +2971,13 @@ function wireEvents() {
   $('#btn-mode-kb').addEventListener('click', () => setInputMode('keyboard'));
   $('#btn-add-text').addEventListener('click', createTextBoxFromButton);
   $('#text-layer').addEventListener('pointerdown', onTextLayerPointerDown);
+  // Pen hovering near screen → block palm touches (prevents palm panning mid-writing)
+  ['pointermove','pointerover','pointerenter','pointerdown'].forEach(t => document.addEventListener(t, (ev) => {
+    if (ev.pointerType === 'pen') {
+      palmBlockUntil = Math.max(palmBlockUntil, performance.now() + 700);
+      if (panDrag) panDrag = null;
+    }
+  }, { capture: true, passive: true }));
 
   // Zoom controls
   $('#btn-zoom-in').addEventListener('click', zoomIn);
