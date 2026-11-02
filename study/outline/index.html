@@ -2594,6 +2594,14 @@ function appendStrokePoint(raw) {
     const last = pts[pts.length - 1];
     const dx = p.x - last.x, dy = p.y - last.y;
     if (dx * dx + dy * dy < MIN_POINT_DIST2) return false;
+    const z = (typeof drawZoom === 'number') ? drawZoom : 1;
+    const lim = 25 / Math.max(0.5, z);
+    if (pts.length <= 3 && dx * dx + dy * dy > lim * lim) {
+      // stale/stray start point: restart stroke from the real tip
+      pts.length = 0; smoothPrev = { x: raw.x, y: raw.y };
+      pts.push({ x: raw.x, y: raw.y, p: raw.p, t: raw.t });
+      return true;
+    }
     if (dx * dx + dy * dy > 40000) return false; // stray jump guard
   }
   pts.push(p);
