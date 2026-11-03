@@ -795,6 +795,8 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     });
     if (ok) {
       quizScore++;
+      delete state.wrong[w.id]; // 퀴즈에서 맞히면 누적 오답에서 제거
+      saveState();
     } else {
       addWrong(w.id);
       if (quizWrongIds.indexOf(w.id) < 0) quizWrongIds.push(w.id);
