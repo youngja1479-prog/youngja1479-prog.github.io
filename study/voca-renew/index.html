@@ -1209,7 +1209,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
 
   function oneMeaning(w) {
-    var ms = (w && w.meanings) ? w.meanings.slice() : [];
+    // 매 호출(매 문제 렌더)마다 다시 무작위 선택
+    var ms = (w && w.meanings) ? w.meanings.filter(function (m) { return m && String(m).trim(); }) : [];
     if (!ms.length) return '';
     return ms[Math.floor(Math.random() * ms.length)];
   }
