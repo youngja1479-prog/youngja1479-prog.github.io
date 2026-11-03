@@ -114,6 +114,14 @@ main { flex: 1; padding: 12px 14px; }
 .flash { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; padding: 36px 18px 40px; user-select: none; position: relative; }
 .flash .word { font-size: 1.85rem; font-weight: 800; letter-spacing: -.02em; word-break: break-word; margin: 0; }
+.speak-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-height: 40px; min-width: 72px; padding: 8px 12px; border-radius: 999px;
+  background: #eff6ff; color: var(--primary); border: 1.5px solid #bfdbfe;
+  font-size: .85rem; font-weight: 700; line-height: 1; position: relative; z-index: 5; }
+.speak-btn:active { background: #dbeafe; transform: scale(.97); }
+.speak-btn.sm { min-height: 34px; min-width: 64px; padding: 5px 10px; font-size: .78rem; }
+.flash .speak-slot { margin-top: 10px; display: flex; justify-content: center; }
+.quiz-speak-slot { display: flex; justify-content: center; margin: 6px 0 10px; }
 .flash .meaning { margin-top: 18px; font-size: 1.2rem; font-weight: 600; color: var(--text); line-height: 1.45; }
 .flash .meaning .m-item { display: block; }
 .flash .ety { margin-top: 12px; font-size: .82rem; color: #4f46e5; line-height: 1.45; max-width: 92%; font-weight: 500; }
@@ -264,6 +272,9 @@ main { flex: 1; padding: 12px 14px; }
       <div class="card" id="quizCard">
         <div class="quiz-sub" id="quizSub">전날 복습</div>
         <div class="quiz-q" id="quizQ"></div>
+        <div class="quiz-speak-slot">
+          <button type="button" class="speak-btn sm" id="quizTtsBtn" title="발음 듣기" aria-label="영어 발음 듣기">🔊 발음</button>
+        </div>
         <div class="quiz-sub" style="margin-top:4px">알맞은 뜻을 고르세요</div>
         <div class="choices" id="quizChoices"></div>
       </div>
@@ -297,6 +308,9 @@ main { flex: 1; padding: 12px 14px; }
         <div class="flash" id="flashCard" role="button" tabindex="0" aria-label="카드 뒤집기">
           <div class="meta"><span id="flashMeta"></span><span id="flashIdx"></span></div>
           <div class="word" id="flashWord"></div>
+          <div class="speak-slot">
+            <button type="button" class="speak-btn" id="ttsBtn" title="발음 듣기" aria-label="영어 발음 듣기">🔊 발음</button>
+          </div>
           <div id="flashBadge" style="margin-top:8px"></div>
           <div class="meaning" id="flashMean" style="display:none"></div>
           <div class="forms" id="flashForms" style="display:none"></div>
@@ -1237,6 +1251,33 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     showToast._tm = setTimeout(function () { t.classList.remove('show'); }, 2400);
   }
 
+  var ttsOk = typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance !== 'undefined';
+  function speakWord(word) {
+    word = String(word || '').trim();
+    if (!word) return;
+    if (!ttsOk) {
+      showToast('이 브라우저는 음성 발음을 지원하지 않아요');
+      return;
+    }
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(word);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      speechSynthesis.speak(u);
+    } catch (e) {
+      showToast('발음을 재생할 수 없어요');
+    }
+  }
+  function speakCurrentCard() {
+    if (cardIdx >= pool.length || cardIdx < 0) return;
+    speakWord(pool[cardIdx].word);
+  }
+  function speakCurrentQuiz() {
+    if (quizIdx >= quizPool.length) return;
+    speakWord(quizPool[quizIdx].word);
+  }
+
   function showPanel(name) {
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
@@ -1757,6 +1798,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     if (!pool.length) {
       byId('flashWord').textContent = '단어 없음';
       byId('flashBadge').innerHTML = '';
+      if (byId('ttsBtn')) byId('ttsBtn').style.visibility = 'hidden';
       byId('flashMean').style.display = 'none';
       byId('flashForms').style.display = 'none';
       byId('flashEty').style.display = 'none';
@@ -1771,6 +1813,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     if (cardIdx >= pool.length) {
       byId('flashWord').textContent = '완료!';
       byId('flashBadge').innerHTML = '';
+      if (byId('ttsBtn')) byId('ttsBtn').style.visibility = 'hidden';
       byId('flashMean').style.display = 'none';
       byId('flashForms').style.display = 'none';
       byId('flashEty').style.display = 'none';
@@ -1799,6 +1842,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     byId('cardCounter').textContent = (cardIdx + 1) + ' / ' + pool.length;
     byId('cardProg').style.width = (cardIdx / Math.max(pool.length, 1) * 100) + '%';
     byId('flashWord').textContent = w.word;
+    if (byId('ttsBtn')) byId('ttsBtn').style.visibility = 'visible';
     var badges = '';
     if (w.isReview) badges += '<span class="badge review">복습</span> ';
     if (w.sample) badges += '<span class="badge sample">예시 데이터</span>';
@@ -1989,7 +2033,11 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   (function bindCardFlip() {
     var el = byId('flashWrap');
     if (!el) return;
+    function isSpeakTarget(t) {
+      return !!(t && t.closest && t.closest('.speak-btn, #ttsBtn, #quizTtsBtn'));
+    }
     function onFlip(e) {
+      if (isSpeakTarget(e.target)) return;
       if (e.type === 'touchend') {
         // prevent the synthetic click that follows on many mobiles
         e.preventDefault();
@@ -2004,6 +2052,27 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     el.addEventListener('touchend', onFlip, { passive: false });
     el.addEventListener('click', onFlip);
   })();
+
+  function bindSpeakBtn(id, fn) {
+    var b = byId(id);
+    if (!b) return;
+    function fire(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      fn();
+    }
+    b.addEventListener('click', fire);
+    b.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      lastFlipTouchAt = Date.now(); // also suppress following card flip click
+      fn();
+    }, { passive: false });
+  }
+  bindSpeakBtn('ttsBtn', speakCurrentCard);
+  bindSpeakBtn('quizTtsBtn', speakCurrentQuiz);
 
   byId('btnKnow').addEventListener('click', function () { markCard(true); });
   byId('btnDontKnow').addEventListener('click', function () { markCard(false); });
