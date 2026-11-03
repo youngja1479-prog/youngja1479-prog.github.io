@@ -73,13 +73,16 @@ main { flex: 1; padding: 12px 14px; }
 .level-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .level-card { text-align: left; padding: 18px 16px; border-radius: var(--radius);
   background: var(--card); border: 1.5px solid var(--border); box-shadow: var(--shadow);
-  transition: border-color .12s, background .12s; min-height: 72px; }
+  transition: border-color .12s, background .12s; min-height: 72px; width: 100%; }
 .level-card:active { transform: scale(.99); }
 .level-card .lv { font-size: 1.15rem; font-weight: 800; letter-spacing: -.02em; }
 .level-card .desc { margin-top: 4px; font-size: .8rem; color: var(--muted); }
 .level-card .prog { margin-top: 8px; font-size: .75rem; color: var(--primary); font-weight: 600; }
 .level-card.soon { opacity: .85; }
 .level-card.soon .lv { color: var(--muted); }
+.level-card.wrong-entry { border-color: #fca5a5; background: #fff7f7; }
+.level-card.wrong-entry .lv { color: var(--bad); }
+.level-card.wrong-entry .prog { color: var(--bad); }
 .day-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
 .day-cell { display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 2px; padding: 10px 4px; min-height: 64px; border-radius: 12px;
@@ -93,7 +96,6 @@ main { flex: 1; padding: 12px 14px; }
 .day-cell.partial { border-color: #93c5fd; background: #eff6ff; }
 .day-cell.partial .dp { color: var(--primary); font-weight: 700; }
 .day-cell.empty { opacity: .55; }
-.day-cell.active-day { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,.2); }
 .back-link { display: inline-flex; align-items: center; gap: 4px; color: var(--primary);
   font-size: .85rem; font-weight: 600; padding: 6px 0; margin-bottom: 4px; min-height: 40px; }
 .toggle { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--text);
@@ -137,6 +139,17 @@ main { flex: 1; padding: 12px 14px; }
 .placeholder-box { text-align: center; padding: 48px 16px; color: var(--muted); }
 .placeholder-box .big { font-size: 2rem; margin-bottom: 8px; }
 .placeholder-box p { margin: 4px 0; font-size: .95rem; }
+.quiz-q { font-size: 1.5rem; font-weight: 800; text-align: center; margin: 10px 0 6px; word-break: break-word; }
+.quiz-sub { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 14px; }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choices button { text-align: left; padding: 14px 14px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: #fff; font-size: .95rem; min-height: 52px; transition: background .12s, border-color .12s; }
+.choices button:active:not(:disabled) { background: #f3f4f6; }
+.choices button.correct { border-color: var(--good); background: #ecfdf5; color: var(--good); font-weight: 700; }
+.choices button.wrong { border-color: var(--bad); background: #fef2f2; color: var(--bad); }
+.choices button.dim { opacity: .45; }
+.result-score { text-align: center; font-size: 2.4rem; font-weight: 800; margin: 8px 0; }
+.result-score span { font-size: 1rem; font-weight: 500; color: var(--muted); }
 @media (min-width: 700px) {
   .app { max-width: 640px; }
   .flash .word { font-size: 2.1rem; }
@@ -177,16 +190,23 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>안내</h2>
-        <p class="hint" style="margin:0">카드를 탭하면 뜻이 보이고, 카드 왼쪽/오른쪽을 탭하면 이전/다음 카드로 이동합니다. 「외움」「오답」으로 학습 상태를 저장합니다.</p>
+        <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후 오늘 단어. 틀린 단어는 누적 오답에 쌓이며 「외움」하면 빠집니다.</p>
       </div>
     </section>
 
     <!-- BASIC1 DAY GRID -->
     <section class="panel" id="panel-days">
       <button type="button" class="back-link" id="btnDaysHome">← 레벨 선택</button>
+      <div class="card" style="padding:12px">
+        <button type="button" class="level-card wrong-entry" id="btnCumulativeWrong" style="margin:0">
+          <div class="lv">누적 오답</div>
+          <div class="desc">복습 퀴즈·카드에서 틀린 단어</div>
+          <div class="prog" id="progCumulative">0개 · 탭하여 암기</div>
+        </button>
+      </div>
       <div class="card">
         <h2>기초 · DAY 선택</h2>
-        <p class="hint" id="daysHint">DAY당 40단어 · 외움 수 / 40</p>
+        <p class="hint" id="daysHint">DAY당 40단어 · 외움 수 / 40 · DAY 2+는 전날 복습 퀴즈</p>
         <div class="day-grid" id="dayGrid"></div>
       </div>
     </section>
@@ -224,12 +244,39 @@ main { flex: 1; padding: 12px 14px; }
       </div>
     </section>
 
+    <!-- REVIEW QUIZ -->
+    <section class="panel" id="panel-quiz">
+      <div class="progress-line"><i id="quizProg"></i></div>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px;font-size:.8rem;color:var(--muted)">
+        <span id="quizCounter">0 / 0</span>
+        <button type="button" class="btn sm ghost" id="btnQuizSkip">건너뛰기</button>
+      </div>
+      <div class="card" id="quizCard">
+        <div class="quiz-sub" id="quizSub">전날 복습</div>
+        <div class="quiz-q" id="quizQ"></div>
+        <div class="quiz-sub" style="margin-top:4px">알맞은 뜻을 고르세요</div>
+        <div class="choices" id="quizChoices"></div>
+      </div>
+      <div class="card" id="quizResult" style="display:none">
+        <h2 style="text-align:center">복습 결과</h2>
+        <div class="result-score" id="resultScore"></div>
+        <p class="hint" style="text-align:center" id="resultMsg"></p>
+        <div id="quizWrongPreview"></div>
+        <div class="row" style="margin-top:14px" id="quizStudyWrongRow">
+          <button type="button" class="btn accent block" id="btnQuizStudyWrong">틀린 단어 카드로 복습</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="btn block" id="btnQuizToToday">오늘 단어 학습하기</button>
+        </div>
+      </div>
+    </section>
+
     <!-- CARD -->
     <section class="panel" id="panel-card">
       <div class="progress-line"><i id="cardProg"></i></div>
       <div class="row" style="justify-content:space-between;margin-bottom:8px;font-size:.8rem;color:var(--muted)">
         <span id="cardCounter">0 / 0</span>
-        <button type="button" class="btn sm ghost" id="btnCardBack">DAY로</button>
+        <button type="button" class="btn sm ghost" id="btnCardBack">뒤로</button>
       </div>
       <div class="card flash-wrap" id="flashWrap" style="padding:0;overflow:hidden;position:relative">
         <div class="flash" id="flashCard">
@@ -251,15 +298,16 @@ main { flex: 1; padding: 12px 14px; }
         <button type="button" class="btn bad" id="btnDontKnow">오답</button>
         <button type="button" class="btn good" id="btnKnow">외움</button>
       </div>
-      <p class="hint" style="text-align:center">외움 → 외운 것으로 저장 · 오답 → 오답 목록</p>
+      <p class="hint" style="text-align:center">외움 → 누적 오답에서 제거 · 오답 → 누적 오답에 추가</p>
     </section>
 
     <!-- WRONG / KNOWN -->
     <section class="panel" id="panel-wrong">
       <div class="card">
-        <h2>오답 목록</h2>
-        <p class="hint">「오답」으로 표시한 단어 · 기초 DAY별</p>
+        <h2>누적 오답</h2>
+        <p class="hint">복습 퀴즈·카드 「오답」·중복 없음 · 「외움」하면 목록에서 빠집니다</p>
         <div class="row" style="margin:10px 0">
+          <button type="button" class="btn sm" id="btnStudyCumulative">이 목록으로 카드 학습</button>
           <button type="button" class="btn sm ghost" id="btnClearWrong">오답 전체 삭제</button>
         </div>
         <ul class="list" id="wrongList"></ul>
@@ -295,7 +343,7 @@ main { flex: 1; padding: 12px 14px; }
    - advanced : 심화 (준비 중)
    필드:
      word       string   영어 단어
-     meanings   string[] 뜻 (다의어는 배열로)
+     meanings   string[] 뜻 (다의어는 배열로; 퀴즈에서 아무 뜻이나 정답)
      etymology  string   어원 설명 (없으면 '')
      example    string   예문 (선택)
      sample     boolean  예시 데이터 표시용 (실제 단어에서는 생략)
@@ -304,7 +352,7 @@ const DATA = {
   basic1: (function () {
     var days = {};
     for (var d = 1; d <= 53; d++) days[d] = [];
-    // DAY 1 예시 데이터 2개 — 흐름 테스트용 (실제 배포 전 교체)
+    // DAY 1 예시 데이터 — 흐름 테스트용
     days[1] = [
       {
         word: 'abandon',
@@ -318,6 +366,44 @@ const DATA = {
         meanings: ['이익', '혜택', '이롭다'],
         etymology: 'bene-(=well, 좋게) + fit(=하다/만들다) → 좋게 하다 → 이익·혜택',
         example: 'Exercise has many health benefits.',
+        sample: true
+      }
+    ];
+    // DAY 2 예시 데이터 4+개 — 전날 복습 퀴즈(4지선다) 테스트용
+    days[2] = [
+      {
+        word: 'achieve',
+        meanings: ['달성하다', '이루다'],
+        etymology: 'a-(=to) + chief(=머리/끝) → 끝에 이르다 → 달성하다',
+        example: 'She achieved her goal.',
+        sample: true
+      },
+      {
+        word: 'curious',
+        meanings: ['호기심이 많은', '이상한'],
+        etymology: 'cur-(=care, 관심) → 관심을 갖는 → 호기심이 많은',
+        example: 'Children are naturally curious.',
+        sample: true
+      },
+      {
+        word: 'decline',
+        meanings: ['거절하다', '감소하다', '쇠퇴'],
+        etymology: 'de-(=down) + cline(=기울다) → 아래로 기울다 → 거절·감소',
+        example: 'He declined the invitation.',
+        sample: true
+      },
+      {
+        word: 'expand',
+        meanings: ['확장하다', '확대하다'],
+        etymology: 'ex-(=out) + pand(=펼치다) → 밖으로 펼치다 → 확장하다',
+        example: 'The company plans to expand abroad.',
+        sample: true
+      },
+      {
+        word: 'frequent',
+        meanings: ['빈번한', '자주 가는'],
+        etymology: 'frequ-(=자주 붐비다) → 빈번한',
+        example: 'He is a frequent visitor.',
         sample: true
       }
     ];
@@ -340,6 +426,17 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
   var pool = [];
   var cardIdx = 0;
   var cardRevealed = false;
+  var cardReturnPanel = 'day'; // day | days | wrong
+  var cardMode = 'day'; // day | cumulative | quizWrong
+  var afterCardAction = null; // function to run when pool finishes / user goes back after quiz-wrong study
+
+  var quizPool = [];
+  var quizIdx = 0;
+  var quizScore = 0;
+  var quizWrongIds = [];
+  var quizAnswered = false;
+  var quizReviewDay = 0;
+  var pendingTodayDay = 0;
 
   function byId(id) { return document.getElementById(id); }
 
@@ -358,6 +455,7 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
     refreshStats();
     renderWrongList();
+    updateCumulativeProg();
   }
 
   function wordId(level, day, idx) {
@@ -390,6 +488,17 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     };
   }
 
+  function allLevelWords(level) {
+    var out = [];
+    var bag = DATA[level] || {};
+    Object.keys(bag).forEach(function (dk) {
+      var day = parseInt(dk, 10);
+      var words = bag[dk] || [];
+      for (var i = 0; i < words.length; i++) out.push(enrich(level, day, i, words[i]));
+    });
+    return out;
+  }
+
   function dayKnownCount(level, day) {
     var words = getDayWords(level, day);
     var n = 0;
@@ -401,6 +510,10 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
 
   function meaningsText(w) {
     return (w.meanings || []).join('; ');
+  }
+
+  function primaryMeaning(w) {
+    return (w.meanings && w.meanings[0]) ? w.meanings[0] : '';
   }
 
   function esc(s) {
@@ -420,7 +533,7 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
     });
-    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', card: 'card', wrong: 'wrong' };
+    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', quiz: 'card', card: 'card', wrong: 'wrong' };
     var tab = navMap[name] || 'home';
     document.querySelectorAll('.nav button').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
@@ -436,6 +549,18 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     return a;
   }
 
+  function addWrong(id) {
+    if (!id) return;
+    state.wrong[id] = 1;
+    delete state.known[id];
+  }
+
+  function markKnown(id) {
+    if (!id) return;
+    state.known[id] = 1;
+    delete state.wrong[id];
+  }
+
   function refreshStats() {
     var knownN = Object.keys(state.known).length;
     var wrongN = Object.keys(state.wrong).length;
@@ -444,8 +569,9 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('statsBar').innerHTML =
       '<span class="pill">기초 단어 <b>' + filled + '</b></span>' +
       '<span class="pill ok">외움 <b>' + knownN + '</b></span>' +
-      '<span class="pill bad">오답 <b>' + wrongN + '</b></span>';
+      '<span class="pill bad">누적 오답 <b>' + wrongN + '</b></span>';
     updateLevelProg();
+    updateCumulativeProg();
   }
 
   function updateLevelProg() {
@@ -453,6 +579,12 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     for (var d = 1; d <= 53; d++) knownAll += dayKnownCount('basic1', d);
     var el = byId('progBasic1');
     if (el) el.textContent = '외움 ' + knownAll + ' / 목표 ' + totalSlots;
+  }
+
+  function updateCumulativeProg() {
+    var n = Object.keys(state.wrong).length;
+    var el = byId('progCumulative');
+    if (el) el.textContent = n + '개 · 탭하여 암기';
   }
 
   function renderDayGrid() {
@@ -478,6 +610,7 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('appTitle').textContent = '단어암기 · 기초';
     byId('appSub').textContent = 'DAY 1~53 · DAY당 40단어';
     renderDayGrid();
+    updateCumulativeProg();
     showPanel('days');
   }
 
@@ -497,8 +630,25 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     showPanel('placeholder');
   }
 
-  function openDay(day) {
+  function openDay(day, skipQuiz) {
     currentLevel = 'basic1';
+    currentDay = day;
+    pendingTodayDay = day;
+
+    // DAY 2+: previous-day review quiz (unless skipped / no words)
+    if (!skipQuiz && day >= 2) {
+      var prev = day - 1;
+      var prevWords = getDayWords('basic1', prev);
+      if (prevWords.length) {
+        startReviewQuiz(prev, day);
+        return;
+      }
+    }
+
+    showDayDetail(day);
+  }
+
+  function showDayDetail(day) {
     currentDay = day;
     byId('dayTitle').textContent = '기초 · DAY ' + day;
     var words = getDayWords('basic1', day);
@@ -509,7 +659,8 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     }
     byId('dayStatus').textContent = '외움 ' + known + ' / ' + WORDS_PER_DAY +
       (words.length ? ' · 등록 ' + words.length + '개' : '') +
-      (wrongN ? ' · 오답 ' + wrongN + '개' : '');
+      (wrongN ? ' · 오답 ' + wrongN + '개' : '') +
+      (day >= 2 ? ' · 전날 복습 후 학습' : '');
 
     if (!words.length) {
       byId('dayReady').style.display = 'none';
@@ -532,7 +683,157 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     showPanel('day');
   }
 
-  function buildPool() {
+  /* ---- Review Quiz ---- */
+  function startReviewQuiz(reviewDay, todayDay) {
+    quizReviewDay = reviewDay;
+    pendingTodayDay = todayDay;
+    var words = getDayWords('basic1', reviewDay);
+    quizPool = words.map(function (w, i) { return enrich('basic1', reviewDay, i, w); });
+    quizPool = shuffle(quizPool);
+    quizIdx = 0;
+    quizScore = 0;
+    quizWrongIds = [];
+    quizAnswered = false;
+    byId('quizCard').style.display = 'block';
+    byId('quizResult').style.display = 'none';
+    byId('quizSub').textContent = 'DAY ' + reviewDay + ' 복습 · 이어서 DAY ' + todayDay;
+    byId('appTitle').textContent = '복습 퀴즈 · DAY ' + reviewDay;
+    byId('appSub').textContent = '전날 단어 · 4지선다';
+    showPanel('quiz');
+    renderQuiz();
+  }
+
+  function pickChoices(correctWord) {
+    var levelWords = allLevelWords(correctWord.level);
+    var correctPrimary = primaryMeaning(correctWord);
+    var distractors = [];
+    var used = {};
+    used[correctPrimary] = 1;
+    // also block other meanings of the same word from being distractors
+    (correctWord.meanings || []).forEach(function (m) { used[m] = 1; });
+
+    var candidates = shuffle(levelWords.filter(function (w) { return w.id !== correctWord.id; }));
+    for (var i = 0; i < candidates.length && distractors.length < 3; i++) {
+      var m = primaryMeaning(candidates[i]);
+      if (!m || used[m]) continue;
+      used[m] = 1;
+      distractors.push(m);
+    }
+    // pad if not enough unique meanings
+    var pad = ['(선택지 부족)', '기타', '해당 없음', '모름'];
+    var pi = 0;
+    while (distractors.length < 3) {
+      var p = pad[pi++] || ('보기' + pi);
+      if (used[p]) continue;
+      used[p] = 1;
+      distractors.push(p);
+    }
+    var opts = shuffle([correctPrimary].concat(distractors));
+    return { options: opts, correctPrimary: correctPrimary };
+  }
+
+  function isCorrectChoice(word, chosen) {
+    var ms = word.meanings || [];
+    for (var i = 0; i < ms.length; i++) {
+      if (ms[i] === chosen) return true;
+    }
+    return false;
+  }
+
+  function renderQuiz() {
+    if (quizIdx >= quizPool.length) {
+      finishQuiz();
+      return;
+    }
+    quizAnswered = false;
+    var w = quizPool[quizIdx];
+    byId('quizQ').textContent = w.word;
+    byId('quizCounter').textContent = (quizIdx + 1) + ' / ' + quizPool.length;
+    byId('quizProg').style.width = (quizIdx / Math.max(quizPool.length, 1) * 100) + '%';
+    var picked = pickChoices(w);
+    var html = '';
+    picked.options.forEach(function (opt) {
+      html += '<button type="button" data-choice="' + esc(opt) + '">' + esc(opt) + '</button>';
+    });
+    byId('quizChoices').innerHTML = html;
+  }
+
+  function finishQuiz() {
+    byId('quizCard').style.display = 'none';
+    byId('quizResult').style.display = 'block';
+    byId('quizProg').style.width = '100%';
+    byId('quizCounter').textContent = quizPool.length + ' / ' + quizPool.length;
+    byId('resultScore').innerHTML = quizScore + ' <span>/ ' + quizPool.length + '</span>';
+    var wrongN = quizWrongIds.length;
+    byId('resultMsg').textContent = wrongN
+      ? ('틀린 ' + wrongN + '개를 누적 오답에 넣었습니다.')
+      : '모두 맞았습니다!';
+
+    if (wrongN) {
+      byId('quizStudyWrongRow').style.display = 'flex';
+      byId('quizWrongPreview').innerHTML = '<p class="hint">틀린 단어: ' +
+        quizWrongIds.map(function (id) {
+          var w = lookupWord(id);
+          return w ? esc(w.word) : '';
+        }).filter(Boolean).join(', ') + '</p>';
+    } else {
+      byId('quizStudyWrongRow').style.display = 'none';
+      byId('quizWrongPreview').innerHTML = '';
+    }
+    saveState();
+  }
+
+  function answerQuiz(choice) {
+    if (quizAnswered || quizIdx >= quizPool.length) return;
+    quizAnswered = true;
+    var w = quizPool[quizIdx];
+    var ok = isCorrectChoice(w, choice);
+    var buttons = byId('quizChoices').querySelectorAll('button');
+    buttons.forEach(function (b) {
+      var c = b.getAttribute('data-choice');
+      b.disabled = true;
+      if (isCorrectChoice(w, c)) b.classList.add('correct');
+      else if (c === choice && !ok) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+    if (ok) {
+      quizScore++;
+    } else {
+      addWrong(w.id);
+      if (quizWrongIds.indexOf(w.id) < 0) quizWrongIds.push(w.id);
+      saveState();
+    }
+    setTimeout(function () {
+      quizIdx++;
+      renderQuiz();
+    }, 550);
+  }
+
+  function skipQuizToToday() {
+    showDayDetail(pendingTodayDay || currentDay);
+  }
+
+  function goTodayAfterQuiz() {
+    showDayDetail(pendingTodayDay || currentDay);
+  }
+
+  function studyQuizWrongThenToday() {
+    var list = quizWrongIds.map(lookupWord).filter(Boolean);
+    if (!list.length) {
+      goTodayAfterQuiz();
+      return;
+    }
+    cardMode = 'quizWrong';
+    cardReturnPanel = 'day';
+    afterCardAction = function () {
+      afterCardAction = null;
+      showDayDetail(pendingTodayDay || currentDay);
+    };
+    startCardsWithList(list, '퀴즈 오답 복습', '외움하면 누적 오답에서 제거');
+  }
+
+  /* ---- Cards ---- */
+  function buildDayPool() {
     var words = getDayWords(currentLevel, currentDay);
     var list = [];
     var wrongOnly = byId('optWrongOnly').checked;
@@ -546,19 +847,41 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
   }
 
   function startCards() {
-    pool = buildPool();
+    cardMode = 'day';
+    cardReturnPanel = 'day';
+    afterCardAction = null;
+    pool = buildDayPool();
     if (!pool.length) {
-      if (byId('optWrongOnly').checked) {
-        showToast('이 DAY에 오답 표시된 단어가 없습니다.');
-      } else {
-        showToast('단어 준비 중');
-      }
+      if (byId('optWrongOnly').checked) showToast('이 DAY에 오답 표시된 단어가 없습니다.');
+      else showToast('단어 준비 중');
       return;
     }
     cardIdx = 0;
     cardRevealed = false;
+    byId('appTitle').textContent = '카드 · DAY ' + currentDay;
     showPanel('card');
     renderCard();
+  }
+
+  function startCardsWithList(list, title, sub) {
+    pool = byId('optShuffle') && byId('optShuffle').checked ? shuffle(list.slice()) : shuffle(list.slice());
+    if (!pool.length) { showToast('학습할 단어가 없습니다'); return; }
+    cardIdx = 0;
+    cardRevealed = false;
+    byId('appTitle').textContent = title || '카드 학습';
+    byId('appSub').textContent = sub || '';
+    showPanel('card');
+    renderCard();
+  }
+
+  function startCumulativeCards() {
+    var ids = Object.keys(state.wrong);
+    var list = ids.map(lookupWord).filter(Boolean);
+    if (!list.length) { showToast('누적 오답이 없습니다'); return; }
+    cardMode = 'cumulative';
+    cardReturnPanel = 'wrong';
+    afterCardAction = null;
+    startCardsWithList(list, '누적 오답 카드', list.length + '개');
   }
 
   function formatMeanings(w) {
@@ -592,12 +915,17 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
       byId('flashEty').style.display = 'none';
       byId('flashEx').style.display = 'none';
       byId('flashHint').textContent = pool.length + '개 학습 완료';
-      byId('flashMeta').textContent = 'DAY ' + currentDay;
+      byId('flashMeta').textContent = cardMode === 'day' ? ('DAY ' + currentDay) : '누적 오답';
       byId('flashIdx').textContent = '';
       byId('cardCounter').textContent = pool.length + ' / ' + pool.length;
       byId('cardProg').style.width = '100%';
       byId('btnKnow').disabled = true;
       byId('btnDontKnow').disabled = true;
+      if (afterCardAction) {
+        var fn = afterCardAction;
+        // keep afterCardAction until user taps 뒤로 or we auto-offer
+        byId('flashHint').textContent = '완료 · 뒤로 가면 오늘 학습으로';
+      }
       return;
     }
     byId('btnKnow').disabled = false;
@@ -652,13 +980,11 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     if (cardIdx >= pool.length || cardIdx < 0) return;
     var w = pool[cardIdx];
     if (know) {
-      state.known[w.id] = 1;
-      delete state.wrong[w.id];
-      showToast('외움으로 저장');
+      markKnown(w.id);
+      showToast('외움 · 누적 오답에서 제거');
     } else {
-      state.wrong[w.id] = 1;
-      delete state.known[w.id];
-      showToast('오답으로 저장');
+      addWrong(w.id);
+      showToast('오답 · 누적 오답에 추가');
     }
     saveState();
     cardIdx++;
@@ -705,6 +1031,23 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     }).join('') + (kids.length > 300 ? '<li class="hint">…외 ' + (kids.length - 300) + '개</li>' : '');
   }
 
+  function goBackFromCard() {
+    if (afterCardAction) {
+      var fn = afterCardAction;
+      afterCardAction = null;
+      fn();
+      return;
+    }
+    if (cardReturnPanel === 'wrong') {
+      renderWrongList();
+      showPanel('wrong');
+    } else if (cardReturnPanel === 'days') {
+      openDays();
+    } else {
+      showDayDetail(currentDay);
+    }
+  }
+
   /* ---- Events ---- */
   byId('levelGrid').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-level]');
@@ -717,7 +1060,12 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
   byId('dayGrid').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-day]');
     if (!btn) return;
-    openDay(parseInt(btn.getAttribute('data-day'), 10));
+    openDay(parseInt(btn.getAttribute('data-day'), 10), false);
+  });
+
+  byId('btnCumulativeWrong').addEventListener('click', function () {
+    renderWrongList();
+    showPanel('wrong');
   });
 
   byId('btnDaysHome').addEventListener('click', function () {
@@ -731,12 +1079,8 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('appSub').textContent = '기초 · 기본 · 심화 · 리뉴얼 프레임워크';
     showPanel('home');
   });
-  byId('btnDayBack').addEventListener('click', function () {
-    openDays();
-  });
-  byId('btnCardBack').addEventListener('click', function () {
-    openDay(currentDay);
-  });
+  byId('btnDayBack').addEventListener('click', function () { openDays(); });
+  byId('btnCardBack').addEventListener('click', goBackFromCard);
   byId('btnStartCard').addEventListener('click', startCards);
 
   byId('flashZones').addEventListener('click', function (e) {
@@ -753,6 +1097,15 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
 
   byId('btnKnow').addEventListener('click', function () { markCard(true); });
   byId('btnDontKnow').addEventListener('click', function () { markCard(false); });
+
+  byId('quizChoices').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-choice]');
+    if (!btn || btn.disabled) return;
+    answerQuiz(btn.getAttribute('data-choice'));
+  });
+  byId('btnQuizSkip').addEventListener('click', skipQuizToToday);
+  byId('btnQuizToToday').addEventListener('click', goTodayAfterQuiz);
+  byId('btnQuizStudyWrong').addEventListener('click', studyQuizWrongThenToday);
 
   document.querySelectorAll('.nav button').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -784,10 +1137,9 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     var id = li.getAttribute('data-id');
     var act = btn.getAttribute('data-act');
     if (act === 'mem') {
-      state.known[id] = 1;
-      delete state.wrong[id];
+      markKnown(id);
       saveState();
-      showToast('외움으로 이동');
+      showToast('외움 · 누적 오답에서 제거');
     } else if (act === 'del') {
       delete state.wrong[id];
       saveState();
@@ -806,12 +1158,14 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     }
   });
 
+  byId('btnStudyCumulative').addEventListener('click', startCumulativeCards);
+
   byId('btnClearWrong').addEventListener('click', function () {
     if (!Object.keys(state.wrong).length) return;
-    if (!confirm('오답 표시를 모두 삭제할까요?')) return;
+    if (!confirm('누적 오답을 모두 삭제할까요?')) return;
     state.wrong = {};
     saveState();
-    showToast('오답 목록을 비웠습니다');
+    showToast('누적 오답을 비웠습니다');
   });
 
   byId('btnClearKnown').addEventListener('click', function () {
