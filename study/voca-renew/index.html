@@ -153,6 +153,8 @@ main { flex: 1; padding: 12px 14px; }
 .badge.sample { background: #fef3c7; color: #b45309; }
 .badge.known { background: #d1fae5; color: #047857; }
 .badge.wrong { background: #fee2e2; color: #b91c1c; }
+.badge.mark-toggle { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.badge.mark-toggle:active { opacity: .75; }
 .badge.review { background: #ede9fe; color: #6d28d9; }
 .placeholder-box { text-align: center; padding: 48px 16px; color: var(--muted); }
 .placeholder-box .big { font-size: 2rem; margin-bottom: 8px; }
@@ -326,7 +328,7 @@ main { flex: 1; padding: 12px 14px; }
         <button type="button" class="btn bad" id="btnDontKnow">모르겠음</button>
         <button type="button" class="btn good" id="btnKnow">외움</button>
       </div>
-      <p class="hint" style="text-align:center">모르겠음 → 누적 오답 · 외움 → 누적 오답에서 제거 · 카드 탭 = 뒤집기</p>
+      <p class="hint" style="text-align:center">모르겠음 → 누적 오답(외움도 되돌림) · 외움 → 누적 오답에서 제거 · 카드 탭 = 뒤집기</p>
     </section>
 
     <!-- WRONG / KNOWN -->
@@ -1404,16 +1406,51 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
       byId('dayWordPreview').style.display = 'block';
       byId('dayWordList').innerHTML = words.map(function (w, idx) {
         var ew = enrich('basic1', day, idx, w);
-        var mark = state.known[ew.id] ? '<span class="badge known">외움</span>' :
-          (state.wrong[ew.id] ? '<span class="badge wrong">오답</span>' : '');
+        var mark = '';
+        if (state.known[ew.id]) {
+          mark = '<span class="badge known mark-toggle" data-mark-id="' + esc(ew.id) + '" title="탭: 모르겠음으로 변경">외움</span>';
+        } else if (state.wrong[ew.id]) {
+          mark = '<span class="badge wrong mark-toggle" data-mark-id="' + esc(ew.id) + '" title="탭: 외움으로 변경">오답</span>';
+        }
         var sample = ew.sample ? ' <span class="badge sample">예시 데이터</span>' : '';
         var formBit = ew.forms ? (' <span style="color:#9ca3af;font-weight:500;font-size:.8rem">(' + esc(ew.forms) + ')</span>') : '';
-        return '<li><div><div class="w">' + esc(ew.word) + formBit + sample + ' ' + mark +
+        return '<li data-id="' + esc(ew.id) + '"><div><div class="w">' + esc(ew.word) + formBit + sample + ' ' + mark +
           '</div><div class="m">' + esc(meaningsText(ew)) + '</div></div></li>';
       }).join('');
     }
     byId('optWrongOnly').checked = false;
     showPanel('day');
+  }
+
+  function refreshDayWordMarks() {
+    var day = currentDay;
+    var words = getDayWords('basic1', day);
+    if (!words.length) return;
+    var known = dayKnownCount('basic1', day);
+    var wrongN = 0;
+    for (var i = 0; i < words.length; i++) {
+      if (state.wrong[wordId('basic1', day, i)]) wrongN++;
+    }
+    var st = byId('dayStatus');
+    if (st) {
+      st.textContent = '외움 ' + known + ' / ' + WORDS_PER_DAY +
+        (words.length ? ' · 등록 ' + words.length + '개' : '') +
+        (wrongN ? ' · 오답 ' + wrongN + '개' : '') +
+        (day >= 2 ? ' · 전날 복습 후 학습' : '');
+    }
+    byId('dayWordList').innerHTML = words.map(function (w, idx) {
+      var ew = enrich('basic1', day, idx, w);
+      var mark = '';
+      if (state.known[ew.id]) {
+        mark = '<span class="badge known mark-toggle" data-mark-id="' + esc(ew.id) + '" title="탭: 모르겠음으로 변경">외움</span>';
+      } else if (state.wrong[ew.id]) {
+        mark = '<span class="badge wrong mark-toggle" data-mark-id="' + esc(ew.id) + '" title="탭: 외움으로 변경">오답</span>';
+      }
+      var sample = ew.sample ? ' <span class="badge sample">예시 데이터</span>' : '';
+      var formBit = ew.forms ? (' <span style="color:#9ca3af;font-weight:500;font-size:.8rem">(' + esc(ew.forms) + ')</span>') : '';
+      return '<li data-id="' + esc(ew.id) + '"><div><div class="w">' + esc(ew.word) + formBit + sample + ' ' + mark +
+        '</div><div class="m">' + esc(meaningsText(ew)) + '</div></div></li>';
+    }).join('');
   }
 
   /* ---- Review Quiz ---- */
@@ -1808,6 +1845,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     if (byId('ttsBtn')) byId('ttsBtn').style.visibility = 'visible';
     var badges = '';
     if (w.isReview) badges += '<span class="badge review">복습</span> ';
+    if (state.known[w.id]) badges += '<span class="badge known">외움</span> ';
+    else if (state.wrong[w.id]) badges += '<span class="badge wrong">오답</span> ';
     if (w.sample) badges += '<span class="badge sample">예시 데이터</span>';
     byId('flashBadge').innerHTML = badges;
     byId('flashMean').style.display = 'none';
@@ -1854,24 +1893,44 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   function markCard(know) {
     if (cardIdx >= pool.length || cardIdx < 0) return;
     var w = pool[cardIdx];
+    var wasKnown = !!state.known[w.id];
     markHistory.push({
       idx: cardIdx,
       id: w.id,
-      prevKnown: !!state.known[w.id],
+      prevKnown: wasKnown,
       prevWrong: !!state.wrong[w.id]
     });
     if (know) {
       markKnown(w.id);
       showToast('외움 · 누적 오답에서 제거');
     } else {
+      // 외움 표시된 단어도 모르겠음으로 되돌릴 수 있음 → 외움 해제 + 누적 오답
       addWrong(w.id);
-      showToast('모르겠음 · 누적 오답에 추가');
+      showToast(wasKnown ? '외움 해제 · 모르겠음(누적 오답)' : '모르겠음 · 누적 오답에 추가');
     }
     saveState();
     cardIdx++;
     cardRevealed = false;
     renderCard();
     updateUndoBtn();
+  }
+
+  /** DAY 목록 등에서 외움 ↔ 모르겠음(오답) 토글 */
+  function toggleMark(id) {
+    if (!id) return;
+    if (state.known[id]) {
+      addWrong(id);
+      saveState();
+      showToast('외움 → 모르겠음(누적 오답)');
+      return 'wrong';
+    }
+    if (state.wrong[id]) {
+      markKnown(id);
+      saveState();
+      showToast('오답 → 외움');
+      return 'known';
+    }
+    return '';
   }
 
   function undoLastMark() {
@@ -1929,9 +1988,10 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
       var w = lookupWord(id);
       if (!w) return '';
       return '<li data-id="' + esc(id) + '"><div><div class="w">' + esc(w.word) +
+        ' <span class="badge known mark-toggle" data-mark-id="' + esc(id) + '" title="탭: 모르겠음으로 변경">외움</span>' +
         ' <span class="badge">DAY ' + w.day + '</span></div>' +
         '<div class="m">' + esc(meaningsText(w)) + '</div></div>' +
-        '<div class="actions-r"><button type="button" class="btn sm ghost" data-act="unk">취소</button></div></li>';
+        '<div class="actions-r"><button type="button" class="btn sm bad" data-act="unk">모르겠음</button></div></li>';
     }).join('') + (kids.length > 300 ? '<li class="hint">…외 ' + (kids.length - 300) + '개</li>' : '');
   }
 
@@ -2091,15 +2151,29 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   });
 
   byId('knownList').addEventListener('click', function (e) {
+    var markEl = e.target.closest('[data-mark-id]');
+    if (markEl) {
+      toggleMark(markEl.getAttribute('data-mark-id'));
+      return;
+    }
     var btn = e.target.closest('[data-act]');
     if (!btn) return;
     var li = btn.closest('li');
     if (!li) return;
     var id = li.getAttribute('data-id');
     if (btn.getAttribute('data-act') === 'unk') {
-      delete state.known[id];
+      addWrong(id);
       saveState();
+      showToast('외움 → 모르겠음(누적 오답)');
     }
+  });
+
+  byId('dayWordList').addEventListener('click', function (e) {
+    var markEl = e.target.closest('[data-mark-id]');
+    if (!markEl) return;
+    e.preventDefault();
+    toggleMark(markEl.getAttribute('data-mark-id'));
+    refreshDayWordMarks();
   });
 
   byId('btnStudyCumulative').addEventListener('click', startCumulativeCards);
