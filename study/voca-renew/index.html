@@ -1204,13 +1204,96 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
 
   function primaryMeaning(w) {
-    // 퀴즈 보기: 여러 뜻 중 하나만 (호출마다 무작위)
     return oneMeaning(w);
   }
 
+  /** 괄호 밖 mid 구분기호(, / ; · 、)로만 분리 */
+  function splitListOutsideParens(body) {
+    var s = String(body || '');
+    var parts = [];
+    var cur = '';
+    var depth = 0;
+    for (var i = 0; i < s.length; i++) {
+      var ch = s[i];
+      if (ch === '(' || ch === '（') depth++;
+      else if (ch === ')' || ch === '）') depth = Math.max(0, depth - 1);
+      if (depth === 0 && (ch === ',' || ch === '/' || ch === ';' || ch === '·' || ch === '、' || ch === '・')) {
+        if (cur.trim()) parts.push(cur.trim());
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    return parts.length ? parts : (s.trim() ? [s.trim()] : []);
+  }
+
+  function isBalancedParens(s) {
+    var d = 0;
+    for (var i = 0; i < s.length; i++) {
+      var ch = s[i];
+      if (ch === '(' || ch === '（') d++;
+      else if (ch === ')' || ch === '）') {
+        d--;
+        if (d < 0) return false;
+      }
+    }
+    return d === 0;
+  }
+
+  /** 한 뜻 항목 → 품사태그 + 단일 세부뜻들. 예: "[명] 방법, 방식, 길" → ["[명] 방법","[명] 방식","[명] 길"] */
+  function expandMeaningEntry(entry) {
+    var raw = String(entry || '').trim();
+    if (!raw) return [];
+    var tag = '';
+    var body = raw;
+    var tm = raw.match(/^(\[[^\]]+\])\s*(.*)$/);
+    if (tm) { tag = tm[1]; body = tm[2]; }
+    // 태그만 있으면 버림
+    if (!body || !String(body).trim()) return [];
+    var parts = splitListOutsideParens(body);
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (!p) continue;
+      // 의심 조각 제외: 태그만, 너무 짧은 잔편, 괄호 깨짐
+      if (/^\[[^\]]+\]$/.test(p)) continue;
+      if (!isBalancedParens(p)) continue;
+      if (/^[,./;·、・~～\-]+$/.test(p)) continue;
+      var gloss = tag ? (tag + ' ' + p) : p;
+      if (gloss && out.indexOf(gloss) < 0) out.push(gloss);
+    }
+    // 분리 실패 시 원문 유지(단, 태그만은 제외)
+    if (!out.length && body.trim() && isBalancedParens(body)) {
+      out.push(tag ? (tag + ' ' + body.trim()) : body.trim());
+    }
+    return out;
+  }
+
+  function allSubMeanings(w) {
+    var out = [];
+    var seen = {};
+    ((w && w.meanings) || []).forEach(function (entry) {
+      expandMeaningEntry(entry).forEach(function (g) {
+        if (!seen[g]) { seen[g] = 1; out.push(g); }
+      });
+    });
+    return out;
+  }
+
+  /** 태그·괄호내용·공백·구분기호 제거 후 비교용 */
+  function normalizeGloss(s) {
+    var t = String(s || '');
+    t = t.replace(/\[[^\]]*\]/g, '');
+    t = t.replace(/\([^)]*\)/g, '');
+    t = t.replace(/（[^）]*）/g, '');
+    t = t.replace(/[\s,./;·、・~～\-–—]/g, '');
+    return t;
+  }
+
   function oneMeaning(w) {
-    // 매 호출(매 문제 렌더)마다 다시 무작위 선택
-    var ms = (w && w.meanings) ? w.meanings.filter(function (m) { return m && String(m).trim(); }) : [];
+    // 매 렌더마다 세부 뜻 중 하나를 무작위 선택 (예: 방법/방식/길)
+    var ms = allSubMeanings(w);
     if (!ms.length) return '';
     return ms[Math.floor(Math.random() * ms.length)];
   }
@@ -1530,31 +1613,40 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
 
   function pickChoices(correctWord) {
     var levelWords = allLevelWords(correctWord.level);
-    // 정답 보기: 목표 단어 뜻 중 하나만 표시
+    var targetSubs = allSubMeanings(correctWord);
     var correctPrimary = oneMeaning(correctWord);
     var distractors = [];
-    var used = {};
-    if (correctPrimary) used[correctPrimary] = 1;
-    // 목표 단어의 다른 뜻과 같은 문장은 오답으로 쓰지 않음 (같은 뜻이면 정답 처리되므로)
-    (correctWord.meanings || []).forEach(function (m) { if (m) used[m] = 1; });
+    var usedExact = {};
+    var usedNorm = {};
+    function ban(s) {
+      if (!s) return;
+      usedExact[s] = 1;
+      var n = normalizeGloss(s);
+      if (n) usedNorm[n] = 1;
+    }
+    targetSubs.forEach(ban);
+    ban(correctPrimary);
 
     var candidates = shuffle(levelWords.filter(function (w) { return w.id !== correctWord.id; }));
     for (var i = 0; i < candidates.length && distractors.length < 3; i++) {
       var cand = candidates[i];
-      // 오답 후보도 뜻 하나만; 목표 단어 뜻과 겹치면 다른 뜻을 고르거나 스킵
-      var pool = shuffle((cand.meanings || []).slice()).filter(function (m) { return m && !used[m]; });
+      var pool = shuffle(allSubMeanings(cand)).filter(function (m) {
+        if (!m || usedExact[m]) return false;
+        var n = normalizeGloss(m);
+        if (n && usedNorm[n]) return false;
+        return true;
+      });
       if (!pool.length) continue;
       var m = pool[0];
-      used[m] = 1;
+      ban(m);
       distractors.push(m);
     }
-    // pad if not enough unique meanings
     var pad = ['(선택지 부족)', '기타', '해당 없음', '모름'];
     var pi = 0;
     while (distractors.length < 3) {
       var p = pad[pi++] || ('보기' + pi);
-      if (used[p]) continue;
-      used[p] = 1;
+      if (usedExact[p] || (normalizeGloss(p) && usedNorm[normalizeGloss(p)])) continue;
+      ban(p);
       distractors.push(p);
     }
     var opts = shuffle([correctPrimary].concat(distractors));
@@ -1562,10 +1654,25 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
 
   function isCorrectChoice(word, chosen) {
+    if (!chosen) return false;
     if (meaningsText(word) === chosen) return true;
+    var subs = allSubMeanings(word);
+    var i;
+    for (i = 0; i < subs.length; i++) {
+      if (subs[i] === chosen) return true;
+    }
+    // 원 항목 전체 문자열도 허용
     var ms = word.meanings || [];
-    for (var i = 0; i < ms.length; i++) {
+    for (i = 0; i < ms.length; i++) {
       if (ms[i] === chosen) return true;
+    }
+    var n = normalizeGloss(chosen);
+    if (!n) return false;
+    for (i = 0; i < subs.length; i++) {
+      if (normalizeGloss(subs[i]) === n) return true;
+    }
+    for (i = 0; i < ms.length; i++) {
+      if (normalizeGloss(ms[i]) === n) return true;
     }
     return false;
   }
