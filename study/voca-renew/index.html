@@ -136,6 +136,7 @@ main { flex: 1; padding: 12px 14px; }
 .badge.sample { background: #fef3c7; color: #b45309; }
 .badge.known { background: #d1fae5; color: #047857; }
 .badge.wrong { background: #fee2e2; color: #b91c1c; }
+.badge.review { background: #ede9fe; color: #6d28d9; }
 .placeholder-box { text-align: center; padding: 48px 16px; color: var(--muted); }
 .placeholder-box .big { font-size: 2rem; margin-bottom: 8px; }
 .placeholder-box p { margin: 4px 0; font-size: .95rem; }
@@ -190,7 +191,7 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>안내</h2>
-        <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후 오늘 단어. 틀린 단어는 누적 오답에 쌓이며 「외움」하면 빠집니다.</p>
+        <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후, 한 덱에서 복습(오답) 단어가 먼저 나오고 이어서 오늘 DAY 단어가 나옵니다. 「외움」하면 누적 오답에서 빠집니다.</p>
       </div>
     </section>
 
@@ -262,11 +263,8 @@ main { flex: 1; padding: 12px 14px; }
         <div class="result-score" id="resultScore"></div>
         <p class="hint" style="text-align:center" id="resultMsg"></p>
         <div id="quizWrongPreview"></div>
-        <div class="row" style="margin-top:14px" id="quizStudyWrongRow">
-          <button type="button" class="btn accent block" id="btnQuizStudyWrong">틀린 단어 카드로 복습</button>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button type="button" class="btn block" id="btnQuizToToday">오늘 단어 학습하기</button>
+        <div class="row" style="margin-top:14px">
+          <button type="button" class="btn block" id="btnQuizToToday">복습 후 오늘 단어 학습 시작</button>
         </div>
       </div>
     </section>
@@ -484,7 +482,8 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
       meanings: Array.isArray(w.meanings) ? w.meanings : (w.meanings ? [w.meanings] : []),
       etymology: w.etymology || '',
       example: w.example || '',
-      sample: !!w.sample
+      sample: !!w.sample,
+      isReview: false
     };
   }
 
@@ -766,18 +765,16 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('resultScore').innerHTML = quizScore + ' <span>/ ' + quizPool.length + '</span>';
     var wrongN = quizWrongIds.length;
     byId('resultMsg').textContent = wrongN
-      ? ('틀린 ' + wrongN + '개를 누적 오답에 넣었습니다.')
-      : '모두 맞았습니다!';
+      ? ('틀린 ' + wrongN + '개를 누적 오답에 넣었습니다. 학습 덱 앞쪽에 복습 카드로 나옵니다.')
+      : '모두 맞았습니다! 누적 오답이 있으면 먼저 복습 후 오늘 단어로 이어집니다.';
 
     if (wrongN) {
-      byId('quizStudyWrongRow').style.display = 'flex';
-      byId('quizWrongPreview').innerHTML = '<p class="hint">틀린 단어: ' +
+      byId('quizWrongPreview').innerHTML = '<p class="hint">틀린 단어(복습 먼저): ' +
         quizWrongIds.map(function (id) {
           var w = lookupWord(id);
           return w ? esc(w.word) : '';
         }).filter(Boolean).join(', ') + '</p>';
     } else {
-      byId('quizStudyWrongRow').style.display = 'none';
       byId('quizWrongPreview').innerHTML = '';
     }
     saveState();
@@ -810,26 +807,67 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
   }
 
   function skipQuizToToday() {
-    showDayDetail(pendingTodayDay || currentDay);
+    // 건너뛰기: 퀴즈 오답 없이, 누적 오답 + 오늘 단어 한 덱
+    startCombinedDeck({ includeQuizWrong: false });
+  }
+
+  /* 한 덱: [복습 블록(퀴즈 오답 ∪ 누적 오답)] → [오늘 DAY 단어 순서]
+     섞지 않음. 복습 단어에는 isReview=true → '복습' 뱃지 */
+  function startCombinedDeck(opts) {
+    opts = opts || {};
+    var today = pendingTodayDay || currentDay;
+    currentDay = today;
+    currentLevel = 'basic1';
+
+    var seen = {};
+    var reviewBlock = [];
+
+    function pushReview(id) {
+      if (!id || seen[id]) return;
+      var w = lookupWord(id);
+      if (!w) return;
+      seen[id] = 1;
+      w.isReview = true;
+      reviewBlock.push(w);
+    }
+
+    if (opts.includeQuizWrong !== false) {
+      quizWrongIds.forEach(pushReview);
+    }
+    Object.keys(state.wrong).forEach(pushReview);
+
+    var todayWords = getDayWords('basic1', today).map(function (w, i) {
+      return enrich('basic1', today, i, w);
+    });
+    var todayBlock = [];
+    todayWords.forEach(function (w) {
+      if (seen[w.id]) return; // already in review block
+      seen[w.id] = 1;
+      w.isReview = false;
+      todayBlock.push(w);
+    });
+
+    var list = reviewBlock.concat(todayBlock);
+    if (!list.length) {
+      showToast('학습할 단어가 없습니다');
+      showDayDetail(today);
+      return;
+    }
+
+    cardMode = 'combined';
+    cardReturnPanel = 'day';
+    afterCardAction = null;
+    pool = list; // order fixed: review first, then today (no shuffle)
+    cardIdx = 0;
+    cardRevealed = false;
+    byId('appTitle').textContent = '카드 · DAY ' + today;
+    byId('appSub').textContent = '복습 ' + reviewBlock.length + '개 → 오늘 ' + todayBlock.length + '개';
+    showPanel('card');
+    renderCard();
   }
 
   function goTodayAfterQuiz() {
-    showDayDetail(pendingTodayDay || currentDay);
-  }
-
-  function studyQuizWrongThenToday() {
-    var list = quizWrongIds.map(lookupWord).filter(Boolean);
-    if (!list.length) {
-      goTodayAfterQuiz();
-      return;
-    }
-    cardMode = 'quizWrong';
-    cardReturnPanel = 'day';
-    afterCardAction = function () {
-      afterCardAction = null;
-      showDayDetail(pendingTodayDay || currentDay);
-    };
-    startCardsWithList(list, '퀴즈 오답 복습', '외움하면 누적 오답에서 제거');
+    startCombinedDeck({ includeQuizWrong: true });
   }
 
   /* ---- Cards ---- */
@@ -932,12 +970,15 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('btnDontKnow').disabled = false;
     var w = pool[cardIdx];
     cardRevealed = false;
-    byId('flashMeta').textContent = 'DAY ' + w.day;
+    byId('flashMeta').textContent = (w.isReview ? '복습 · ' : '') + 'DAY ' + w.day;
     byId('flashIdx').textContent = (cardIdx + 1) + ' / ' + pool.length;
     byId('cardCounter').textContent = (cardIdx + 1) + ' / ' + pool.length;
     byId('cardProg').style.width = (cardIdx / Math.max(pool.length, 1) * 100) + '%';
     byId('flashWord').textContent = w.word;
-    byId('flashBadge').innerHTML = w.sample ? '<span class="badge sample">예시 데이터</span>' : '';
+    var badges = '';
+    if (w.isReview) badges += '<span class="badge review">복습</span> ';
+    if (w.sample) badges += '<span class="badge sample">예시 데이터</span>';
+    byId('flashBadge').innerHTML = badges;
     byId('flashMean').style.display = 'none';
     byId('flashMean').innerHTML = formatMeanings(w);
     byId('flashEty').style.display = 'none';
@@ -1105,7 +1146,6 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
   });
   byId('btnQuizSkip').addEventListener('click', skipQuizToToday);
   byId('btnQuizToToday').addEventListener('click', goTodayAfterQuiz);
-  byId('btnQuizStudyWrong').addEventListener('click', studyQuizWrongThenToday);
 
   document.querySelectorAll('.nav button').forEach(function (b) {
     b.addEventListener('click', function () {
