@@ -1204,8 +1204,14 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
 
   function primaryMeaning(w) {
-    // 퀴즈 보기: 책과 같이 품사 뜻을 이은 전체 문자열
-    return meaningsText(w);
+    // 퀴즈 보기: 여러 뜻 중 하나만 (호출마다 무작위)
+    return oneMeaning(w);
+  }
+
+  function oneMeaning(w) {
+    var ms = (w && w.meanings) ? w.meanings.slice() : [];
+    if (!ms.length) return '';
+    return ms[Math.floor(Math.random() * ms.length)];
   }
 
   function esc(s) {
@@ -1521,19 +1527,23 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     renderQuiz();
   }
 
-    function pickChoices(correctWord) {
+  function pickChoices(correctWord) {
     var levelWords = allLevelWords(correctWord.level);
-    var correctPrimary = primaryMeaning(correctWord);
+    // 정답 보기: 목표 단어 뜻 중 하나만 표시
+    var correctPrimary = oneMeaning(correctWord);
     var distractors = [];
     var used = {};
-    used[correctPrimary] = 1;
-    // also block other meanings of the same word from being distractors
-    (correctWord.meanings || []).forEach(function (m) { used[m] = 1; });
+    if (correctPrimary) used[correctPrimary] = 1;
+    // 목표 단어의 다른 뜻과 같은 문장은 오답으로 쓰지 않음 (같은 뜻이면 정답 처리되므로)
+    (correctWord.meanings || []).forEach(function (m) { if (m) used[m] = 1; });
 
     var candidates = shuffle(levelWords.filter(function (w) { return w.id !== correctWord.id; }));
     for (var i = 0; i < candidates.length && distractors.length < 3; i++) {
-      var m = primaryMeaning(candidates[i]);
-      if (!m || used[m]) continue;
+      var cand = candidates[i];
+      // 오답 후보도 뜻 하나만; 목표 단어 뜻과 겹치면 다른 뜻을 고르거나 스킵
+      var pool = shuffle((cand.meanings || []).slice()).filter(function (m) { return m && !used[m]; });
+      if (!pool.length) continue;
+      var m = pool[0];
       used[m] = 1;
       distractors.push(m);
     }
