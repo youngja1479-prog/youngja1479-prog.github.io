@@ -294,7 +294,7 @@ main { flex: 1; padding: 12px 14px; }
         <button type="button" class="btn sm ghost" id="btnCardBack">뒤로</button>
       </div>
       <div class="card flash-wrap" id="flashWrap" style="padding:0;overflow:hidden;position:relative">
-        <div class="flash" id="flashCard">
+        <div class="flash" id="flashCard" role="button" tabindex="0" aria-label="카드 뒤집기">
           <div class="meta"><span id="flashMeta"></span><span id="flashIdx"></span></div>
           <div class="word" id="flashWord"></div>
           <div id="flashBadge" style="margin-top:8px"></div>
@@ -302,19 +302,17 @@ main { flex: 1; padding: 12px 14px; }
           <div class="forms" id="flashForms" style="display:none"></div>
           <div class="ety" id="flashEty" style="display:none"></div>
           <div class="example" id="flashEx" style="display:none"></div>
-          <div class="tap-hint" id="flashHint">가운데 탭: 뜻 · 왼쪽: 이전 · 오른쪽: 다음</div>
+          <div class="tap-hint" id="flashHint">탭하면 뜻 보기 / 다시 탭하면 가리기</div>
         </div>
-        <div class="flash-zones" id="flashZones" aria-hidden="true">
-          <div class="zone zone-left" data-act="prev"></div>
-          <div class="zone zone-mid" data-act="flip"></div>
-          <div class="zone zone-right" data-act="next"></div>
-        </div>
+      </div>
+      <div class="row" style="justify-content:center;margin:4px 0 8px">
+        <button type="button" class="btn sm ghost" id="btnCardUndo" style="min-height:36px;padding:6px 12px;font-size:.78rem">↩ 이전</button>
       </div>
       <div class="actions">
-        <button type="button" class="btn bad" id="btnDontKnow">오답</button>
+        <button type="button" class="btn bad" id="btnDontKnow">모르겠음</button>
         <button type="button" class="btn good" id="btnKnow">외움</button>
       </div>
-      <p class="hint" style="text-align:center">외움 → 누적 오답에서 제거 · 오답 → 누적 오답에 추가</p>
+      <p class="hint" style="text-align:center">모르겠음 → 누적 오답 · 외움 → 누적 오답에서 제거 · 카드 탭 = 뒤집기</p>
     </section>
 
     <!-- WRONG / KNOWN -->
@@ -1098,6 +1096,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   var cardReturnPanel = 'day'; // day | days | wrong
   var cardMode = 'day'; // day | cumulative | quizWrong
   var afterCardAction = null; // function to run when pool finishes / user goes back after quiz-wrong study
+  var markHistory = []; // { idx, id, prevKnown, prevWrong } for ↩ 이전 undo
+  var lastFlipTouchAt = 0; // suppress click after touch on mobile
 
   var quizPool = [];
   var quizIdx = 0;
@@ -1658,6 +1658,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     cardMode = 'combined';
     cardReturnPanel = 'day';
     afterCardAction = null;
+    markHistory = [];
     pool = list; // order fixed: review first, then today (no shuffle)
     cardIdx = 0;
     cardRevealed = false;
@@ -1705,6 +1706,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     cardMode = 'day';
     cardReturnPanel = 'day';
     afterCardAction = null;
+    markHistory = [];
     pool = buildDayPool();
     if (!pool.length) {
       if (byId('optWrongOnly').checked) showToast('이 DAY에 오답 표시된 단어가 없습니다.');
@@ -1721,6 +1723,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   function startCardsWithList(list, title, sub) {
     pool = byId('optShuffle') && byId('optShuffle').checked ? shuffle(list.slice()) : shuffle(list.slice());
     if (!pool.length) { showToast('학습할 단어가 없습니다'); return; }
+    markHistory = [];
     cardIdx = 0;
     cardRevealed = false;
     byId('appTitle').textContent = title || '카드 학습';
@@ -1761,6 +1764,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
       byId('flashHint').textContent = '';
       byId('btnKnow').disabled = true;
       byId('btnDontKnow').disabled = true;
+      updateUndoBtn();
       return;
     }
     if (cardIdx < 0) cardIdx = 0;
@@ -1778,6 +1782,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
       byId('cardProg').style.width = '100%';
       byId('btnKnow').disabled = true;
       byId('btnDontKnow').disabled = true;
+      updateUndoBtn();
       if (afterCardAction) {
         var fn = afterCardAction;
         // keep afterCardAction until user taps 뒤로 or we auto-offer
@@ -1806,53 +1811,82 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
     byId('flashEty').innerHTML = formatEty(w);
     byId('flashEx').style.display = 'none';
     byId('flashEx').textContent = w.example ? w.example : '';
-    byId('flashHint').textContent = '가운데 탭: 뜻 · 왼쪽: 이전 · 오른쪽: 다음';
+    byId('flashHint').textContent = '탭하면 뜻 보기 / 다시 탭하면 가리기';
+    updateUndoBtn();
   }
 
-  function revealCard() {
+  function hideCardBack() {
+    byId('flashMean').style.display = 'none';
+    byId('flashForms').style.display = 'none';
+    byId('flashEty').style.display = 'none';
+    byId('flashEx').style.display = 'none';
+    byId('flashHint').textContent = '탭하면 뜻 보기 / 다시 탭하면 가리기';
+  }
+
+  function showCardBack() {
     if (cardIdx >= pool.length || cardIdx < 0) return;
-    cardRevealed = true;
-    byId('flashMean').style.display = 'block';
     var w = pool[cardIdx];
+    byId('flashMean').style.display = 'block';
     if (w.forms) byId('flashForms').style.display = 'block';
     if (w.etymology) byId('flashEty').style.display = 'block';
     if (w.example) byId('flashEx').style.display = 'block';
-    byId('flashHint').textContent = '';
+    byId('flashHint').textContent = '다시 탭하면 가리기';
   }
 
-  function goPrev() {
-    if (cardIdx <= 0) { showToast('첫 카드입니다'); return; }
-    cardIdx--;
-    cardRevealed = false;
-    renderCard();
-  }
-
-  function goNext() {
-    if (cardIdx >= pool.length) return;
-    if (cardIdx >= pool.length - 1) {
-      cardIdx = pool.length;
-      renderCard();
-      return;
+  function toggleCard() {
+    if (cardIdx >= pool.length || cardIdx < 0) return;
+    if (cardRevealed) {
+      cardRevealed = false;
+      hideCardBack();
+    } else {
+      cardRevealed = true;
+      showCardBack();
     }
-    cardIdx++;
-    cardRevealed = false;
-    renderCard();
   }
 
   function markCard(know) {
     if (cardIdx >= pool.length || cardIdx < 0) return;
     var w = pool[cardIdx];
+    markHistory.push({
+      idx: cardIdx,
+      id: w.id,
+      prevKnown: !!state.known[w.id],
+      prevWrong: !!state.wrong[w.id]
+    });
     if (know) {
       markKnown(w.id);
       showToast('외움 · 누적 오답에서 제거');
     } else {
       addWrong(w.id);
-      showToast('오답 · 누적 오답에 추가');
+      showToast('모르겠음 · 누적 오답에 추가');
     }
     saveState();
     cardIdx++;
     cardRevealed = false;
     renderCard();
+    updateUndoBtn();
+  }
+
+  function undoLastMark() {
+    if (!markHistory.length) {
+      showToast('되돌릴 표시가 없습니다');
+      return;
+    }
+    var h = markHistory.pop();
+    if (h.prevKnown) state.known[h.id] = 1; else delete state.known[h.id];
+    if (h.prevWrong) state.wrong[h.id] = 1; else delete state.wrong[h.id];
+    saveState();
+    cardIdx = h.idx;
+    cardRevealed = false;
+    renderCard();
+    updateUndoBtn();
+    showToast('이전 카드로 되돌림');
+  }
+
+  function updateUndoBtn() {
+    var b = byId('btnCardUndo');
+    if (!b) return;
+    b.disabled = !markHistory.length;
   }
 
   function lookupWord(id) {
@@ -1952,20 +1986,28 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v1';
   byId('btnCardBack').addEventListener('click', goBackFromCard);
   byId('btnStartCard').addEventListener('click', startCards);
 
-  byId('flashZones').addEventListener('click', function (e) {
-    var z = e.target.closest('[data-act]');
-    if (!z) return;
-    var act = z.getAttribute('data-act');
-    if (act === 'prev') goPrev();
-    else if (act === 'next') goNext();
-    else if (act === 'flip') {
-      if (!cardRevealed) revealCard();
-      else goNext();
+  (function bindCardFlip() {
+    var el = byId('flashWrap');
+    if (!el) return;
+    function onFlip(e) {
+      if (e.type === 'touchend') {
+        // prevent the synthetic click that follows on many mobiles
+        e.preventDefault();
+        lastFlipTouchAt = Date.now();
+        toggleCard();
+        return;
+      }
+      // click: ignore if a touchend just handled it
+      if (Date.now() - lastFlipTouchAt < 450) return;
+      toggleCard();
     }
-  });
+    el.addEventListener('touchend', onFlip, { passive: false });
+    el.addEventListener('click', onFlip);
+  })();
 
   byId('btnKnow').addEventListener('click', function () { markCard(true); });
   byId('btnDontKnow').addEventListener('click', function () { markCard(false); });
+  byId('btnCardUndo').addEventListener('click', undoLastMark);
 
   byId('quizChoices').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-choice]');
