@@ -301,7 +301,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .canvas-wrap.kb-mode #drawCanvas { cursor: default; }
 .text-box {
   position: absolute;
-  min-width: 120px; min-height: 36px;
+  min-width: 60px; min-height: 36px;
   background: rgba(255,255,255,.72);
   border: 1.5px solid rgba(59,108,240,.35);
   border-radius: 8px;
@@ -310,6 +310,27 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   display: flex; flex-direction: column;
   z-index: 3;
 }
+.text-box .tb-resize {
+  display: none;
+  position: absolute;
+  top: 0; right: -6px;
+  width: 14px; height: 100%;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 4;
+  user-select: none;
+}
+.text-box .tb-resize::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px; height: 28px;
+  border-radius: 2px;
+  background: rgba(59,108,240,.55);
+}
+#text-layer.kb-active .text-box .tb-resize { display: block; }
+#text-layer:not(.kb-active) .text-box .tb-resize { display: none !important; pointer-events: none !important; }
 .text-box.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .text-box .tb-bar {
   display: none; align-items: center; gap: 4px;
@@ -340,6 +361,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 @media print {
   .text-box { border: none !important; background: transparent !important; box-shadow: none !important; }
   .text-box .tb-bar { display: none !important; }
+  .text-box .tb-resize { display: none !important; }
   .text-box textarea { resize: none !important; }
 }
 
@@ -442,6 +464,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   #page-stage { transform: none !important; }
   #zoom-sizer { width: auto !important; height: auto !important; }
   .text-box .tb-bar { display: none !important; }
+  .text-box .tb-resize { display: none !important; }
 }
 
 /* Landscape tweaks */
@@ -2046,6 +2069,7 @@ function renderTextLayer() {
         <button type="button" class="tb-del" title="삭제">✕</button>
       </div>
       <textarea placeholder="내용을 입력하세요…">${esc(t.text || '')}</textarea>
+      <div class="tb-resize" title="너비 조절" aria-hidden="true"></div>
     </div>`).join('');
 
   layer.querySelectorAll('.text-box').forEach(box => {
@@ -2074,7 +2098,7 @@ function renderTextLayer() {
       const texts = getTexts();
       const item = texts.find(x => x.id === id);
       if (!item) return;
-      item.w = Math.max(80, box.offsetWidth);
+      item.w = Math.max(60, box.offsetWidth);
       item.h = Math.max(36, box.offsetHeight);
       scheduleSave();
     };
@@ -2130,6 +2154,47 @@ function renderTextLayer() {
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
     });
+
+    // Right-edge drag handle: widen text box (keyboard mode only)
+    const resizeHandle = box.querySelector('.tb-resize');
+    if (resizeHandle) {
+      let resizing = false, rx0 = 0, rw0 = 0;
+      const onRMove = (e) => {
+        if (!resizing) return;
+        const cx = e.clientX != null ? e.clientX : (e.touches && e.touches[0].clientX);
+        const z = drawZoom || 1;
+        const left = parseFloat(box.style.left) || 0;
+        let nw = rw0 + (cx - rx0) / z;
+        nw = Math.max(60, Math.min(CSS_W - left, nw));
+        box.style.width = nw + 'px';
+      };
+      const onRUp = () => {
+        if (!resizing) return;
+        resizing = false;
+        document.removeEventListener('pointermove', onRMove);
+        document.removeEventListener('pointerup', onRUp);
+        document.removeEventListener('pointercancel', onRUp);
+        const texts = getTexts();
+        const item = texts.find(x => x.id === id);
+        if (item) {
+          item.w = Math.max(60, parseFloat(box.style.width) || box.offsetWidth);
+          scheduleSave();
+        }
+      };
+      resizeHandle.addEventListener('pointerdown', (e) => {
+        if (state.inputMode !== 'keyboard') return;
+        e.preventDefault();
+        e.stopPropagation();
+        resizing = true;
+        state.selectedTextId = id;
+        rx0 = e.clientX;
+        rw0 = parseFloat(box.style.width) || box.offsetWidth || 200;
+        try { resizeHandle.setPointerCapture(e.pointerId); } catch (_) {}
+        document.addEventListener('pointermove', onRMove);
+        document.addEventListener('pointerup', onRUp);
+        document.addEventListener('pointercancel', onRUp);
+      });
+    }
   });
 }
 
