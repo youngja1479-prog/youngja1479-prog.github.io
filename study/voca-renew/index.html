@@ -688,6 +688,14 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     pendingTodayDay = todayDay;
     var words = getDayWords('basic1', reviewDay);
     quizPool = words.map(function (w, i) { return enrich('basic1', reviewDay, i, w); });
+    // 누적: 전날 단어 + 그전까지 쌓인 누적 오답 (중복 제거)
+    var seenQ = {};
+    quizPool.forEach(function (w) { seenQ[w.id] = 1; });
+    Object.keys(state.wrong).forEach(function (id) {
+      if (seenQ[id]) return;
+      var lw = lookupWord(id);
+      if (lw && lw.day < todayDay) { seenQ[id] = 1; quizPool.push(lw); }
+    });
     quizPool = shuffle(quizPool);
     quizIdx = 0;
     quizScore = 0;
@@ -697,7 +705,7 @@ const LS_KEY = LS_PREFIX + 'marks-v1';
     byId('quizResult').style.display = 'none';
     byId('quizSub').textContent = 'DAY ' + reviewDay + ' 복습 · 이어서 DAY ' + todayDay;
     byId('appTitle').textContent = '복습 퀴즈 · DAY ' + reviewDay;
-    byId('appSub').textContent = '전날 단어 · 4지선다';
+    byId('appSub').textContent = '전날 단어 + 누적 오답 · ' + quizPool.length + '문제';
     showPanel('quiz');
     renderQuiz();
   }
