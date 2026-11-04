@@ -1937,6 +1937,7 @@ function applyZoomTransform() {
   }
   updateZoomLabel();
 }
+let zoomRasterTimer = 0;
 function setDrawZoom(z, opts) {
   opts = opts || {};
   const prev = drawZoom;
@@ -1960,6 +1961,12 @@ function setDrawZoom(z, opts) {
   drawZoom = nz;
   try { localStorage.setItem(ZOOM_KEY, String(drawZoom)); } catch (e) {}
   applyZoomTransform();
+  clearTimeout(zoomRasterTimer);
+  zoomRasterTimer = setTimeout(function reraster() {
+    if (state.view !== 'draw') return;
+    if (state.drawing || pinchState) { zoomRasterTimer = setTimeout(reraster, 200); return; }
+    resizeCanvas(); redrawAll();
+  }, 250);
   if (wEl && anchorX != null) {
     wEl.scrollLeft = Math.max(0, pageX * drawZoom - anchorX);
     wEl.scrollTop = Math.max(0, pageY * drawZoom - anchorY);
@@ -2399,8 +2406,9 @@ function resizeCanvas() {
   const bg = bgCanvas();
   const w = wrap();
   if (!c || !w) return;
-  DPR = Math.min(window.devicePixelRatio || 1, 3);
-  if (CSS_H * 800 * DPR * DPR > 16e6) DPR = Math.max(1, Math.sqrt(16e6 / (CSS_H * 800)));
+  // Include zoom so ink stays crisp at 175% etc. (memory cap below still applies)
+  DPR = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 4);
+  if (CSS_H * 800 * DPR * DPR > 12e6) DPR = Math.max(1, Math.sqrt(12e6 / (CSS_H * 800)));
   // Fit width to container with max
   const avail = Math.min(w.clientWidth - 16, 800);
   CSS_W = Math.max(320, avail);
@@ -2468,8 +2476,52 @@ function strokeLineWidth(stroke) {
   return w;
 }
 
+/** Pressure + taper width for pen strokes recorded with a stylus (stroke.pr). Old strokes: constant. */
+function segWidth(stroke, i, n, final) {
+  const base = strokeLineWidth(stroke);
+  if (!stroke.pr || stroke.tool !== 'pen') return base;
+  const pt = stroke.points[i] || {};
+  const pr = (typeof pt.p === 'number' && pt.p > 0) ? Math.min(1, pt.p) : 0.5;
+  let f = 0.72 + 0.56 * pr;              // subtle: 0.72x .. 1.28x
+  if (i < 3) f *= 0.7 + 0.1 * i;         // start taper
+  if (final) { const e = n - 1 - i; if (e < 3) f *= 0.65 + 0.12 * e; } // end taper
+  return Math.max(0.6, base * f);
+}
+
+function drawPressureStroke(ctx, stroke) {
+  const pts = stroke.points, n = pts.length;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (n === 1) {
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, Math.max(segWidth(stroke, 0, 1, false) / 2, 0.5), 0, Math.PI * 2);
+    ctx.fill(); ctx.restore(); return;
+  }
+  for (let i = 1; i < n; i++) {
+    const a = pts[i - 1], b = pts[i];
+    ctx.beginPath();
+    if (i >= 2) {
+      const c0 = pts[i - 2];
+      ctx.moveTo((c0.x + a.x) / 2, (c0.y + a.y) / 2);
+      if (i === n - 1) ctx.quadraticCurveTo(a.x, a.y, b.x, b.y);
+      else ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+    } else {
+      ctx.moveTo(a.x, a.y);
+      if (n === 2) ctx.lineTo(b.x, b.y); else ctx.lineTo((a.x + b.x) / 2, (a.y + b.y) / 2);
+    }
+    ctx.lineWidth = (segWidth(stroke, i - 1, n, true) + segWidth(stroke, i, n, true)) / 2;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawStroke(ctx, stroke) {
   if (!stroke || !stroke.points || stroke.points.length < 1) return;
+  if (stroke.pr && stroke.tool === 'pen') { drawPressureStroke(ctx, stroke); return; }
   const pts = stroke.points;
   ctx.save();
   if (stroke.tool === 'eraser') {
@@ -2587,14 +2639,15 @@ function canvasPos(e) {
 
 function stabilizePoint(raw) {
   if (!smoothPrev) {
-    smoothPrev = { x: raw.x, y: raw.y };
+    smoothPrev = { x: raw.x, y: raw.y, p: raw.p };
     return { x: raw.x, y: raw.y, p: raw.p, t: raw.t };
   }
   const a = SMOOTH_ALPHA;
   const x = smoothPrev.x + a * (raw.x - smoothPrev.x);
   const y = smoothPrev.y + a * (raw.y - smoothPrev.y);
-  smoothPrev = { x, y };
-  return { x, y, p: raw.p, t: raw.t };
+  const pp = (typeof smoothPrev.p === 'number' ? smoothPrev.p : raw.p) * 0.7 + raw.p * 0.3;
+  smoothPrev = { x, y, p: pp };
+  return { x, y, p: Math.round(pp * 1000) / 1000, t: raw.t };
 }
 
 function isPalmRejectedTouch(e) {
@@ -2660,8 +2713,9 @@ function flushLiveInk() {
       ctx.quadraticCurveTo(a.x, a.y, mid1x, mid1y);
     } else {
       ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
+      ctx.lineTo((a.x + b.x) / 2, (a.y + b.y) / 2);
     }
+    if (stroke.pr) ctx.lineWidth = (segWidth(stroke, i - 1, pts.length, false) + segWidth(stroke, i, pts.length, false)) / 2;
     ctx.stroke();
     liveDrawnCount++;
   }
@@ -2759,6 +2813,7 @@ function onPointerDown(e) {
     width: state.width,
     points: [p]
   };
+  if (e.pointerType === 'pen' && state.tool === 'pen') state.currentStroke.pr = 1;
   scheduleLiveInk();
   e.preventDefault();
 }
