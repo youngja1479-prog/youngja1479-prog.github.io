@@ -927,6 +927,99 @@ function stopSyncPolling() {
   }
 }
 
+
+/* ========== v20 merge: union, never drop unknown items ========== */
+const TOMB_MAX = 20000;
+function strokeSig(st) {
+  const P = (st && st.points) || [], a = P[0] || {}, b = P[P.length - 1] || {};
+  const r = v => Math.round((v || 0) * 10);
+  return 'L' + [st.tool, st.color, st.width, P.length, r(a.x), r(a.y), r(b.x), r(b.y)].join('|');
+}
+function strokeKey(st) { return st ? (st.id || strokeSig(st)) : ''; }
+function addTomb(obj, field, key) {
+  if (!key) return;
+  if (!Array.isArray(obj[field])) obj[field] = [];
+  if (obj[field].indexOf(key) < 0) obj[field].push(key);
+  if (obj[field].length > TOMB_MAX) obj[field].splice(0, obj[field].length - TOMB_MAX);
+}
+function diffTombs(obj, field, oldArr, newArr, keyFn) {
+  oldArr = oldArr || []; newArr = newArr || [];
+  const nk = new Set(newArr.map(keyFn));
+  const ok = new Set(oldArr.map(keyFn));
+  oldArr.forEach(o => { const k = keyFn(o); if (k && !nk.has(k)) addTomb(obj, field, k); });
+  if (Array.isArray(obj[field]) && obj[field].length) {
+    const back = new Set();
+    newArr.forEach(o => { const k = keyFn(o); if (k && !ok.has(k)) back.add(k); });
+    if (back.size) obj[field] = obj[field].filter(k => !back.has(k));
+  }
+}
+function addDelId(id) { if (DATA) addTomb(DATA, 'delIds', id); }
+function unionList(base, other, keyFn, tomb, pick, stat) {
+  const out = [], seen = new Map();
+  (base || []).forEach(o => { const k = keyFn(o); if (k && tomb.has(k)) return; if (k) seen.set(k, out.length); out.push(o); });
+  (other || []).forEach(o => {
+    const k = keyFn(o);
+    if (k && tomb.has(k)) return;
+    if (k && seen.has(k)) { if (pick) out[seen.get(k)] = pick(out[seen.get(k)], o); return; }
+    if (k) seen.set(k, out.length);
+    out.push(o); stat.n++;
+  });
+  return out;
+}
+function mergePage(bp, op, stat) {
+  bp = bp || { strokes: [], texts: [] }; op = op || { strokes: [], texts: [] };
+  const m = Object.assign({}, bp);
+  ['del', 'delT', 'delI'].forEach(f => {
+    const u = Array.from(new Set([].concat(bp[f] || [], op[f] || [])));
+    if (u.length) m[f] = u.slice(-TOMB_MAX);
+  });
+  m.strokes = unionList(bp.strokes, op.strokes, strokeKey, new Set(m.del || []), null, stat);
+  m.texts = unionList(bp.texts, op.texts, o => o && o.id, new Set(m.delT || []), null, stat);
+  if (bp.images || op.images) {
+    m.images = unionList(bp.images, op.images, o => o && o.id, new Set(m.delI || []),
+      (a, b) => (a && a.src) ? a : (b && b.src ? Object.assign({}, a, { src: b.src }) : a), stat);
+  }
+  return m;
+}
+function mergeSebu(b, o, stat) {
+  const m = Object.assign({}, b);
+  const ph = Math.max(b.pageHeight || 0, o.pageHeight || 0);
+  if (ph) m.pageHeight = ph;
+  if (b.pages || o.pages) m.pages = [mergePage((b.pages || [])[0], (o.pages || [])[0], stat)].concat((b.pages || []).slice(1));
+  return m;
+}
+function mergeKids(bArr, oArr, tomb, fn, stat) {
+  return unionList(bArr, oArr, x => x && x.id, tomb, fn ? (a, c) => fn(a, c, stat) : null, stat);
+}
+// base = newer document (its edits win on conflicts); other's unknown items are added, never dropped.
+function mergeData(base, other) {
+  const stat = { n: 0 };
+  const m = Object.assign({}, base);
+  const tomb = new Set([].concat(base.delIds || [], other.delIds || []));
+  if (tomb.size) m.delIds = Array.from(tomb).slice(-TOMB_MAX);
+  m.notebooks = mergeKids(base.notebooks, other.notebooks, tomb, (bn, on, st) => {
+    const n = Object.assign({}, bn);
+    n.mokchas = mergeKids(bn.mokchas, on.mokchas, tomb, (bm, om, st2) => {
+      const k = Object.assign({}, bm);
+      k.sebus = mergeKids(bm.sebus, om.sebus, tomb, mergeSebu, st2);
+      return k;
+    }, st);
+    return n;
+  }, stat);
+  return { data: m, added: stat.n };
+}
+// Combine local DATA with remote; returns {data, addedFromRemote, addedFromLocal}
+function mergeLocalRemote(local, remote, remoteAt, localAt) {
+  if (remoteAt > localAt) {
+    const r = mergeData(remote, local);
+    const back = mergeData(local, remote); // how many remote items local lacked
+    return { data: r.data, fromLocal: r.added, fromRemote: back.added, base: 'remote' };
+  }
+  const l = mergeData(local, remote);
+  const back = mergeData(remote, local);
+  return { data: l.data, fromRemote: l.added, fromLocal: back.added, base: 'local' };
+}
+
 async function syncPushNow() {
   if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
   if (!navigator.onLine) {
@@ -939,6 +1032,30 @@ async function syncPushNow() {
   syncLastError = '';
   updateSyncStatusUI('syncing');
   try {
+    // v20: never overwrite another device's work — fetch & union before uploading
+    try {
+      const renv = await syncFetchGet(syncVaultId);
+      if (renv) {
+        const rd = await decryptEnvelope(renv, syncPassword);
+        if (dataHasContent(rd)) {
+          const remoteAt = (renv.updatedAt != null ? renv.updatedAt : rd.updatedAt) || 0;
+          const mr = mergeLocalRemote(DATA, rd, remoteAt, DATA.updatedAt || 0);
+          if (mr.fromRemote > 0 && state.drawing) {
+            syncBusy = false; syncPendingPush = true;
+            clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+            return { ok: false, reason: 'busy' };
+          }
+          if (mr.fromRemote > 0 || mr.base === 'remote') {
+            const keepAt = Math.max(remoteAt, DATA.updatedAt || 0, Date.now());
+            DATA = mr.data; DATA.updatedAt = keepAt;
+            idbSet('app', DATA);
+            if (mr.fromRemote > 0) { syncApplyingRemote = true; try { reRenderAfterSync(); } finally { syncApplyingRemote = false; } }
+          }
+        }
+      }
+    } catch (me) {
+      throw me; // could not read the cloud copy: do NOT overwrite it blindly; retry later
+    }
     const env = await encryptData(DATA, syncPassword);
     await syncFetchPut(syncVaultId, env);
     syncPendingPush = false;
@@ -1022,10 +1139,28 @@ async function syncPullAndMaybeApply(opts) {
     const localEmpty = !dataHasContent(DATA);
     const remoteHas = dataHasContent(remoteData);
     // Empty local must never beat non-empty remote (fresh defaultData timestamps used to wipe cloud)
-    if (remoteHas && (localEmpty || remoteAt > localAt)) {
+    if (remoteHas && localEmpty) {
       await applyRemoteData(remoteData);
       syncPendingPush = false;
       if (opts.toastOnApply) toast('다른 기기 내용을 불러왔어요');
+    } else if (remoteHas) {
+      const mr = mergeLocalRemote(DATA, remoteData, remoteAt, localAt);
+      if (mr.fromRemote > 0 || (mr.base === 'remote')) {
+        if (state.drawing) { syncBusy = false; return { ok: false, reason: 'busy' }; }
+        const merged = mr.data;
+        merged.updatedAt = Math.max(remoteAt, localAt);
+        await applyRemoteData(merged);
+        if (opts.toastOnApply && mr.fromRemote > 0) toast('다른 기기 내용을 불러왔어요');
+      }
+      if (mr.fromLocal > 0) {
+        // remote lacks some of our items: upload the union (never drop them)
+        DATA.updatedAt = Math.max(Date.now(), remoteAt + 1);
+        syncPendingPush = true;
+        clearTimeout(syncPushTimer);
+        syncPushTimer = setTimeout(() => { syncPushNow(); }, 500);
+      } else {
+        syncPendingPush = false;
+      }
     }
     syncBusy = false;
     syncLastError = '';
@@ -1715,7 +1850,7 @@ function confirmDeleteNb(id) {
     </div>`);
   $('#m-cancel').onclick = closeModal;
   $('#m-ok').onclick = () => {
-    DATA.notebooks = DATA.notebooks.filter(n => n.id !== id);
+    addDelId(id); DATA.notebooks = DATA.notebooks.filter(n => n.id !== id);
     scheduleSave();
     closeModal();
     renderHome();
@@ -1891,12 +2026,12 @@ function confirmDeleteItem(kind, id) {
   $('#m-cancel').onclick = closeModal;
   $('#m-ok').onclick = () => {
     if (isMok) {
-      nb.mokchas = nb.mokchas.filter(m => m.id !== id);
+      addDelId(id); nb.mokchas = nb.mokchas.filter(m => m.id !== id);
       scheduleSave();
       closeModal();
       renderMokcha();
     } else {
-      mok.sebus = mok.sebus.filter(s => s.id !== id);
+      addDelId(id); mok.sebus = mok.sebus.filter(s => s.id !== id);
       scheduleSave();
       closeModal();
       renderSebu();
@@ -1910,7 +2045,8 @@ const canvas = () => $('#drawCanvas');
 const bgCanvas = () => $('#bgCanvas');
 const wrap = () => $('#canvas-wrap');
 
-let CSS_W = 720;
+const PAGE_W = 800;
+let CSS_W = PAGE_W;
 let CSS_H = 1200;
 let DPR = 1;
 /* Viewport rendering: ink/bg canvases only cover the visible part of the page (+margin),
@@ -2016,7 +2152,7 @@ let DPR_TARGET = 1;
 
 /* ========== Zoom (확대/축소) ========== */
 const ZOOM_KEY = 'gkc-draw-zoom';
-const ZOOM_MIN = 0.5;
+const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.25;
 let drawZoom = 1;
@@ -2144,7 +2280,16 @@ function setDrawZoom(z, opts) {
 }
 function zoomIn() { setDrawZoom(drawZoom + ZOOM_STEP, { snap: true }); }
 function zoomOut() { setDrawZoom(drawZoom - ZOOM_STEP, { snap: true }); }
-function zoomReset() { setDrawZoom(1, { snap: true, force: true }); }
+function fitZoom() {
+  const w = wrap();
+  const avail = w ? (w.clientWidth - 16) : PAGE_W;
+  return Math.min(1, Math.max(ZOOM_MIN, Math.floor(avail / PAGE_W * 1000) / 1000));
+}
+function zoomReset() {
+  const f = fitZoom();
+  if (f < 1 && Math.abs(drawZoom - f) > 0.01) setDrawZoom(f, { force: true });
+  else setDrawZoom(1, { snap: true, force: true });
+}
 
 function cancelDrawingForPinch() {
   if (lasso.mode) {
@@ -2219,7 +2364,15 @@ function getStrokes() {
 
 function setStrokes(strokes) {
   const p = ensurePage();
-  if (p) p.strokes = strokes;
+  if (!p) return;
+  if (p.strokes !== strokes) diffTombs(p, 'del', p.strokes, strokes, strokeKey);
+  p.strokes = strokes;
+}
+function setImagesArr(arr) {
+  const p = ensurePage();
+  if (!p) return;
+  if (p.images !== arr) diffTombs(p, 'delI', p.images || [], arr, o => o && o.id);
+  p.images = arr;
 }
 
 function getTexts() {
@@ -2229,7 +2382,9 @@ function getTexts() {
 
 function setTexts(texts) {
   const p = ensurePage();
-  if (p) p.texts = texts;
+  if (!p) return;
+  if (p.texts !== texts) diffTombs(p, 'delT', p.texts || [], texts, o => o && o.id);
+  p.texts = texts;
 }
 
 /* ========== Text boxes (자판) ========== */
@@ -2525,6 +2680,19 @@ function initDrawPage() {
   $('#btn-guides').classList.toggle('active', state.showGuides);
 
   CSS_H = sebu.pageHeight || 1200;
+  {
+    // never hide content below the stored sheet count (e.g. pageHeight older than strokes)
+    let maxY = 0;
+    const pg = ensurePage();
+    (pg ? pg.strokes : []).forEach(st => (st && st.points || []).forEach(q => { if (q.y > maxY) maxY = q.y; }));
+    (pg && pg.images || []).forEach(im => { if (im.y + im.h > maxY) maxY = im.y + im.h; });
+    if (maxY > CSS_H) CSS_H = Math.ceil((maxY + 20) / 1200) * 1200;
+  }
+  {
+    // narrow screen: show the whole page width
+    const f = fitZoom();
+    if (f < 1 && drawZoom <= 1 && drawZoom > f + 0.001) { drawZoom = f; try { localStorage.setItem(ZOOM_KEY, String(f)); } catch (e) {} }
+  }
   resizeCanvas();
   redrawAll();
   updateGuideOverlay();
@@ -2583,8 +2751,8 @@ function resizeCanvas() {
   DPR_TARGET = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 3);
   if (DPR_TARGET > 1.5) DPR_TARGET = Math.floor(DPR_TARGET); // integer scale → exact pixel shifts on scroll
   // Fit width to container with max
-  const avail = Math.min(w.clientWidth - 16, 800);
-  CSS_W = Math.max(320, avail);
+  // v20: fixed page coordinate system (same on every device); small screens zoom out to fit
+  CSS_W = PAGE_W;
   const stage = $('#page-stage');
   if (stage) {
     stage.style.width = CSS_W + 'px';
@@ -3117,6 +3285,7 @@ function onPointerUp(e) {
       ctx.restore();
     }
     liveNeedsRedraw = false;
+    if (!state.currentStroke.id) state.currentStroke.id = uid();
     strokes.push(state.currentStroke);
     setStrokes(strokes);
     scheduleSave();
@@ -3207,7 +3376,12 @@ function lassoMove(e) {
   } else if (lasso.mode === 'move') {
     const dx = pt.x - lasso.start.x, dy = pt.y - lasso.start.y;
     if (!lasso.moved && Math.hypot(dx, dy) < 2) { e.preventDefault(); return; }
-    if (!lasso.moved) { lassoPushUndo(); lasso.moved = true; }
+    if (!lasso.moved) {
+      lassoPushUndo(); lasso.moved = true;
+      // legacy strokes (no id): tombstone old signature so other devices drop the unmoved copy
+      const pg = ensurePage();
+      lasso.orig.forEach(o => { if (o && !o.id) { addTomb(pg, 'del', strokeSig(o)); o.id = uid(); } });
+    }
     const strokes = getStrokes();
     lasso.sel.forEach((idx, k) => {
       const o = lasso.orig[k];
@@ -3298,7 +3472,7 @@ function lassoCopy() {
   const off = 24, start = strokes.length;
   lasso.sel.forEach(i => {
     const o = strokes[i];
-    strokes.push(Object.assign({}, o, { points: o.points.map(p => Object.assign({}, p, { x: p.x + off, y: p.y + off })) }));
+    strokes.push(Object.assign({}, o, { id: uid(), points: o.points.map(p => Object.assign({}, p, { x: p.x + off, y: p.y + off })) }));
   });
   lasso.sel = lasso.sel.map((_, k) => start + k);
   lassoBBox(); lassoRender(); scheduleSave(); updateUndoBtns(); redrawAll();
@@ -3323,7 +3497,7 @@ function snapEntry() { return { s: getStrokes().slice(), im: getImages().map(o =
 function applyEntry(en) {
   // Array = legacy strokes-only snapshot; object = strokes + images
   if (Array.isArray(en)) { const cur = getStrokes().slice(); setStrokes(en); return cur; }
-  const cur = snapEntry(); setStrokes(en.s); ensurePage().images = en.im; imgSel = null; renderImages(); return cur;
+  const cur = snapEntry(); setStrokes(en.s); setImagesArr(en.im); imgSel = null; renderImages(); return cur;
 }
 function doUndo() {
   if (!state.undoStack.length) return;
@@ -3358,7 +3532,7 @@ function doClear() {
     state.redoStack = [];
     setStrokes([]);
     setTexts([]);
-    ensurePage().images = []; imgSel = null; renderImages();
+    setImagesArr([]); imgSel = null; renderImages();
     state.selectedTextId = null;
     scheduleSave();
     closeModal();
@@ -3448,7 +3622,7 @@ function bindImgItem(el) {
   el.querySelector('.img-del').addEventListener('click', (e) => {
     e.stopPropagation();
     pushImgUndo();
-    ensurePage().images = getImages().filter(q => q.id !== el.dataset.id);
+    setImagesArr(getImages().filter(q => q.id !== el.dataset.id));
     imgSel = null; renderImages(); scheduleSave(); toast('이미지를 삭제했습니다');
   });
 }
