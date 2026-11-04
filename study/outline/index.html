@@ -455,12 +455,20 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .ctx-menu button.danger { color: var(--danger); }
 
 
-.modal input[type=password] {
+.modal input[type=password], .modal input.pw-input {
   width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border);
   border-radius: 10px; font-size: 16px; background: var(--bg); outline: none;
   -webkit-user-select: text; user-select: text;
 }
-.modal input[type=password]:focus { border-color: var(--accent); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 46px !important; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 34px;
+  border: 0; background: transparent; font-size: 18px; cursor: pointer; border-radius: 8px; opacity: .55; }
+.pw-eye.on { opacity: 1; background: var(--accent-soft, #eef); }
+.pw-saved { margin: 4px 0 12px; padding: 10px 12px; border: 1px dashed var(--accent, #2563eb); border-radius: 10px;
+  font-size: 13px; color: var(--text2); background: var(--accent-soft, #eef); }
+.pw-saved code { font-size: 17px; font-weight: 700; color: var(--text, #111); user-select: all; -webkit-user-select: all; word-break: break-all; letter-spacing: .5px; }
+.modal input[type=password]:focus, .modal input.pw-input:focus { border-color: var(--accent); }
 .sync-status {
   font-size: 11px; font-weight: 600; color: var(--text3);
   white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis;
@@ -1191,20 +1199,48 @@ function openSyncModal() {
     </div>
     <div class="field">
       <label>동기화 비밀번호</label>
-      <input type="password" id="sync-pw" placeholder="최소 4자" minlength="4" autocomplete="current-password" enterkeyhint="done" ${connected ? '' : 'autofocus'}>
+      <div class="pw-wrap">
+        <input type="password" class="pw-input" id="sync-pw" placeholder="최소 4자" minlength="4" autocomplete="current-password" enterkeyhint="done" ${connected ? '' : 'autofocus'}>
+        <button type="button" class="pw-eye" id="sync-pw-eye" title="비밀번호 보기/숨기기" aria-label="비밀번호 보기">👁</button>
+      </div>
     </div>
+    <div class="pw-saved" id="pw-saved" style="display:none"></div>
     <p style="font-size:12px;color:var(--text3);margin:-6px 0 12px;line-height:1.4">
       같은 비밀번호를 쓰는 기기끼리 노트가 동기화됩니다. 다른 비밀번호는 완전히 다른 보관함이에요.
     </p>
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" id="m-cancel">닫기</button>
       ${connected ? '<button class="btn" id="m-sync-now">지금 동기화</button>' : ''}
+      ${connected ? '<button class="btn" id="m-show-pw">🔑 비번 확인</button>' : ''}
       ${connected ? '<button class="btn danger" id="m-disconnect">연결 끊기</button>' : ''}
       <button class="btn primary" id="m-connect">연결</button>
     </div>`);
   $('#m-cancel').onclick = closeModal;
   const pwInput = $('#sync-pw');
   if (connected && syncPassword) pwInput.value = syncPassword;
+  const eye = $('#sync-pw-eye');
+  eye.onclick = () => {
+    const show = pwInput.type === 'password';
+    pwInput.type = show ? 'text' : 'password';
+    eye.classList.toggle('on', show);
+    eye.textContent = show ? '🙈' : '👁';
+    eye.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 보기');
+  };
+  const showPw = $('#m-show-pw');
+  if (showPw) {
+    showPw.onclick = () => {
+      const box = $('#pw-saved');
+      if (box.style.display !== 'none') { box.style.display = 'none'; box.innerHTML = ''; return; }
+      if (!confirm('이 기기에 저장된 동기화 비밀번호를 화면에 표시할까요?\n(주변에 보는 사람이 없는지 확인하세요)')) return;
+      let saved = null;
+      try { saved = localStorage.getItem(SYNC_PW_KEY); } catch (e) {}
+      saved = saved || syncPassword || '';
+      box.innerHTML = saved
+        ? `이 기기에 저장된 비밀번호:<br><code>${esc(saved)}</code><br><span style="font-size:11px">종이에 적어 두거나 안전한 곳에 보관하세요. 다시 누르면 숨겨져요.</span>`
+        : '이 기기에 저장된 비밀번호가 없어요.';
+      box.style.display = 'block';
+    };
+  }
   $('#m-connect').onclick = async () => {
     const pw = pwInput.value || '';
     const btn = $('#m-connect');
