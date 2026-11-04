@@ -741,13 +741,18 @@ function scheduleSave() {
   saveTimer = setTimeout(function trySave() {
     let busy = false; try { busy = !!state.drawing; } catch (_) {}
     if (busy) { saveTimer = setTimeout(trySave, 400); return; }
-    if (window.requestIdleCallback) requestIdleCallback(() => doSave(), { timeout: 1500 }); else doSave();
-  }, 1000);
+    if (window.requestIdleCallback) requestIdleCallback(() => doSave(), { timeout: 2000 }); else doSave();
+  }, 2000);
 }
 
 /** localStorage copy is a fallback only — strip heavy image data (kept in IndexedDB). */
-function lsSaveData() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA, (k, v) => (k === 'src' && typeof v === 'string' && v.startsWith('data:')) ? undefined : v)); } catch (e) {}
+let lsLastSave = 0, lsTooBig = 0;
+function lsSaveData(force) {
+  const now = Date.now();
+  if (!force && now - lsLastSave < 30000) return;          // fallback copy at most every 30s
+  if (!force && lsTooBig && now - lsTooBig < 300000) return; // quota hit recently → don't re-stringify
+  lsLastSave = now;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA, (k, v) => (k === 'src' && typeof v === 'string' && v.startsWith('data:')) ? undefined : v)); lsTooBig = 0; } catch (e) { lsTooBig = Date.now(); }
 }
 let saveWarned = false;
 async function doSave() {
@@ -1908,6 +1913,106 @@ const wrap = () => $('#canvas-wrap');
 let CSS_W = 720;
 let CSS_H = 1200;
 let DPR = 1;
+/* Viewport rendering: ink/bg canvases only cover the visible part of the page (+margin),
+   positioned in page coords. VX,VY,VW,VH = canvas region in page CSS px. */
+let VX = 0, VY = 0, VW = 720, VH = 1200;
+const CANVAS_PX_BUDGET = 5e6; // per canvas backing store (≈20MB) — keeps total well under mobile limits
+function inkT(ctx) { ctx.setTransform(DPR, 0, 0, DPR, -VX * DPR, -VY * DPR); }
+function stageRect() { const st = document.getElementById('page-stage'); return st.getBoundingClientRect(); }
+function freeCanvas(c) { if (c) { c.width = 0; c.height = 0; } }
+const strokeBoxCache = new WeakMap();
+function strokeBox(st) {
+  let b = strokeBoxCache.get(st);
+  if (b && b.n === st.points.length) return b;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of st.points) { if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y; }
+  const pad = strokeLineWidth(st) + 2;
+  b = { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad, n: st.points.length };
+  strokeBoxCache.set(st, b);
+  return b;
+}
+function strokeVisible(st) {
+  if (!st || !st.points || !st.points.length) return false;
+  const b = strokeBox(st);
+  return !(b.x1 < VX || b.y1 < VY || b.x0 > VX + VW || b.y0 > VY + VH);
+}
+/** Desired region: visible part of the page plus a margin, clamped to the page. */
+function desiredViewport() {
+  const w = wrap(), st = document.getElementById('page-stage');
+  if (!w || !st) return { x: 0, y: 0, w: CSS_W, h: CSS_H };
+  const wr = w.getBoundingClientRect(), sr = st.getBoundingClientRect();
+  const k = CSS_W / Math.max(1, sr.width);
+  let x0 = (wr.left - sr.left) * k, y0 = (wr.top - sr.top) * k;
+  let x1 = x0 + wr.width * k, y1 = y0 + wr.height * k;
+  const my = (y1 - y0) * 0.25, mx = (x1 - x0) * 0.1;
+  x0 = Math.max(0, Math.floor(x0 - mx)); y0 = Math.max(0, Math.floor(y0 - my));
+  x1 = Math.min(CSS_W, Math.ceil(x1 + mx)); y1 = Math.min(CSS_H, Math.ceil(y1 + my));
+  if (x1 - x0 < 50) { x0 = 0; x1 = CSS_W; }
+  if (y1 - y0 < 50) { y0 = 0; y1 = Math.min(CSS_H, 1200); }
+  // fixed height = visible + margins, shifted inside the page (stable size → fast scroll)
+  const want = Math.min(CSS_H, Math.ceil(wr.height * k * 1.5));
+  if (y1 - y0 < want) { if (y0 + want <= CSS_H) y1 = y0 + want; else { y1 = CSS_H; y0 = Math.max(0, CSS_H - want); } }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+/** Called on scroll/zoom: re-place canvases when the visible area leaves the rendered region. */
+let vpRaf = 0;
+function scheduleViewportCheck(force) {
+  if (vpRaf && !force) return;
+  cancelAnimationFrame(vpRaf);
+  vpRaf = requestAnimationFrame(() => {
+    vpRaf = 0;
+    if (state.view !== 'draw') return;
+    if (state.drawing || lasso.mode || (typeof pinchState !== 'undefined' && pinchState)) { scheduleViewportCheck(); return; }
+    const w = wrap(), st = document.getElementById('page-stage'); if (!w || !st) return;
+    const wr = w.getBoundingClientRect(), sr = st.getBoundingClientRect();
+    const k = CSS_W / Math.max(1, sr.width);
+    const vx0 = Math.max(0, (wr.left - sr.left) * k), vy0 = Math.max(0, (wr.top - sr.top) * k);
+    const vx1 = Math.min(CSS_W, vx0 + wr.width * k), vy1 = Math.min(CSS_H, vy0 + wr.height * k);
+    if (!force && vx0 >= VX - 1 && vy0 >= VY - 1 && vx1 <= VX + VW + 1 && vy1 <= VY + VH + 1) return;
+    const old = { x: VX, y: VY, w: VW, h: VH, d: DPR };
+    placeCanvases();
+    if (force || !scrollBlit(old)) redrawAll();
+  });
+}
+/** Scroll fast-path: shift existing ink pixels and only render the newly exposed strip. */
+function scrollBlit(old) {
+  if (old.d !== DPR || old.w !== VW || old.h !== VH || old.x !== VX) return false;
+  const dy = VY - old.y; if (!dy) return true;
+  const dpx = dy * DPR;
+  if (Math.abs(dy) >= VH * 0.7 || Math.abs(dpx - Math.round(dpx)) > 1e-6) return false;
+  const c = canvas(), ctx = getInkCtx(); if (!c || !ctx) return false;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'copy';
+  ctx.drawImage(c, 0, -Math.round(dpx));
+  ctx.restore();
+  // exposed strip in page coords
+  const sy0 = dy > 0 ? old.y + old.h : VY, sy1 = dy > 0 ? VY + VH : old.y;
+  ctx.save(); inkT(ctx);
+  ctx.beginPath(); ctx.rect(VX, sy0, VW, sy1 - sy0); ctx.clip();
+  ctx.clearRect(VX, sy0, VW, sy1 - sy0);
+  const strokes = getStrokes();
+  for (const st of strokes) {
+    if (!st || !st.points || !st.points.length) continue;
+    const b = strokeBox(st);
+    if (b.y1 < sy0 || b.y0 > sy1 || b.x1 < VX || b.x0 > VX + VW) continue;
+    drawStroke(ctx, st);
+  }
+  ctx.restore();
+  redrawBackground();
+  return true;
+}
+function placeCanvases() {
+  const v = desiredViewport();
+  VX = v.x; VY = v.y; VW = v.w; VH = v.h;
+  let d = DPR_TARGET;
+  if (VW * VH * d * d > CANVAS_PX_BUDGET) d = Math.max(0.75, Math.sqrt(CANVAS_PX_BUDGET / (VW * VH)));
+  DPR = d;
+  // keep canvas size stable while scrolling (enables pixel-shift fast path)
+  VH = Math.min(VH, CSS_H - VY);
+  sizeOneCanvas(canvas()); sizeOneCanvas(bgCanvas());
+}
+let DPR_TARGET = 1;
 
 /* ========== Zoom (확대/축소) ========== */
 const ZOOM_KEY = 'gkc-draw-zoom';
@@ -2456,16 +2561,17 @@ function getInkCtx() {
 
 function sizeOneCanvas(c) {
   if (!c) return;
-  c.width = Math.floor(CSS_W * DPR);
-  c.height = Math.floor(CSS_H * DPR);
-  c.style.width = CSS_W + 'px';
-  c.style.height = CSS_H + 'px';
+  const nw = Math.ceil(VW * DPR), nh = Math.ceil(VH * DPR);
+  if (c.width !== nw || c.height !== nh) { c.width = nw; c.height = nh; }
+  c.style.left = VX + 'px'; c.style.top = VY + 'px';
+  c.style.width = VW + 'px';
+  c.style.height = VH + 'px';
   if (c.id === 'drawCanvas') {
     inkCtxCache = null;
     inkCtxCanvas = null;
   }
   const ctx = (c.id === 'drawCanvas') ? getInkCtx() : c.getContext('2d');
-  if (ctx) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (ctx) inkT(ctx);
 }
 
 function resizeCanvas() {
@@ -2473,21 +2579,19 @@ function resizeCanvas() {
   const bg = bgCanvas();
   const w = wrap();
   if (!c || !w) return;
-  // Include zoom so ink stays crisp at 175% etc. (memory cap below still applies)
-  DPR = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 2.5);
-  // Pixel budget per canvas (~8M) — big backing stores are the main source of lag on tablets
-  { const cw = Math.max(320, Math.min(w.clientWidth - 16, 800));
-    if (CSS_H * cw * DPR * DPR > 8e6) DPR = Math.max(1, Math.sqrt(8e6 / (CSS_H * cw))); }
+  // Crisp at zoom; canvases are viewport-sized so this no longer scales with page height
+  DPR_TARGET = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 3);
+  if (DPR_TARGET > 1.5) DPR_TARGET = Math.floor(DPR_TARGET); // integer scale → exact pixel shifts on scroll
   // Fit width to container with max
   const avail = Math.min(w.clientWidth - 16, 800);
   CSS_W = Math.max(320, avail);
-  sizeOneCanvas(c);
-  sizeOneCanvas(bg);
   const stage = $('#page-stage');
   if (stage) {
     stage.style.width = CSS_W + 'px';
     stage.style.height = CSS_H + 'px';
   }
+  applyZoomTransform();
+  placeCanvases();
   const layer = $('#text-layer');
   if (layer) {
     layer.style.width = CSS_W + 'px';
@@ -2645,7 +2749,7 @@ function redrawBackground() {
   const bg = bgCanvas();
   if (!bg) return;
   const ctx = bg.getContext('2d');
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  inkT(ctx);
   ctx.clearRect(0, 0, CSS_W, CSS_H);
   drawBackground(ctx);
 }
@@ -2654,11 +2758,11 @@ function redrawInk() {
   const c = canvas();
   if (!c) return;
   const ctx = getInkCtx() || c.getContext('2d');
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  inkT(ctx);
   // clear to transparent — eraser destination-out only affects ink here
   ctx.clearRect(0, 0, CSS_W, CSS_H);
   const strokes = getStrokes();
-  for (const s of strokes) drawStroke(ctx, s);
+  for (const s of strokes) if (strokeVisible(s)) drawStroke(ctx, s);
   if (state.currentStroke) drawStroke(ctx, state.currentStroke);
   if (state.currentStroke) liveDrawnCount = state.currentStroke.points.length;
 }
@@ -2687,7 +2791,7 @@ function updateGuideOverlay() {
 }
 
 function canvasPosFromEvent(e, rect) {
-  const r = rect || canvas().getBoundingClientRect();
+  const r = rect || stageRect();
   const scaleX = CSS_W / Math.max(1, r.width);
   const scaleY = CSS_H / Math.max(1, r.height);
   // Keep `p` on points for format compatibility; width does NOT use it
@@ -2741,7 +2845,7 @@ function flushLiveInk() {
   const pts = stroke.points;
   const ctx = getInkCtx();
   if (!ctx) return;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  inkT(ctx);
 
   if (stroke.tool === 'highlighter') {
     // Snapshot committed ink once, then per frame: blit + whole highlighter path (no overlap darkening)
@@ -2756,7 +2860,7 @@ function flushLiveInk() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.drawImage(liveSnap, 0, 0);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    inkT(ctx);
     drawStroke(ctx, stroke);
     liveDrawnCount = pts.length;
     return;
@@ -2831,6 +2935,7 @@ function appendStrokePoint(raw) {
 function resetStrokeSmoothing() {
   smoothPrev = null;
   liveSnapValid = false;
+  if (liveSnap) { freeCanvas(liveSnap); liveSnap = null; } // never keep a page snapshot around
   liveDrawnCount = 0;
   if (liveRaf) {
     cancelAnimationFrame(liveRaf);
@@ -2931,7 +3036,7 @@ function onPointerMove(e) {
     return;
   }
 
-  const rect = canvas().getBoundingClientRect();
+  const rect = stageRect();
   let events;
   try {
     events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : null;
@@ -2977,7 +3082,7 @@ function onPointerUp(e) {
 
   // Include final coalesced samples if any
   if (state.currentStroke && e.type === 'pointerup') {
-    const rect = canvas().getBoundingClientRect();
+    const rect = stageRect();
     let events;
     try {
       events = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : null;
@@ -3003,7 +3108,7 @@ function onPointerUp(e) {
     else if ((cs.tool === 'pen' || cs.tool === 'eraser') && cp.length >= 2) {
       // close the last half-segment (live ink stops at the midpoint)
       const ctx = getInkCtx(); const a = cp[cp.length - 2], b = cp[cp.length - 1];
-      ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.save(); inkT(ctx);
       ctx.globalCompositeOperation = cs.tool === 'eraser' ? 'destination-out' : 'source-over';
       ctx.strokeStyle = cs.tool === 'eraser' ? 'rgba(0,0,0,1)' : cs.color;
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -3142,7 +3247,7 @@ function lassoUp(e) {
   } else if (lasso.mode === 'move') {
     if (lasso.moved) { scheduleSave(); updateUndoBtns(); }
     redrawInk(); // exact z-order once at the end
-    lasso.orig = null; lasso.base = null;
+    lasso.orig = null; freeCanvas(lasso.base); lasso.base = null;
   }
   lasso.mode = null; lasso.pid = null;
   lassoRender();
@@ -3151,8 +3256,9 @@ function lassoBuildBase() {
   // Render everything except the selection once; per-frame we only blit + draw selected strokes
   const c = canvas(); const sel = new Set(lasso.sel);
   const base = document.createElement('canvas'); base.width = c.width; base.height = c.height;
-  const bx = base.getContext('2d'); bx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  getStrokes().forEach((st, i) => { if (!sel.has(i)) drawStroke(bx, st); });
+  const bx = base.getContext('2d'); inkT(bx);
+  getStrokes().forEach((st, i) => { if (!sel.has(i) && strokeVisible(st)) drawStroke(bx, st); });
+  freeCanvas(lasso.base);
   lasso.base = base;
 }
 function lassoDrawMoving() {
@@ -3163,7 +3269,7 @@ function lassoDrawMoving() {
     if (!lasso.base) return;
     const c = canvas(), ctx = getInkCtx();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(lasso.base, 0, 0);
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    inkT(ctx);
     const strokes = getStrokes(); lasso.sel.forEach(i => drawStroke(ctx, strokes[i]));
   });
 }
@@ -3304,7 +3410,7 @@ function pushImgUndo() {
 }
 function bindImgItem(el) {
   let drag = null;
-  const scale = () => { const r = canvas().getBoundingClientRect(); return CSS_W / Math.max(1, r.width); };
+  const scale = () => { const r = stageRect(); return CSS_W / Math.max(1, r.width); };
   el.addEventListener('pointerdown', (e) => {
     if (state.tool !== 'image') return;
     if (e.target.closest('.img-del')) return;
@@ -3357,16 +3463,35 @@ function loadImageFile(file) {
 }
 async function insertImageFile(file) {
   if (!file || !getSebu()) return;
-  let loaded;
-  try { loaded = await loadImageFile(file); } catch (_) { toast('이미지를 열 수 없습니다'); return; }
-  const { im, url } = loaded;
   const MAX = 1600;
-  const sc = Math.min(1, MAX / Math.max(im.naturalWidth, im.naturalHeight));
-  const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc));
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
-  URL.revokeObjectURL(url);
-  const src = cv.toDataURL('image/jpeg', 0.85);
+  let src, w, h;
+  try {
+    let srcImg = null, nw = 0, nh = 0, url = null, bmp = null;
+    if (window.createImageBitmap) {
+      // Probe size cheaply, then decode directly at reduced size (avoids a 48MB full-res decode of camera photos)
+      try {
+        const probe = await createImageBitmap(file, { resizeWidth: 64, resizeQuality: 'low' });
+        const ar = probe.height / probe.width; probe.close && probe.close();
+        // decode with long side ≤ MAX (aspect from probe)
+        const tw = ar <= 1 ? MAX : Math.round(MAX / ar);
+        bmp = await createImageBitmap(file, { resizeWidth: tw, resizeQuality: 'high', imageOrientation: 'from-image' });
+        srcImg = bmp; nw = bmp.width; nh = bmp.height;
+      } catch (_) { bmp = null; }
+    }
+    if (!srcImg) {
+      const loaded = await loadImageFile(file); srcImg = loaded.im; url = loaded.url;
+      nw = srcImg.naturalWidth; nh = srcImg.naturalHeight;
+    }
+    const sc = Math.min(1, MAX / Math.max(nw, nh));
+    w = Math.max(1, Math.round(nw * sc)); h = Math.max(1, Math.round(nh * sc));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(srcImg, 0, 0, w, h);
+    if (bmp && bmp.close) bmp.close();
+    if (url) URL.revokeObjectURL(url);
+    if (srcImg && srcImg.src) srcImg.src = '';
+    src = cv.toDataURL('image/jpeg', 0.85);
+    freeCanvas(cv);
+  } catch (_) { toast('이미지를 열 수 없습니다'); return; }
   // place at visible center
   const wEl = wrap(), stage = $('#page-stage');
   const wr = wEl.getBoundingClientRect(), sr = stage.getBoundingClientRect();
@@ -3427,28 +3552,35 @@ function extendPage() {
 }
 
 function exportPng() {
-  redrawAll();
-  const out = document.createElement('canvas');
-  out.width = Math.floor(CSS_W * DPR);
-  out.height = Math.floor(CSS_H * DPR);
-  const ctx = out.getContext('2d');
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  // background + ink + text
-  const bg = bgCanvas();
-  const ink = canvas();
-  if (bg) ctx.drawImage(bg, 0, 0, CSS_W, CSS_H);
-  getImages().forEach(o => {
-    const el = $(`.img-item[data-id="${o.id}"] img`);
-    try { if (el && el.complete) ctx.drawImage(el, o.x, o.y, o.w, o.h); } catch (_) {}
-  });
-  if (ink) ctx.drawImage(ink, 0, 0, CSS_W, CSS_H);
-  drawTextsOnCtx(ctx);
-  const link = document.createElement('a');
-  const sebu = getSebu();
-  link.download = (sebu ? sebu.title : 'page') + '.png';
-  link.href = out.toDataURL('image/png');
-  link.click();
-  toast('PNG 저장');
+  // Render full page into temporary canvases at a capped scale, then free them
+  const sc = Math.max(0.5, Math.min(2, Math.sqrt(8e6 / (CSS_W * CSS_H))));
+  const W = Math.floor(CSS_W * sc), H = Math.floor(CSS_H * sc);
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const ink = document.createElement('canvas'); ink.width = W; ink.height = H;
+  const ctx = out.getContext('2d'); ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  const ix = ink.getContext('2d'); ix.setTransform(sc, 0, 0, sc, 0, 0);
+  try {
+    drawBackground(ctx);
+    getImages().forEach(o => {
+      const el = $(`.img-item[data-id="${o.id}"] img`);
+      try { if (el && el.complete) ctx.drawImage(el, o.x, o.y, o.w, o.h); } catch (_) {}
+    });
+    getStrokes().forEach(st => drawStroke(ix, st));
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(ink, 0, 0); ctx.setTransform(sc, 0, 0, sc, 0, 0);
+    freeCanvas(ink);
+    drawTextsOnCtx(ctx);
+    const sebu = getSebu();
+    out.toBlob((blob) => {
+      freeCanvas(out);
+      if (!blob) { toast('PNG 저장 실패'); return; }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = (sebu ? sebu.title : 'page') + '.png';
+      link.href = url; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('PNG 저장');
+    }, 'image/png');
+  } catch (e) { freeCanvas(ink); freeCanvas(out); toast('PNG 저장 실패'); }
 }
 
 /* ========== Export / Import ========== */
@@ -3619,6 +3751,7 @@ function wireEvents() {
   // Two-finger pinch zoom on the scroll wrap (does not affect pen / single-finger draw)
   const wrapEl = wrap();
   if (wrapEl) {
+    wrapEl.addEventListener('scroll', () => scheduleViewportCheck(), { passive: true });
     wrapEl.addEventListener('touchstart', onPinchTouchStart, { passive: false });
     wrapEl.addEventListener('touchmove', onPinchTouchMove, { passive: false });
     wrapEl.addEventListener('touchend', onPinchTouchEnd, { passive: false });
