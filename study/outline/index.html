@@ -1970,6 +1970,12 @@ function zoomOut() { setDrawZoom(drawZoom - ZOOM_STEP, { snap: true }); }
 function zoomReset() { setDrawZoom(1, { snap: true, force: true }); }
 
 function cancelDrawingForPinch() {
+  if (lasso.mode) {
+    if (lasso.mode === 'move') lassoCancelMove();
+    lasso.mode = null; lasso.pid = null; lasso.path = [];
+    try { wrap().classList.remove('drawing'); } catch (_) {}
+    lassoRender();
+  }
   panDrag = null;
   resetStrokeSmoothing();
   if (!state.drawing && !state.currentStroke && state.pointers.size === 0) return;
@@ -2698,7 +2704,7 @@ function onPointerDown(e) {
   if (pinchState) return;
   // Allow only primary button for mouse
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (state.tool === 'lasso') { if (isPalmRejectedTouch(e)) { e.preventDefault(); return; } lassoDown(e); return; }
+  if (state.tool === 'lasso') { if (isPalmRejectedTouch(e)) { e.preventDefault(); return; } if (lasso.mode) { e.preventDefault(); return; } lassoDown(e); return; }
 
   // Palm rejection: ignore touch while a pen stroke is active (or just ended)
   if (isPalmRejectedTouch(e)) {
@@ -2801,7 +2807,10 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
-  if (lasso.mode && lasso.pid === e.pointerId) { lassoUp(e); return; }
+  if (lasso.mode && lasso.pid === e.pointerId) {
+    if (e.type === 'pointercancel' && lasso.mode === 'move') lassoCancelMove();
+    lassoUp(e); return;
+  }
   if (e.pointerType === 'pen' && e.pointerId === activePenPointerId) {
     activePenPointerId = null;
     palmBlockUntil = performance.now() + 180;
@@ -2872,7 +2881,7 @@ function lassoBBox() {
   const strokes = getStrokes();
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   lasso.sel.forEach(i => {
-    const st = strokes[i]; if (!st) return;
+    const st = strokes[i]; if (!st || st.tool === 'eraser') return;
     const pad = (st.width || 2) / 2 + 2;
     st.points.forEach(p => { x0 = Math.min(x0, p.x - pad); y0 = Math.min(y0, p.y - pad); x1 = Math.max(x1, p.x + pad); y1 = Math.max(y1, p.y + pad); });
   });
@@ -2889,7 +2898,7 @@ function lassoRender() {
   if (lasso.sel.length && lasso.box) {
     const strokes = getStrokes();
     lasso.sel.forEach(i => {
-      const st = strokes[i]; if (!st || !st.points.length) return;
+      const st = strokes[i]; if (!st || !st.points.length || st.tool === 'eraser') return;
       const pts = st.points.length === 1 ? [st.points[0], st.points[0]] : st.points;
       h += `<polyline points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="none" stroke="rgba(37,99,235,0.28)" stroke-width="${(st.width || 2) + 6}" stroke-linecap="round" stroke-linejoin="round"/>`;
     });
@@ -2953,12 +2962,19 @@ function lassoUp(e) {
     const poly = lasso.path;
     lasso.sel = [];
     if (poly.length >= 3) {
+      // Inclusive: >=30% of points inside, or bbox center inside. Eraser strokes are
+      // included too so erased bits move with their ink (otherwise erased scribbles
+      // reappear at the new spot and the old eraser cuts holes in nearby writing).
       getStrokes().forEach((st, i) => {
-        if (!st || st.tool === 'eraser' || !st.points || !st.points.length) return;
-        let n = 0;
-        st.points.forEach(p => { if (pointInPoly(p.x, p.y, poly)) n++; });
-        if (n / st.points.length >= 0.6) lasso.sel.push(i);
+        if (!st || !st.points || !st.points.length) return;
+        let n = 0, x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        st.points.forEach(p => {
+          if (pointInPoly(p.x, p.y, poly)) n++;
+          if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y;
+        });
+        if (n / st.points.length >= 0.3 || pointInPoly((x0 + x1) / 2, (y0 + y1) / 2, poly)) lasso.sel.push(i);
       });
+      if (!lasso.sel.some(i => getStrokes()[i].tool !== 'eraser')) lasso.sel = [];
     }
     lasso.path = [];
     lassoBBox();
@@ -2969,6 +2985,16 @@ function lassoUp(e) {
   }
   lasso.mode = null; lasso.pid = null;
   lassoRender();
+}
+function lassoCancelMove() {
+  // Restore original strokes if the gesture was cancelled (pinch / system gesture)
+  if (!lasso.moved || !lasso.orig) return;
+  const strokes = getStrokes();
+  lasso.sel.forEach((idx, k) => { strokes[idx] = lasso.orig[k]; });
+  lasso.box = lasso.origBox;
+  state.undoStack.pop();
+  lasso.moved = false;
+  redrawInk(); updateUndoBtns();
 }
 function lassoDelete() {
   if (!lasso.sel.length) return;
