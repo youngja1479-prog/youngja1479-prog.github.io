@@ -284,6 +284,17 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   top: 0; left: 0;
 }
 #bgCanvas { z-index: 0; pointer-events: none; }
+#img-layer { position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+#img-layer.active { z-index:4; }
+#img-layer.active .img-item { pointer-events:auto; cursor:move; touch-action:none; }
+.img-item { position:absolute; user-select:none; -webkit-user-select:none; }
+.img-item img { width:100%; height:100%; display:block; pointer-events:none; -webkit-user-drag:none; }
+.img-item.sel { outline:2px dashed #2563eb; outline-offset:2px; }
+.img-item .img-rs, .img-item .img-del { display:none; }
+.img-item.sel .img-rs { display:block; position:absolute; right:-12px; bottom:-12px; width:24px; height:24px; border-radius:50%;
+  background:#2563eb; border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.3); cursor:nwse-resize; touch-action:none; }
+.img-item.sel .img-del { display:block; position:absolute; left:50%; top:-40px; transform:translateX(-50%); border:1px solid var(--border, #ddd);
+  background:#fff; color:#dc2626; border-radius:10px; padding:5px 12px; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.15); cursor:pointer; white-space:nowrap; }
 #drawCanvas {
   z-index: 1;
   cursor: crosshair;
@@ -572,6 +583,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" data-tool="highlighter" data-color="#fef08a" title="형광펜"><span class="swatch hl"></span></button>
         <button class="tool-btn" data-tool="eraser" title="지우개">🧽 지우개</button>
         <button class="tool-btn" data-tool="lasso" title="올가미 선택 (둘러싸서 이동·삭제·복사)">➰ 올가미</button>
+        <button class="tool-btn" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)">🖼＋ 이미지</button>
+        <button class="tool-btn" data-tool="image" title="이미지 선택 — 이동·크기·삭제">🖼 선택</button>
+        <input type="file" id="img-file" accept="image/*" style="display:none">
       </div>
       <div class="tool-group">
         <button class="thickness-btn active" data-w="1.5" title="얇게"><span style="width:4px;height:4px"></span></button>
@@ -592,6 +606,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div class="tool-group">
         <button type="button" class="tool-btn finger-mode-btn" id="btn-finger-mode" title="손가락으로 화면 이동 (탭하면 쓰기로 전환)">✋ 손가락: 이동</button>
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
+        <button class="tool-btn" id="btn-add-sheet" title="종이 한 장 추가 (아래에)">📄＋ 종이</button>
+        <button class="tool-btn" id="btn-del-sheet" title="마지막 종이 삭제 (비어 있을 때만)">📄－</button>
         <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
       </div>
       <div class="tool-group zoom-group" title="확대/축소">
@@ -607,6 +623,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div id="zoom-sizer">
         <div id="page-stage">
           <canvas id="bgCanvas" aria-hidden="true"></canvas>
+          <div id="img-layer"></div>
           <canvas id="drawCanvas"></canvas>
           <div class="guide-overlay hidden" id="guide-overlay"></div>
           <div id="lasso-layer"><svg id="lasso-svg" preserveAspectRatio="none"></svg><div id="lasso-menu"><button type="button" data-act="copy">복사</button><button type="button" data-act="del">삭제</button></div></div>
@@ -720,9 +737,16 @@ function scheduleSave() {
   }, 1000);
 }
 
+/** localStorage copy is a fallback only — strip heavy image data (kept in IndexedDB). */
+function lsSaveData() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA, (k, v) => (k === 'src' && typeof v === 'string' && v.startsWith('data:')) ? undefined : v)); } catch (e) {}
+}
+let saveWarned = false;
 async function doSave() {
   const ok = await idbSet('app', DATA);
-  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+  if (!ok && !saveWarned) { saveWarned = true; toast('저장 공간이 부족합니다 — 이미지를 줄이거나 삭제해 주세요'); }
+  if (ok) saveWarned = false;
+  lsSaveData();
   scheduleSyncPush();
   return ok;
 }
@@ -944,7 +968,7 @@ async function applyRemoteData(remoteData) {
   if (!DATA.version) DATA.version = 1;
   if (DATA.updatedAt == null) DATA.updatedAt = Date.now();
   const ok = await idbSet('app', DATA);
-  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+  lsSaveData();
   reRenderAfterSync();
   syncApplyingRemote = false;
   return ok;
@@ -1139,7 +1163,7 @@ async function connectWithPassword(pw) {
       DATA = defaultData();
       clearTimeout(saveTimer);
       await idbSet('app', DATA);
-      try { localStorage.setItem(LS_KEY, JSON.stringify(DATA)); } catch (e) {}
+      lsSaveData();
       reRenderAfterSync();
       syncBusy = false;
       await syncPushNow();
@@ -2330,6 +2354,8 @@ function initDrawPage() {
   state.undoStack = [];
   state.redoStack = [];
   lassoClear();
+  imgSel = null;
+  setTimeout(() => { renderImages(); applyImgMode(); }, 0);
   state.drawing = false;
   state.currentStroke = null;
   state.pointers.clear();
@@ -2781,6 +2807,10 @@ function onPointerDown(e) {
   if (pinchState) return;
   // Allow only primary button for mouse
   if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (state.tool === 'image') {
+    if (imgSel) { imgSel = null; renderImages(); }
+    if (!(e.pointerType === 'touch' && !touchShouldDraw())) return; // touch still pans
+  }
   if (state.tool === 'lasso') { if (isPalmRejectedTouch(e)) { e.preventDefault(); return; } if (lasso.mode) { e.preventDefault(); return; } lassoDown(e); return; }
 
   // Palm rejection: ignore touch while a pen stroke is active (or just ended)
@@ -3147,12 +3177,16 @@ function updateUndoBtns() {
   $('#btn-redo').disabled = state.redoStack.length === 0;
 }
 
+function snapEntry() { return { s: getStrokes().slice(), im: getImages().map(o => Object.assign({}, o)) }; }
+function applyEntry(en) {
+  // Array = legacy strokes-only snapshot; object = strokes + images
+  if (Array.isArray(en)) { const cur = getStrokes().slice(); setStrokes(en); return cur; }
+  const cur = snapEntry(); setStrokes(en.s); ensurePage().images = en.im; imgSel = null; renderImages(); return cur;
+}
 function doUndo() {
   if (!state.undoStack.length) return;
   lassoClear();
-  const strokes = getStrokes();
-  state.redoStack.push(strokes.slice());
-  setStrokes(state.undoStack.pop());
+  state.redoStack.push(applyEntry(state.undoStack.pop()));
   scheduleSave();
   redrawAll();
   updateUndoBtns();
@@ -3161,9 +3195,7 @@ function doUndo() {
 function doRedo() {
   if (!state.redoStack.length) return;
   lassoClear();
-  const strokes = getStrokes();
-  state.undoStack.push(strokes.slice());
-  setStrokes(state.redoStack.pop());
+  state.undoStack.push(applyEntry(state.redoStack.pop()));
   scheduleSave();
   redrawAll();
   updateUndoBtns();
@@ -3180,10 +3212,11 @@ function doClear() {
   $('#m-cancel').onclick = closeModal;
   $('#m-ok').onclick = () => {
     const strokes = getStrokes();
-    state.undoStack.push(strokes.slice());
+    state.undoStack.push(snapEntry());
     state.redoStack = [];
     setStrokes([]);
     setTexts([]);
+    ensurePage().images = []; imgSel = null; renderImages();
     state.selectedTextId = null;
     scheduleSave();
     closeModal();
@@ -3192,6 +3225,154 @@ function doClear() {
     updateUndoBtns();
     toast('지웠습니다');
   };
+}
+
+/* ========== 이미지 삽입 ========== */
+let imgSel = null;
+function getImages() {
+  const p = ensurePage();
+  if (!p) return [];
+  if (!Array.isArray(p.images)) p.images = [];
+  return p.images;
+}
+function applyImgMode() {
+  const layer = $('#img-layer'); if (!layer) return;
+  const on = state.tool === 'image';
+  layer.classList.toggle('active', on);
+  if (!on && imgSel) { imgSel = null; renderImages(); }
+}
+function renderImages() {
+  const layer = $('#img-layer'); if (!layer) return;
+  const imgs = getImages();
+  const have = new Map(); $$('#img-layer .img-item').forEach(el => have.set(el.dataset.id, el));
+  imgs.forEach(o => {
+    let el = have.get(o.id);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'img-item'; el.dataset.id = o.id;
+      el.innerHTML = '<img alt="" draggable="false"><div class="img-rs"></div><button type="button" class="img-del">삭제</button>';
+      el.querySelector('img').src = o.src || '';
+      bindImgItem(el);
+      layer.appendChild(el);
+    }
+    have.delete(o.id);
+    el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; el.style.width = o.w + 'px'; el.style.height = o.h + 'px';
+    el.classList.toggle('sel', imgSel === o.id);
+  });
+  have.forEach(el => el.remove());
+}
+function pushImgUndo() {
+  state.undoStack.push(snapEntry());
+  if (state.undoStack.length > 50) state.undoStack.shift();
+  state.redoStack = [];
+  updateUndoBtns();
+}
+function bindImgItem(el) {
+  let drag = null;
+  const scale = () => { const r = canvas().getBoundingClientRect(); return CSS_W / Math.max(1, r.width); };
+  el.addEventListener('pointerdown', (e) => {
+    if (state.tool !== 'image') return;
+    if (e.target.closest('.img-del')) return;
+    e.preventDefault(); e.stopPropagation();
+    const o = getImages().find(q => q.id === el.dataset.id); if (!o) return;
+    if (imgSel !== o.id) { imgSel = o.id; renderImages(); }
+    drag = { id: e.pointerId, cx: e.clientX, cy: e.clientY, x: o.x, y: o.y, w: o.w, h: o.h, k: scale(),
+             resize: !!e.target.closest('.img-rs'), moved: false, o };
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    e.preventDefault();
+    const dx = (e.clientX - drag.cx) * drag.k, dy = (e.clientY - drag.cy) * drag.k;
+    if (!drag.moved && Math.hypot(dx, dy) < 2) return;
+    if (!drag.moved) { pushImgUndo(); drag.moved = true; }
+    const o = getImages().find(q => q.id === el.dataset.id) || drag.o;
+    if (drag.resize) {
+      const ar = drag.h / drag.w;
+      const nw = Math.max(40, Math.min(CSS_W * 2, drag.w + Math.max(dx, dy / ar)));
+      o.w = Math.round(nw); o.h = Math.round(nw * ar);
+    } else {
+      o.x = Math.round(Math.max(-o.w + 20, Math.min(CSS_W - 20, drag.x + dx)));
+      o.y = Math.round(Math.max(0, Math.min(CSS_H - 20, drag.y + dy)));
+    }
+    el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; el.style.width = o.w + 'px'; el.style.height = o.h + 'px';
+  });
+  const end = (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    if (drag.moved) scheduleSave();
+    drag = null;
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.querySelector('.img-del').addEventListener('click', (e) => {
+    e.stopPropagation();
+    pushImgUndo();
+    ensurePage().images = getImages().filter(q => q.id !== el.dataset.id);
+    imgSel = null; renderImages(); scheduleSave(); toast('이미지를 삭제했습니다');
+  });
+}
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { resolve({ im, url }); };
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load')); };
+    im.src = url;
+  });
+}
+async function insertImageFile(file) {
+  if (!file || !getSebu()) return;
+  let loaded;
+  try { loaded = await loadImageFile(file); } catch (_) { toast('이미지를 열 수 없습니다'); return; }
+  const { im, url } = loaded;
+  const MAX = 1600;
+  const sc = Math.min(1, MAX / Math.max(im.naturalWidth, im.naturalHeight));
+  const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h);
+  URL.revokeObjectURL(url);
+  const src = cv.toDataURL('image/jpeg', 0.85);
+  // place at visible center
+  const wEl = wrap(), stage = $('#page-stage');
+  const wr = wEl.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  const k = CSS_W / Math.max(1, sr.width);
+  const dw = Math.round(Math.min(CSS_W * 0.6, w)), dh = Math.round(dw * h / w);
+  let x = (wr.left + wr.width / 2 - sr.left) * k - dw / 2;
+  let y = (wr.top + wr.height / 2 - sr.top) * k - dh / 2;
+  x = Math.round(Math.max(0, Math.min(CSS_W - dw, x)));
+  y = Math.round(Math.max(0, Math.min(Math.max(0, CSS_H - dh), y)));
+  pushImgUndo();
+  const o = { id: uid(), x, y, w: dw, h: dh, src };
+  getImages().push(o);
+  imgSel = o.id;
+  // switch to 이미지 선택 mode so it can be moved/resized right away
+  state.tool = 'image';
+  $$('.tool-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === 'image'));
+  lassoClear(); applyImgMode(); renderImages(); scheduleSave();
+  toast('이미지 삽입 — 끌어서 이동, 모서리로 크기 조절');
+}
+
+/* ========== 종이 추가 / 삭제 ========== */
+const SHEET_H = 1200;
+function addSheet() {
+  const sebu = getSebu(); if (!sebu) return;
+  sebu.pageHeight = (sebu.pageHeight || 1200) + SHEET_H;
+  CSS_H = sebu.pageHeight;
+  scheduleSave(); resizeCanvas(); redrawAll(); updateGuideOverlay(); renderTextLayer(); renderImages();
+  wrap().scrollTop = wrap().scrollHeight;
+  toast('종이를 한 장 추가했습니다');
+}
+function removeSheet() {
+  const sebu = getSebu(); if (!sebu) return;
+  const h = sebu.pageHeight || 1200;
+  if (h - SHEET_H < 1200) { toast('더 지울 종이가 없습니다'); return; }
+  const cut = h - SHEET_H;
+  const used = getStrokes().some(st => st.tool !== 'eraser' && st.points.some(p => p.y > cut)) ||
+    getTexts().some(t => (t.y || 0) + (t.h || 0) > cut) ||
+    getImages().some(o => o.y + o.h > cut);
+  if (used) { toast('마지막 종이가 비어 있지 않아 지울 수 없습니다'); return; }
+  sebu.pageHeight = cut; CSS_H = cut;
+  scheduleSave(); resizeCanvas(); redrawAll(); updateGuideOverlay(); renderTextLayer(); renderImages();
+  toast('마지막 종이를 지웠습니다');
 }
 
 function extendPage() {
@@ -3220,6 +3401,10 @@ function exportPng() {
   const bg = bgCanvas();
   const ink = canvas();
   if (bg) ctx.drawImage(bg, 0, 0, CSS_W, CSS_H);
+  getImages().forEach(o => {
+    const el = $(`.img-item[data-id="${o.id}"] img`);
+    try { if (el && el.complete) ctx.drawImage(el, o.x, o.y, o.w, o.h); } catch (_) {}
+  });
   if (ink) ctx.drawImage(ink, 0, 0, CSS_W, CSS_H);
   drawTextsOnCtx(ctx);
   const link = document.createElement('a');
@@ -3304,6 +3489,7 @@ function wireEvents() {
       if (btn.dataset.color) state.color = btn.dataset.color;
       if (state.tool !== 'lasso') lassoClear();
       else toast('올가미 — 필기를 둘러싸서 선택하세요');
+      applyImgMode();
       $$('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
@@ -3342,6 +3528,10 @@ function wireEvents() {
   $('#btn-finger-mode').addEventListener('click', () => toggleFingerMode());
   applyFingerModeUI();
   $('#btn-extend').addEventListener('click', extendPage);
+  $('#btn-add-sheet').addEventListener('click', addSheet);
+  $('#btn-del-sheet').addEventListener('click', removeSheet);
+  $('#btn-add-img').addEventListener('click', () => { const f = $('#img-file'); f.value = ''; f.click(); });
+  $('#img-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertImageFile(f); e.target.value = ''; });
   $('#btn-guides').addEventListener('click', () => {
     state.showGuides = !state.showGuides;
     const s = getSebu(); if (s) s.guidesVisible = state.showGuides;
