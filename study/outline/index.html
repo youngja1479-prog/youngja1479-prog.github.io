@@ -712,7 +712,12 @@ async function loadData() {
 function scheduleSave() {
   DATA.updatedAt = Date.now();
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(doSave, 300);
+  // Debounced + deferred: never serialize while the pen is down
+  saveTimer = setTimeout(function trySave() {
+    let busy = false; try { busy = !!state.drawing; } catch (_) {}
+    if (busy) { saveTimer = setTimeout(trySave, 400); return; }
+    if (window.requestIdleCallback) requestIdleCallback(() => doSave(), { timeout: 1500 }); else doSave();
+  }, 1000);
 }
 
 async function doSave() {
@@ -2407,8 +2412,10 @@ function resizeCanvas() {
   const w = wrap();
   if (!c || !w) return;
   // Include zoom so ink stays crisp at 175% etc. (memory cap below still applies)
-  DPR = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 4);
-  if (CSS_H * 800 * DPR * DPR > 12e6) DPR = Math.max(1, Math.sqrt(12e6 / (CSS_H * 800)));
+  DPR = Math.min((window.devicePixelRatio || 1) * Math.max(1, (typeof drawZoom === 'number' ? drawZoom : 1)), 2.5);
+  // Pixel budget per canvas (~8M) — big backing stores are the main source of lag on tablets
+  { const cw = Math.max(320, Math.min(w.clientWidth - 16, 800));
+    if (CSS_H * cw * DPR * DPR > 8e6) DPR = Math.max(1, Math.sqrt(8e6 / (CSS_H * cw))); }
   // Fit width to container with max
   const avail = Math.min(w.clientWidth - 16, 800);
   CSS_W = Math.max(320, avail);
@@ -2484,7 +2491,6 @@ function segWidth(stroke, i, n, final) {
   const pr = (typeof pt.p === 'number' && pt.p > 0) ? Math.min(1, pt.p) : 0.5;
   let f = 0.72 + 0.56 * pr;              // subtle: 0.72x .. 1.28x
   if (i < 3) f *= 0.7 + 0.1 * i;         // start taper
-  if (final) { const e = n - 1 - i; if (e < 3) f *= 0.65 + 0.12 * e; } // end taper
   return Math.max(0.6, base * f);
 }
 
@@ -2501,21 +2507,21 @@ function drawPressureStroke(ctx, stroke) {
     ctx.arc(pts[0].x, pts[0].y, Math.max(segWidth(stroke, 0, 1, false) / 2, 0.5), 0, Math.PI * 2);
     ctx.fill(); ctx.restore(); return;
   }
+  // Batch consecutive segments with (nearly) the same width into one path → far fewer stroke() calls
+  let curW = -1, open = false;
   for (let i = 1; i < n; i++) {
     const a = pts[i - 1], b = pts[i];
-    ctx.beginPath();
-    if (i >= 2) {
-      const c0 = pts[i - 2];
-      ctx.moveTo((c0.x + a.x) / 2, (c0.y + a.y) / 2);
-      if (i === n - 1) ctx.quadraticCurveTo(a.x, a.y, b.x, b.y);
-      else ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
-    } else {
-      ctx.moveTo(a.x, a.y);
-      if (n === 2) ctx.lineTo(b.x, b.y); else ctx.lineTo((a.x + b.x) / 2, (a.y + b.y) / 2);
+    const wq = Math.round(((segWidth(stroke, i - 1, n, true) + segWidth(stroke, i, n, true)) / 2) * 5) / 5;
+    if (wq !== curW) {
+      if (open) ctx.stroke();
+      ctx.beginPath(); ctx.lineWidth = wq; curW = wq; open = true;
+      if (i >= 2) { const c0 = pts[i - 2]; ctx.moveTo((c0.x + a.x) / 2, (c0.y + a.y) / 2); }
+      else ctx.moveTo(a.x, a.y);
     }
-    ctx.lineWidth = (segWidth(stroke, i - 1, n, true) + segWidth(stroke, i, n, true)) / 2;
-    ctx.stroke();
+    if (i >= 2) ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+    else ctx.lineTo((a.x + b.x) / 2, (a.y + b.y) / 2);
   }
+  if (open) ctx.stroke();
   ctx.restore();
 }
 
@@ -2640,14 +2646,14 @@ function canvasPos(e) {
 function stabilizePoint(raw) {
   if (!smoothPrev) {
     smoothPrev = { x: raw.x, y: raw.y, p: raw.p };
-    return { x: raw.x, y: raw.y, p: raw.p, t: raw.t };
+    return { x: raw.x, y: raw.y, p: raw.p };
   }
   const a = SMOOTH_ALPHA;
   const x = smoothPrev.x + a * (raw.x - smoothPrev.x);
   const y = smoothPrev.y + a * (raw.y - smoothPrev.y);
   const pp = (typeof smoothPrev.p === 'number' ? smoothPrev.p : raw.p) * 0.7 + raw.p * 0.3;
   smoothPrev = { x, y, p: pp };
-  return { x, y, p: Math.round(pp * 1000) / 1000, t: raw.t };
+  return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, p: Math.round(pp * 1000) / 1000 };
 }
 
 function isPalmRejectedTouch(e) {
@@ -2657,6 +2663,7 @@ function isPalmRejectedTouch(e) {
   return false;
 }
 
+let liveSnap = null, liveSnapValid = false, liveNeedsRedraw = false;
 function scheduleLiveInk() {
   if (liveRaf) return;
   liveRaf = requestAnimationFrame(() => {
@@ -2674,16 +2681,31 @@ function flushLiveInk() {
   if (!ctx) return;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  if (stroke.tool !== 'pen') {
-    redrawInk();
+  if (stroke.tool === 'highlighter') {
+    // Snapshot committed ink once, then per frame: blit + whole highlighter path (no overlap darkening)
+    const c = canvas();
+    if (!liveSnap || liveSnap.width !== c.width || liveSnap.height !== c.height) {
+      liveSnap = document.createElement('canvas'); liveSnap.width = c.width; liveSnap.height = c.height;
+    }
+    if (!liveSnapValid) {
+      const sc = liveSnap.getContext('2d'); sc.setTransform(1, 0, 0, 1, 0, 0);
+      sc.clearRect(0, 0, liveSnap.width, liveSnap.height); sc.drawImage(c, 0, 0); liveSnapValid = true;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.drawImage(liveSnap, 0, 0);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    drawStroke(ctx, stroke);
+    liveDrawnCount = pts.length;
     return;
   }
+  if (stroke.tool !== 'pen' && stroke.tool !== 'eraser') { redrawInk(); return; }
 
   const lineW = strokeLineWidth(stroke);
   ctx.save();
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = stroke.color;
-  ctx.fillStyle = stroke.color;
+  ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+  ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
   ctx.lineWidth = lineW;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -2734,8 +2756,8 @@ function appendStrokePoint(raw) {
     const lim = 25 / Math.max(0.5, z);
     if (pts.length <= 3 && dx * dx + dy * dy > lim * lim) {
       // stale/stray start point: restart stroke from the real tip
-      pts.length = 0; smoothPrev = { x: raw.x, y: raw.y };
-      pts.push({ x: raw.x, y: raw.y, p: raw.p, t: raw.t });
+      pts.length = 0; smoothPrev = { x: raw.x, y: raw.y }; liveNeedsRedraw = true;
+      pts.push({ x: raw.x, y: raw.y, p: raw.p });
       return true;
     }
     if (dx * dx + dy * dy > 40000) return false; // stray jump guard
@@ -2746,6 +2768,7 @@ function appendStrokePoint(raw) {
 
 function resetStrokeSmoothing() {
   smoothPrev = null;
+  liveSnapValid = false;
   liveDrawnCount = 0;
   if (liveRaf) {
     cancelAnimationFrame(liveRaf);
@@ -2907,6 +2930,22 @@ function onPointerUp(e) {
     state.undoStack.push(strokes.slice());
     if (state.undoStack.length > 50) state.undoStack.shift();
     state.redoStack = [];
+    // Paint any not-yet-flushed tail; canvas already holds the committed ink → no full redraw
+    state.drawing = true; flushLiveInk(); state.drawing = false;
+    const cs = state.currentStroke, cp = cs.points;
+    if (liveNeedsRedraw) { strokes.push(cs); setStrokes(strokes); redrawInk(); strokes.pop(); }
+    else if ((cs.tool === 'pen' || cs.tool === 'eraser') && cp.length >= 2) {
+      // close the last half-segment (live ink stops at the midpoint)
+      const ctx = getInkCtx(); const a = cp[cp.length - 2], b = cp[cp.length - 1];
+      ctx.save(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.globalCompositeOperation = cs.tool === 'eraser' ? 'destination-out' : 'source-over';
+      ctx.strokeStyle = cs.tool === 'eraser' ? 'rgba(0,0,0,1)' : cs.color;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.lineWidth = segWidth(cs, cp.length - 1, cp.length, true);
+      ctx.beginPath(); ctx.moveTo((a.x + b.x) / 2, (a.y + b.y) / 2); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.restore();
+    }
+    liveNeedsRedraw = false;
     strokes.push(state.currentStroke);
     setStrokes(strokes);
     scheduleSave();
@@ -2914,7 +2953,6 @@ function onPointerUp(e) {
   }
   state.currentStroke = null;
   resetStrokeSmoothing();
-  redrawAll();
 }
 
 /* ========== 올가미 (lasso) selection ========== */
@@ -2981,6 +3019,7 @@ function lassoDown(e) {
     const strokes = getStrokes();
     lasso.orig = lasso.sel.map(i => strokes[i]);
     lasso.origBox = Object.assign({}, b);
+    lassoBuildBase();
   } else {
     lasso.sel = []; lasso.box = null;
     lasso.mode = 'draw'; lasso.path = [pt];
@@ -3005,7 +3044,7 @@ function lassoMove(e) {
     });
     const ob = lasso.origBox;
     lasso.box = { x0: ob.x0 + dx, y0: ob.y0 + dy, x1: ob.x1 + dx, y1: ob.y1 + dy };
-    redrawInk();
+    lassoDrawMoving();
   }
   lassoRender();
   e.preventDefault();
@@ -3035,11 +3074,32 @@ function lassoUp(e) {
     lassoBBox();
     if (!lasso.sel.length && poly.length >= 6) toast('선택된 필기가 없습니다');
   } else if (lasso.mode === 'move') {
-    if (lasso.moved) { scheduleSave(); updateUndoBtns(); redrawAll(); }
-    lasso.orig = null;
+    if (lasso.moved) { scheduleSave(); updateUndoBtns(); }
+    redrawInk(); // exact z-order once at the end
+    lasso.orig = null; lasso.base = null;
   }
   lasso.mode = null; lasso.pid = null;
   lassoRender();
+}
+function lassoBuildBase() {
+  // Render everything except the selection once; per-frame we only blit + draw selected strokes
+  const c = canvas(); const sel = new Set(lasso.sel);
+  const base = document.createElement('canvas'); base.width = c.width; base.height = c.height;
+  const bx = base.getContext('2d'); bx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  getStrokes().forEach((st, i) => { if (!sel.has(i)) drawStroke(bx, st); });
+  lasso.base = base;
+}
+function lassoDrawMoving() {
+  if (!lasso.base) { redrawInk(); return; }
+  if (lasso.raf) return;
+  lasso.raf = requestAnimationFrame(() => {
+    lasso.raf = 0;
+    if (!lasso.base) return;
+    const c = canvas(), ctx = getInkCtx();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(lasso.base, 0, 0);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const strokes = getStrokes(); lasso.sel.forEach(i => drawStroke(ctx, strokes[i]));
+  });
 }
 function lassoCancelMove() {
   // Restore original strokes if the gesture was cancelled (pinch / system gesture)
