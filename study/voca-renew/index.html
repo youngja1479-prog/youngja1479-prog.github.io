@@ -211,6 +211,13 @@ main { flex: 1; padding: 12px 14px; }
           </button>
         </div>
       </div>
+      <div class="card" style="padding:12px">
+        <button type="button" class="level-card" id="btnRangeEntry" style="margin:0">
+          <div class="lv">범위 암기</div>
+          <div class="desc">기초 · 시작 DAY ~ 끝 DAY 단어를 카드로 한꺼번에</div>
+          <div class="prog">탭하여 범위 선택</div>
+        </button>
+      </div>
       <div class="card">
         <h2>안내</h2>
         <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후, 한 덱에서 복습(오답) 단어가 먼저 나오고 이어서 오늘 DAY 단어가 나옵니다. 「외움」하면 누적 오답에서 빠집니다.</p>
@@ -235,6 +242,21 @@ main { flex: 1; padding: 12px 14px; }
     </section>
 
     <!-- DAY DETAIL / START -->
+    <section class="panel" id="panel-range">
+      <button type="button" class="back-link" id="btnRangeHome">← 레벨 선택</button>
+      <div class="card">
+        <h2>범위 암기 · 기초</h2>
+        <div class="row" style="margin-bottom:10px">
+          <label>시작 DAY <select id="rangeStart"></select></label>
+          <label>끝 DAY <select id="rangeEnd"></select></label>
+        </div>
+        <label class="toggle"><input type="checkbox" id="rangeShuffle" checked> 카드 섞기</label>
+        <label class="toggle"><input type="checkbox" id="rangeUnknownOnly"> 외움 안 한 단어만</label>
+        <p class="hint" id="rangeInfo"></p>
+        <button type="button" class="btn block" id="btnRangeStart">범위 카드 시작</button>
+      </div>
+    </section>
+
     <section class="panel" id="panel-day">
       <button type="button" class="back-link" id="btnDayBack">← DAY 목록</button>
       <div class="card">
@@ -1342,7 +1364,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
     });
-    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', quiz: 'card', card: 'card', wrong: 'wrong' };
+    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', range: 'home', quiz: 'card', card: 'card', wrong: 'wrong' };
     var tab = navMap[name] || 'home';
     document.querySelectorAll('.nav button').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
@@ -1944,7 +1966,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       byId('flashEty').style.display = 'none';
       byId('flashEx').style.display = 'none';
       byId('flashHint').textContent = pool.length + '개 학습 완료';
-      byId('flashMeta').textContent = cardMode === 'day' ? ('DAY ' + currentDay) : '누적 오답';
+      byId('flashMeta').textContent = cardMode === 'day' ? ('DAY ' + currentDay) : (cardMode === 'range' ? '범위 암기' : '누적 오답');
       byId('flashIdx').textContent = '';
       byId('cardCounter').textContent = pool.length + ' / ' + pool.length;
       byId('cardProg').style.width = '100%';
@@ -2127,6 +2149,10 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       fn();
       return;
     }
+    if (cardReturnPanel === 'range') {
+      openRange();
+      return;
+    }
     if (cardReturnPanel === 'wrong') {
       renderWrongList();
       showPanel('wrong');
@@ -2156,6 +2182,66 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var btn = e.target.closest('[data-day]');
     if (!btn) return;
     openDay(parseInt(btn.getAttribute('data-day'), 10), false);
+  });
+
+  function rangeDays() {
+    var out = [];
+    for (var d = 1; d <= 53; d++) if (getDayWords('basic1', d).length) out.push(d);
+    return out;
+  }
+  function buildRangeList() {
+    var s = parseInt(byId('rangeStart').value, 10), e = parseInt(byId('rangeEnd').value, 10);
+    if (s > e) { var x = s; s = e; e = x; }
+    var only = byId('rangeUnknownOnly').checked, list = [];
+    for (var d = s; d <= e; d++) {
+      var ws = getDayWords('basic1', d);
+      for (var i = 0; i < ws.length; i++) {
+        var ew = enrich('basic1', d, i, ws[i]);
+        if (only && state.known[ew.id]) continue;
+        list.push(ew);
+      }
+    }
+    return { s: s, e: e, list: list };
+  }
+  function updateRangeInfo() {
+    var r = buildRangeList();
+    byId('rangeInfo').textContent = 'DAY ' + r.s + '~' + r.e + ' · ' + r.list.length + '단어';
+  }
+  function openRange() {
+    var days = rangeDays(), opts = days.map(function (d) { return '<option value="' + d + '">DAY ' + d + '</option>'; }).join('');
+    var ss = byId('rangeStart'), se = byId('rangeEnd'), ps = ss.value, pe = se.value;
+    ss.innerHTML = opts; se.innerHTML = opts;
+    if (ps) ss.value = ps; else if (days.length) ss.value = days[0];
+    if (pe) se.value = pe; else if (days.length) se.value = days[days.length - 1];
+    byId('appTitle').textContent = '범위 암기';
+    byId('appSub').textContent = '기초 · DAY 범위 카드';
+    updateRangeInfo();
+    showPanel('range');
+  }
+  function startRangeCards() {
+    var r = buildRangeList();
+    if (!r.list.length) { showToast('학습할 단어가 없습니다'); return; }
+    cardMode = 'range';
+    cardReturnPanel = 'range';
+    afterCardAction = null;
+    markHistory = [];
+    r.list.forEach(function (w) { w.isReview = false; });
+    pool = byId('rangeShuffle').checked ? shuffle(r.list) : r.list;
+    cardIdx = 0;
+    cardRevealed = false;
+    byId('appTitle').textContent = '범위 암기 · DAY ' + r.s + '~' + r.e;
+    byId('appSub').textContent = pool.length + '단어';
+    showPanel('card');
+    renderCard();
+  }
+  byId('btnRangeEntry').addEventListener('click', openRange);
+  byId('btnRangeStart').addEventListener('click', startRangeCards);
+  ['rangeStart', 'rangeEnd', 'rangeUnknownOnly'].forEach(function (id) { byId(id).addEventListener('change', updateRangeInfo); });
+  byId('btnRangeHome').addEventListener('click', function () {
+    byId('appTitle').textContent = '단어암기 · GKC 어휘';
+    byId('appSub').textContent = '기초 · 기본 · 심화 · 리뉴얼 프레임워크';
+    showPanel('home');
+    refreshStats();
   });
 
   byId('btnCumulativeWrong').addEventListener('click', function () {
