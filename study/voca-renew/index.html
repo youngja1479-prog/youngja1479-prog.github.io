@@ -227,7 +227,7 @@ main { flex: 1; padding: 12px 14px; }
       <div class="card">
         <h2>설정</h2>
         <label class="toggle"><input type="checkbox" id="optAutoSpeak"> 자동 발음</label>
-        <p class="hint" style="margin:8px 0 0">켜면 카드가 바뀔 때 영어 단어를 자동으로 읽어 줍니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다. (퀴즈에는 적용되지 않음)</p>
+        <p class="hint" style="margin:8px 0 0">켜면 카드·퀴즈에서 영어 단어가 나올 때 자동으로 읽어 줍니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다.</p>
       </div>
       <div class="card">
         <h2>안내</h2>
@@ -1759,6 +1759,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       html += '<button type="button" data-choice="' + esc(opt) + '">' + esc(opt) + '</button>';
     });
     byId('quizChoices').innerHTML = html;
+    if (settings.autoSpeak) speakWord(w.word);
   }
 
   function finishQuiz() {
