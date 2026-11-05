@@ -109,6 +109,12 @@ main { flex: 1; padding: 12px 14px; }
 .toggle { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--text);
   padding: 6px 0; min-height: 44px; }
 .toggle input { width: 20px; height: 20px; accent-color: var(--primary); flex-shrink: 0; }
+.mode-seg { display: flex; gap: 8px; margin: 4px 0 12px; }
+.mode-seg label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 10px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--card);
+  font-size: .92rem; font-weight: 600; cursor: pointer; color: var(--text); }
+.mode-seg label:has(input:checked), .mode-seg label.on { border-color: var(--primary); background: #eef2ff; color: var(--primary); }
+.mode-seg input { width: 18px; height: 18px; accent-color: var(--primary); margin: 0; }
 .hint { font-size: .78rem; color: var(--muted); margin: 6px 0 0; }
 .flash-wrap { perspective: 1000px; touch-action: manipulation; position: relative; }
 .flash { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -250,10 +256,15 @@ main { flex: 1; padding: 12px 14px; }
           <label>시작 DAY <select id="rangeStart"></select></label>
           <label>끝 DAY <select id="rangeEnd"></select></label>
         </div>
-        <label class="toggle"><input type="checkbox" id="rangeShuffle" checked> 카드 섞기</label>
+        <p class="hint" style="margin:0 0 4px">학습 방식</p>
+        <div class="mode-seg" role="radiogroup" aria-label="학습 방식">
+          <label><input type="radio" name="rangeMode" id="rangeModeCard" value="card" checked> 카드</label>
+          <label><input type="radio" name="rangeMode" id="rangeModeQuiz" value="quiz"> 퀴즈</label>
+        </div>
+        <label class="toggle"><input type="checkbox" id="rangeShuffle" checked> 순서 섞기</label>
         <label class="toggle"><input type="checkbox" id="rangeUnknownOnly"> 외움 안 한 단어만</label>
         <p class="hint" id="rangeInfo"></p>
-        <button type="button" class="btn block" id="btnRangeStart">범위 카드 시작</button>
+        <button type="button" class="btn block" id="btnRangeStart">범위 학습 시작</button>
       </div>
     </section>
 
@@ -320,6 +331,14 @@ main { flex: 1; padding: 12px 14px; }
           </div>
           <div class="row" style="margin-top:8px">
             <button type="button" class="btn ghost block" id="btnBundleDone">DAY 목록으로</button>
+          </div>
+        </div>
+        <div id="quizRangeActions" style="display:none">
+          <div class="row" style="margin-top:14px" id="quizRangeStudyRow">
+            <button type="button" class="btn accent block" id="btnRangeStudyWrong">틀린 단어 카드로 복습</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button type="button" class="btn ghost block" id="btnRangeQuizDone">범위 선택으로</button>
           </div>
         </div>
       </div>
@@ -1111,7 +1130,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   var quizAnswered = false;
   var quizReviewDay = 0;
   var pendingTodayDay = 0;
-  var quizMode = 'daily'; // daily | bundle
+  var quizMode = 'daily'; // daily | bundle | range
   var bundleKey = '';     // e.g. '1-5'
   var bundleScores = loadBundleScores();
 
@@ -1597,6 +1616,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     byId('quizResult').style.display = 'none';
     byId('quizDailyActions').style.display = 'none';
     byId('quizBundleActions').style.display = 'none';
+    byId('quizRangeActions').style.display = 'none';
     byId('btnQuizSkip').style.display = '';
     byId('quizSub').textContent = 'DAY ' + reviewDay + ' 복습 · 이어서 DAY ' + todayDay;
     byId('appTitle').textContent = '복습 퀴즈 · DAY ' + reviewDay;
@@ -1625,6 +1645,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     byId('quizResult').style.display = 'none';
     byId('quizDailyActions').style.display = 'none';
     byId('quizBundleActions').style.display = 'none';
+    byId('quizRangeActions').style.display = 'none';
     byId('btnQuizSkip').style.display = 'none';
     byId('quizSub').textContent = '묶음 복습 DAY ' + b.key;
     byId('appTitle').textContent = '묶음 복습 · ' + b.key;
@@ -1744,6 +1765,30 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       }
       byId('quizDailyActions').style.display = 'none';
       byId('quizBundleActions').style.display = 'block';
+      byId('quizRangeActions').style.display = 'none';
+      byId('btnQuizSkip').style.display = 'none';
+      saveState();
+      return;
+    }
+
+    if (quizMode === 'range') {
+      byId('resultMsg').textContent = wrongN
+        ? ('틀린 ' + wrongN + '개를 누적 오답에 넣었습니다. (범위 암기 · 퀴즈)')
+        : '모두 맞았습니다!';
+      if (wrongN) {
+        byId('quizWrongPreview').innerHTML = '<p class="hint">틀린 단어: ' +
+          quizWrongIds.map(function (id) {
+            var w = lookupWord(id);
+            return w ? esc(w.word) : '';
+          }).filter(Boolean).join(', ') + '</p>';
+        byId('quizRangeStudyRow').style.display = 'flex';
+      } else {
+        byId('quizWrongPreview').innerHTML = '';
+        byId('quizRangeStudyRow').style.display = 'none';
+      }
+      byId('quizDailyActions').style.display = 'none';
+      byId('quizBundleActions').style.display = 'none';
+      byId('quizRangeActions').style.display = 'block';
       byId('btnQuizSkip').style.display = 'none';
       saveState();
       return;
@@ -1764,6 +1809,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     }
     byId('quizDailyActions').style.display = 'block';
     byId('quizBundleActions').style.display = 'none';
+    byId('quizRangeActions').style.display = 'none';
     saveState();
   }
 
@@ -2214,7 +2260,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     if (ps) ss.value = ps; else if (days.length) ss.value = days[0];
     if (pe) se.value = pe; else if (days.length) se.value = days[days.length - 1];
     byId('appTitle').textContent = '범위 암기';
-    byId('appSub').textContent = '기초 · DAY 범위 카드';
+    byId('appSub').textContent = '기초 · DAY 범위 · 카드/퀴즈';
     updateRangeInfo();
     showPanel('range');
   }
@@ -2234,9 +2280,58 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     showPanel('card');
     renderCard();
   }
+  function startRangeQuiz() {
+    var r = buildRangeList();
+    if (!r.list.length) { showToast('학습할 단어가 없습니다'); return; }
+    quizMode = 'range';
+    bundleKey = '';
+    quizReviewDay = 0;
+    pendingTodayDay = 0;
+    r.list.forEach(function (w) { w.isReview = false; });
+    quizPool = byId('rangeShuffle').checked ? shuffle(r.list) : r.list.slice();
+    quizIdx = 0;
+    quizScore = 0;
+    quizWrongIds = [];
+    quizAnswered = false;
+    byId('quizCard').style.display = 'block';
+    byId('quizResult').style.display = 'none';
+    byId('quizDailyActions').style.display = 'none';
+    byId('quizBundleActions').style.display = 'none';
+    byId('quizRangeActions').style.display = 'none';
+    byId('btnQuizSkip').style.display = 'none';
+    byId('quizSub').textContent = '범위 암기 퀴즈 · DAY ' + r.s + '~' + r.e;
+    byId('appTitle').textContent = '범위 퀴즈 · DAY ' + r.s + '~' + r.e;
+    byId('appSub').textContent = quizPool.length + '문제 · 4지선다';
+    showPanel('quiz');
+    renderQuiz();
+  }
+  function startRangeStudy() {
+    var mode = (byId('rangeModeQuiz').checked ? 'quiz' : 'card');
+    if (mode === 'quiz') startRangeQuiz();
+    else startRangeCards();
+  }
+  function studyRangeWrong() {
+    var list = quizWrongIds.map(lookupWord).filter(Boolean);
+    if (!list.length) { openRange(); return; }
+    cardMode = 'range';
+    cardReturnPanel = 'range';
+    afterCardAction = null;
+    startCardsWithList(list, '범위 퀴즈 오답', list.length + '개 · 외움하면 누적 오답에서 제거');
+  }
   byId('btnRangeEntry').addEventListener('click', openRange);
-  byId('btnRangeStart').addEventListener('click', startRangeCards);
+  byId('btnRangeStart').addEventListener('click', startRangeStudy);
   ['rangeStart', 'rangeEnd', 'rangeUnknownOnly'].forEach(function (id) { byId(id).addEventListener('change', updateRangeInfo); });
+  function syncRangeModeSeg() {
+    var card = byId('rangeModeCard'), quiz = byId('rangeModeQuiz');
+    if (card && card.parentElement) card.parentElement.classList.toggle('on', !!card.checked);
+    if (quiz && quiz.parentElement) quiz.parentElement.classList.toggle('on', !!quiz.checked);
+  }
+  byId('btnRangeQuizDone').addEventListener('click', openRange);
+  byId('btnRangeStudyWrong').addEventListener('click', studyRangeWrong);
+  ['rangeModeCard', 'rangeModeQuiz'].forEach(function (id) {
+    byId(id).addEventListener('change', syncRangeModeSeg);
+  });
+  syncRangeModeSeg();
   byId('btnRangeHome').addEventListener('click', function () {
     byId('appTitle').textContent = '단어암기 · GKC 어휘';
     byId('appSub').textContent = '기초 · 기본 · 심화 · 리뉴얼 프레임워크';
