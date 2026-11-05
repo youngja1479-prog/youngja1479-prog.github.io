@@ -225,6 +225,11 @@ main { flex: 1; padding: 12px 14px; }
         </button>
       </div>
       <div class="card">
+        <h2>설정</h2>
+        <label class="toggle"><input type="checkbox" id="optAutoSpeak"> 자동 발음</label>
+        <p class="hint" style="margin:8px 0 0">켜면 카드가 바뀔 때 영어 단어를 자동으로 읽어 줍니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다. (퀴즈에는 적용되지 않음)</p>
+      </div>
+      <div class="card">
         <h2>안내</h2>
         <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후, 한 덱에서 복습(오답) 단어가 먼저 나오고 이어서 오늘 DAY 단어가 나옵니다. 「외움」하면 누적 오답에서 빠집니다.</p>
       </div>
@@ -1106,6 +1111,7 @@ const DATA = {
 const WORDS_PER_DAY = 40;
 const LS_PREFIX = 'gkc-voca2-';
 const LS_KEY = LS_PREFIX + 'marks-v1';
+const LS_SETTINGS = LS_PREFIX + 'settings-v1';
 const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY 점수 무시)
 
 (function () {
@@ -1146,6 +1152,23 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     } catch (e) {}
     return { known: {}, wrong: {} };
   }
+
+  function loadSettings() {
+    try {
+      var raw = localStorage.getItem(LS_SETTINGS);
+      if (raw) {
+        var o = JSON.parse(raw);
+        return { autoSpeak: !!(o && o.autoSpeak) };
+      }
+    } catch (e) {}
+    return { autoSpeak: false };
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(LS_SETTINGS, JSON.stringify(settings)); } catch (e) {}
+  }
+
+  var settings = loadSettings();
 
   function loadBundleScores() {
     try {
@@ -2036,6 +2059,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     byId('cardProg').style.width = (cardIdx / Math.max(pool.length, 1) * 100) + '%';
     byId('flashWord').textContent = w.word;
     if (byId('ttsBtn')) byId('ttsBtn').style.visibility = 'visible';
+    if (settings.autoSpeak) speakWord(w.word);
     var badges = '';
     if (w.isReview) badges += '<span class="badge review">복습</span> ';
     if (state.known[w.id]) badges += '<span class="badge known">외움</span> ';
@@ -2402,6 +2426,17 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
   bindSpeakBtn('ttsBtn', speakCurrentCard);
   bindSpeakBtn('quizTtsBtn', speakCurrentQuiz);
+
+  (function syncAutoSpeakUi() {
+    var el = byId('optAutoSpeak');
+    if (!el) return;
+    el.checked = !!settings.autoSpeak;
+    el.addEventListener('change', function () {
+      settings.autoSpeak = !!el.checked;
+      saveSettings();
+      showToast(settings.autoSpeak ? '자동 발음 켜짐' : '자동 발음 꺼짐');
+    });
+  })();
 
   byId('btnKnow').addEventListener('click', function () { markCard(true); });
   byId('btnDontKnow').addEventListener('click', function () { markCard(false); });
