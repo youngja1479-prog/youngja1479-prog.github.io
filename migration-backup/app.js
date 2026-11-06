@@ -6,7 +6,7 @@
   "use strict";
 
   const SCHEMA = "gkc-device-backup/v1";
-  const MAX_IMPORT_BYTES = 55 * 1024 * 1024;
+  const MAX_IMPORT_BYTES = 120000000; // 120 MB (decimal), not MiB
 
   /** Inventory from read-only audit of published apps (exact + prefixes). */
   const INVENTORY = {
