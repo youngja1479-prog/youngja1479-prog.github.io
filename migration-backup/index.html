@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>기기 데이터 백업 · GKC</title>
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+      line-height: 1.45; padding: 1rem; padding-bottom: 3rem;
+      max-width: 40rem; margin-inline: auto;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 .5rem; }
+    h2 { font-size: 1.05rem; margin: 1.4rem 0 .5rem; }
+    .note, .warn { font-size: .92rem; color: #444; }
+    @media (prefers-color-scheme: dark) { .note, .warn { color: #bbb; } }
+    .warn { background: #fff3cd; color: #664d03; padding: .75rem .9rem; border-radius: .6rem; }
+    @media (prefers-color-scheme: dark) { .warn { background: #3a3200; color: #ffe8a3; } }
+    .card {
+      border: 1px solid #ccc; border-radius: .75rem; padding: 1rem; margin: .75rem 0;
+    }
+    @media (prefers-color-scheme: dark) { .card { border-color: #555; } }
+    button, label.filebtn {
+      display: block; width: 100%; text-align: center; font-size: 1.05rem;
+      padding: .95rem 1rem; margin: .45rem 0; border-radius: .7rem; border: 0;
+      font-weight: 650; cursor: pointer;
+    }
+    button.primary { background: #0b57d0; color: #fff; }
+    button.secondary { background: #e8eaed; color: #202124; }
+    @media (prefers-color-scheme: dark) { button.secondary { background: #3c4043; color: #fff; } }
+    button.danger { background: #b3261e; color: #fff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    label.filebtn { background: #137333; color: #fff; }
+    input[type=file] { display: none; }
+    #status { white-space: pre-wrap; font-size: .9rem; margin-top: .75rem; }
+    ul.counts { padding-left: 1.2rem; margin: .4rem 0; }
+    .conflict { font-size: .9rem; max-height: 12rem; overflow: auto; }
+    .row { display: flex; gap: .5rem; align-items: flex-start; margin: .35rem 0; }
+    .row label { flex: 1; font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <h1>기기 데이터 백업</h1>
+  <p class="note">휴대폰·태블릿에서 공부/게임 진행 기록을 <strong>파일로 저장</strong>하거나 <strong>불러오기</strong>합니다. 개발자 도구는 필요 없습니다.</p>
+  <div class="warn">
+    이 페이지는 브라우저에만 저장된 데이터를 다룹니다. 동기화 비밀번호·초대 링크·세션은 백업에 넣지 않습니다.
+    노트 클라우드 동기화는 새 주소에서 비밀번호를 다시 입력해야 할 수 있습니다.
+    백업 파일은 채팅/클라우드에 올리지 말고 이 기기에 보관하세요.
+  </div>
+
+  <div class="card">
+    <h2>1. 백업 파일 저장</h2>
+    <p class="note">목차 노트(필기·이미지 포함), 영단어, 게임 점수 등 <em>이 사이트 주소</em>에 저장된 기록을 모읍니다.</p>
+    <button type="button" class="primary" id="btnExport">백업 파일 저장</button>
+    <div id="exportSummary"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 백업 파일 불러오기</h2>
+    <p class="note">기본은 <strong>비어 있는 항목만</strong> 채웁니다. 이미 있는 데이터는 덮어쓰지 않습니다.</p>
+    <label class="filebtn">백업 파일 불러오기<input type="file" id="fileImport" accept="application/json,.json" /></label>
+    <div id="importPreview"></div>
+    <div id="conflictBox" class="conflict" hidden></div>
+    <button type="button" class="secondary" id="btnImportEmpty" disabled>비어 있는 항목만 복원</button>
+    <button type="button" class="danger" id="btnImportReplace" disabled>선택한 충돌 항목 덮어쓰기</button>
+    <button type="button" class="secondary" id="btnSafetyExport" disabled>덮어쓰기 전 현재 데이터 안전 백업</button>
+  </div>
+
+  <p class="note">공개 사이트와 새 비공개 주소는 저장 공간이 다릅니다. <strong>공개 사이트에서 저장 → 새 주소에서 불러오기</strong> 순서로 하세요.</p>
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <script src="./app.js"></script>
+  <script>
+    const M = window.GkcMigrationBackup;
+    const statusEl = document.getElementById("status");
+    const exportSummary = document.getElementById("exportSummary");
+    const importPreview = document.getElementById("importPreview");
+    const conflictBox = document.getElementById("conflictBox");
+    const btnImportEmpty = document.getElementById("btnImportEmpty");
+    const btnImportReplace = document.getElementById("btnImportReplace");
+    const btnSafetyExport = document.getElementById("btnSafetyExport");
+    let pendingBackup = null;
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    function renderCounts(backup, into) {
+      const rows = M.countsSummary(backup);
+      if (!rows.length) {
+        into.innerHTML = "<p class='note'>백업할 데이터가 거의 없습니다.</p>";
+        return;
+      }
+      into.innerHTML = "<ul class='counts'>" + rows.map((r) =>
+        `<li>${r.label}: 설정 ${r.ls}개` + (r.idb ? `, 노트DB ${r.idb}개` : "") + "</li>"
+      ).join("") + "</ul>";
+    }
+
+    document.getElementById("btnExport").onclick = async () => {
+      try {
+        setStatus("백업을 만드는 중…");
+        const backup = await M.buildBackup();
+        renderCounts(backup, exportSummary);
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        M.downloadJson(backup, `gkc-device-backup-${stamp}.json`);
+        setStatus("백업 파일을 저장했습니다. 다운로드 폴더를 확인하세요.\nchecksum: " + backup.checksum.hex.slice(0, 12) + "…");
+      } catch (e) {
+        setStatus("백업 실패: " + (e.message || e));
+      }
+    };
+
+    document.getElementById("fileImport").onchange = async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      pendingBackup = null;
+      btnImportEmpty.disabled = true;
+      btnImportReplace.disabled = true;
+      btnSafetyExport.disabled = true;
+      conflictBox.hidden = true;
+      conflictBox.innerHTML = "";
+      try {
+        setStatus("파일 검사 중…");
+        const backup = await M.readJsonFile(file);
+        pendingBackup = backup;
+        renderCounts(backup, importPreview);
+        const conflicts = await M.summarizeConflicts(backup);
+        if (conflicts.length) {
+          conflictBox.hidden = false;
+          conflictBox.innerHTML = "<p>이미 기기에 있는 항목 " + conflicts.length + "개 (덮어쓰려면 선택):</p>" +
+            conflicts.map((c) => {
+              const cid = c.type === "localStorage" ? ("ls:" + c.key) : ("idb:" + (c.dbName || "") + ":" + c.key);
+              return `<div class="row"><input type="checkbox" class="conflict-cb" data-id="${cid}" id="${cid}" /><label for="${cid}">${c.app} · ${c.type} · ${c.key}</label></div>`;
+            }).join("");
+          btnImportReplace.disabled = false;
+          btnSafetyExport.disabled = false;
+        }
+        btnImportEmpty.disabled = false;
+        setStatus("파일을 읽었습니다. 아래에서 복원 방식을 고르세요.\n원본 주소: " + (backup.origin || "(없음)"));
+      } catch (e) {
+        setStatus("불러오기 실패: " + (e.message || e));
+      }
+    };
+
+    btnImportEmpty.onclick = async () => {
+      if (!pendingBackup) return;
+      try {
+        setStatus("복원 중 (비어 있는 항목만)…");
+        const report = await M.importBackup(pendingBackup, { mode: "empty-only" });
+        setStatus("완료. 기록 " + report.written.length + "개, 건너뜀 " + report.skipped.length + "개.");
+      } catch (e) {
+        setStatus("복원 실패(변경 롤백 시도함): " + (e.message || e));
+      }
+    };
+
+    btnSafetyExport.onclick = async () => {
+      try {
+        const backup = await M.buildBackup();
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        M.downloadJson(backup, `gkc-safety-before-import-${stamp}.json`);
+        setStatus("현재 기기 데이터를 안전 백업으로 저장했습니다. 이제 덮어쓰기를 진행할 수 있습니다.");
+      } catch (e) {
+        setStatus("안전 백업 실패: " + (e.message || e));
+      }
+    };
+
+    btnImportReplace.onclick = async () => {
+      if (!pendingBackup) return;
+      const chosen = new Set(
+        [...document.querySelectorAll(".conflict-cb:checked")].map((el) => el.getAttribute("data-id"))
+      );
+      if (!chosen.size) {
+        setStatus("덮어쓸 항목을 하나도 고르지 않았습니다. 필요하면 '비어 있는 항목만 복원'을 쓰세요.");
+        return;
+      }
+      if (!confirm("선택한 " + chosen.size + "개 항목을 백업 내용으로 덮어쓸까요?")) return;
+      try {
+        setStatus("선택 항목 덮어쓰는 중…");
+        const report = await M.importBackup(pendingBackup, { mode: "replace-chosen", chosenKeys: chosen });
+        setStatus("완료. 기록 " + report.written.length + "개, 건너뜀 " + report.skipped.length + "개.");
+      } catch (e) {
+        setStatus("복원 실패(변경 롤백 시도함): " + (e.message || e));
+      }
+    };
+  </script>
+</body>
+</html>
