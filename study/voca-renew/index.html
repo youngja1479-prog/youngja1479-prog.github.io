@@ -359,15 +359,15 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>예문 빈칸</h2>
-        <p class="hint">빈칸의 영어 단어를 떠올린 뒤 정답을 확인하세요. 입력할 필요 없어요.</p>
+        <p class="hint">한국어 해석을 보고 예문 빈칸의 영어 단어를 떠올리세요. 정답·뜻·발음은 정답 확인 후 표시됩니다. 입력할 필요 없어요.</p>
         <p class="hint" id="clozeNotice"></p>
         <div id="clozeQuestionBox">
           <p id="clozeSentence" style="font-size:1.2rem;line-height:1.9;overflow-wrap:anywhere"></p>
+          <p class="hint" id="clozeTranslation" aria-label="한국어 해석"></p>
           <button type="button" class="btn block" id="btnClozeReveal">정답 확인</button>
           <div id="clozeAnswer" hidden aria-live="polite">
             <h2 id="clozeWord"></h2>
             <p id="clozeFullSentence"></p>
-            <p class="hint" id="clozeTranslation"></p>
             <p id="clozeMeaning"></p>
             <button type="button" class="speak-btn sm" id="btnClozeSpeak">🔊 발음</button>
             <p class="hint">모르겠음 → 누적 오답 · 외움 → 누적 오답에서 제거</p>
@@ -2545,6 +2545,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       return;
     }
     byId('clozeSentence').textContent = clozeDeck[clozeIdx].gap;
+    byId('clozeTranslation').textContent = clozeDeck[clozeIdx].ko;
     byId('btnClozeReveal').focus();
   }
   function revealCloze() {
@@ -2553,7 +2554,6 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var q = clozeDeck[clozeIdx];
     byId('clozeWord').textContent = q.word.word;
     byId('clozeFullSentence').textContent = q.en;
-    byId('clozeTranslation').textContent = q.ko;
     byId('clozeMeaning').textContent = (q.word.meanings || []).join(' · ');
     byId('clozeAnswer').hidden = false;
     byId('btnClozeReveal').hidden = true;
