@@ -2755,7 +2755,10 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     renderQuiz();
   }
   function startRangeStudy() {
-    if (byId('rangeModeExamples').checked) openExampleModes('range');
+    if (byId('rangeModeExamples').checked) {
+      if (!buildRangeList().list.length) { showToast('학습할 단어가 없습니다'); return; }
+      openExampleModes('range');
+    }
     else if (byId('rangeModeQuiz').checked) startRangeQuiz();
     else startRangeCards();
   }
@@ -2779,12 +2782,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   byId('btnRangeQuizDone').addEventListener('click', openRange);
   byId('btnRangeStudyWrong').addEventListener('click', studyRangeWrong);
   ['rangeModeCard', 'rangeModeQuiz', 'rangeModeExamples'].forEach(function (id) {
-    byId(id).addEventListener('change', function () {
-      syncRangeModeSeg();
-      if (id === 'rangeModeExamples' && byId(id).checked) openExampleModes('range');
-    });
+    byId(id).addEventListener('change', syncRangeModeSeg);
   });
-  byId('rangeModeExamples').addEventListener('click', function () { openExampleModes('range'); });
   syncRangeModeSeg();
   byId('btnRangeHome').addEventListener('click', function () {
     byId('appTitle').textContent = '단어암기 · GKC 어휘';
