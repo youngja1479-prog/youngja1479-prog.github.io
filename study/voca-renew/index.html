@@ -220,14 +220,14 @@ main { flex: 1; padding: 12px 14px; }
       <div class="card" style="padding:12px">
         <button type="button" class="level-card" id="btnRangeEntry" style="margin:0">
           <div class="lv">범위 암기</div>
-          <div class="desc">기초 · DAY 범위 선택 · 카드 / 퀴즈 / 예문 빈칸 / 해석 연습</div>
+          <div class="desc">기초 · DAY 범위 선택 · 카드 / 퀴즈 / 예문</div>
           <div class="prog">탭하여 범위 선택</div>
         </button>
       </div>
       <div class="card">
         <h2>설정</h2>
         <label class="toggle"><input type="checkbox" id="optAutoSpeak"> 자동 발음</label>
-        <p class="hint" style="margin:8px 0 0">켜면 카드·퀴즈에서 영어 단어가 나올 때 자동으로 읽어 줍니다. 예문 빈칸·해석 연습은 확인 후에만 읽습니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다.</p>
+        <p class="hint" style="margin:8px 0 0">켜면 카드·퀴즈에서 영어 단어가 나올 때 자동으로 읽어 줍니다. 예문 빈칸·예문 해석은 확인 후에만 읽습니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다.</p>
       </div>
       <div class="card">
         <h2>안내</h2>
@@ -265,8 +265,7 @@ main { flex: 1; padding: 12px 14px; }
         <div class="mode-seg" role="radiogroup" aria-label="학습 방식">
           <label><input type="radio" name="rangeMode" id="rangeModeCard" value="card" checked> 카드</label>
           <label><input type="radio" name="rangeMode" id="rangeModeQuiz" value="quiz"> 퀴즈</label>
-          <label><input type="radio" name="rangeMode" id="rangeModeCloze" value="cloze"> 예문 빈칸</label>
-          <label><input type="radio" name="rangeMode" id="rangeModeInterpret" value="interpret"> 해석 연습</label>
+          <label><input type="radio" name="rangeMode" id="rangeModeExamples" value="examples"> 예문</label>
         </div>
         <label class="toggle"><input type="checkbox" id="rangeShuffle" checked> 순서 섞기</label>
         <label class="toggle"><input type="checkbox" id="rangeUnknownOnly"> 외움 안 한 단어만</label>
@@ -285,8 +284,7 @@ main { flex: 1; padding: 12px 14px; }
           <label class="toggle"><input type="checkbox" id="optWrongOnly"> 오답만 보기</label>
           <div class="row" style="margin-top:12px">
             <button type="button" class="btn block" id="btnStartCard">카드 암기 시작</button>
-            <button type="button" class="btn ghost block" id="btnDayCloze">예문 빈칸 암기</button>
-            <button type="button" class="btn ghost block" id="btnDayInterpret">해석 연습</button>
+            <button type="button" class="btn ghost block" id="btnDayExamples">예문</button>
           </div>
         </div>
         <div id="dayEmpty" class="empty" style="display:none">단어 준비 중</div>
@@ -350,6 +348,18 @@ main { flex: 1; padding: 12px 14px; }
             <button type="button" class="btn ghost block" id="btnRangeQuizDone">범위 선택으로</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-examples">
+      <button type="button" class="back-link" id="btnExamplesBack">← 학습 방식 선택</button>
+      <div class="card">
+        <h2>예문</h2>
+        <p class="hint" id="examplesScope"></p>
+        <button type="button" class="btn block" id="btnExampleCloze">예문 빈칸</button>
+        <p class="hint">한국어 해석을 먼저 보고 영어 빈칸의 단어를 떠올려요.</p>
+        <button type="button" class="btn ghost block" id="btnExampleInterpret">예문 해석</button>
+        <p class="hint">영어 빈칸 문장에서 보이는 부분을 해석한 뒤 예시 해석을 확인해요. 입력·자동 채점은 없어요.</p>
       </div>
     </section>
 
@@ -1612,7 +1622,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
     });
-    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', range: 'home', cloze: 'card', quiz: 'card', card: 'card', wrong: 'wrong' };
+    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', range: 'home', examples: 'card', cloze: 'card', quiz: 'card', card: 'card', wrong: 'wrong' };
     var tab = navMap[name] || 'home';
     document.querySelectorAll('.nav button').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
@@ -2519,9 +2529,9 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     clozePractice = practice === 'interpret' ? 'interpret' : 'cloze';
     var interpret = clozePractice === 'interpret';
     clozeIdx = 0; clozeMissed = []; clozeKnown = 0;
-    byId('appTitle').textContent = (interpret ? '해석 연습 · ' : '예문 빈칸 · ') + title;
+    byId('appTitle').textContent = (interpret ? '예문 해석 · ' : '예문 빈칸 · ') + title;
     byId('appSub').textContent = usable.length + (interpret ? '개 · 해석을 떠올리고 예시 확인' : '개 · 떠올리고 정답 확인');
-    byId('clozeHeading').textContent = interpret ? '해석 연습' : '예문 빈칸';
+    byId('clozeHeading').textContent = interpret ? '예문 해석' : '예문 빈칸';
     byId('clozeInstructions').textContent = interpret
       ? '빈칸은 빈칸으로 두고 보이는 영어 문장의 뜻을 떠올리세요. 해석 확인 후 원문 기준 예시 해석을 보여줍니다. 빈칸의 정답이나 유일한 번역을 맞히는 자동 채점이 아닙니다. 입력할 필요 없어요.'
       : '한국어 해석을 보고 예문 빈칸의 영어 단어를 떠올리세요. 정답·뜻·발음은 정답 확인 후 표시됩니다. 입력할 필요 없어요.';
@@ -2600,18 +2610,39 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
   function leaveCloze() {
     stopClozeSpeech();
-    if (clozeReturn === 'day') showDayDetail(currentDay);
+    if (clozeReturn === 'examples') openExampleModes(exampleSource);
+    else if (clozeReturn === 'day') showDayDetail(currentDay);
     else openRange();
   }
-  byId('btnDayCloze').addEventListener('click', function () {
-    var list = getDayWords(currentLevel, currentDay).map(function (w,i) { return enrich(currentLevel, currentDay, i, w); });
-    if (byId('optWrongOnly').checked) list = list.filter(function (w) { return !!state.wrong[w.id]; });
-    startCloze(list, 'DAY ' + currentDay, 'day', byId('optShuffle').checked);
-  });
-  byId('btnDayInterpret').addEventListener('click', function () {
-    var list = getDayWords(currentLevel, currentDay).map(function (w,i) { return enrich(currentLevel, currentDay, i, w); });
-    if (byId('optWrongOnly').checked) list = list.filter(function (w) { return !!state.wrong[w.id]; });
-    startCloze(list, 'DAY ' + currentDay, 'day', byId('optShuffle').checked, 'interpret');
+  var exampleSource = 'range';
+  function exampleSelection() {
+    if (exampleSource === 'day') {
+      var words = getDayWords(currentLevel, currentDay).map(function (w,i) { return enrich(currentLevel, currentDay, i, w); });
+      if (byId('optWrongOnly').checked) words = words.filter(function (w) { return !!state.wrong[w.id]; });
+      return { list: words, title: 'DAY ' + currentDay, mix: byId('optShuffle').checked };
+    }
+    var r = buildRangeList();
+    return { list: r.list, title: 'DAY ' + r.s + '~' + r.e, mix: byId('rangeShuffle').checked };
+  }
+  function openExampleModes(source) {
+    exampleSource = source === 'day' ? 'day' : 'range';
+    var selected = exampleSelection();
+    byId('examplesScope').textContent = selected.title + ' · ' + selected.list.length + '단어 · 예문 학습 방식을 선택하세요';
+    byId('appTitle').textContent = '예문 · ' + selected.title;
+    byId('appSub').textContent = '예문 빈칸 / 예문 해석';
+    showPanel('examples');
+    byId('btnExampleCloze').focus();
+  }
+  function startExampleMode(practice) {
+    var selected = exampleSelection();
+    startCloze(selected.list, selected.title, 'examples', selected.mix, practice);
+  }
+  byId('btnDayExamples').addEventListener('click', function () { openExampleModes('day'); });
+  byId('btnExampleCloze').addEventListener('click', function () { startExampleMode('cloze'); });
+  byId('btnExampleInterpret').addEventListener('click', function () { startExampleMode('interpret'); });
+  byId('btnExamplesBack').addEventListener('click', function () {
+    if (exampleSource === 'day') showDayDetail(currentDay);
+    else openRange();
   });
   byId('btnClozeReveal').addEventListener('click', revealCloze);
   byId('btnClozeWrong').addEventListener('click', function () { markCloze(false); });
@@ -2678,7 +2709,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     if (ps) ss.value = ps; else if (days.length) ss.value = days[0];
     if (pe) se.value = pe; else if (days.length) se.value = days[days.length - 1];
     byId('appTitle').textContent = '범위 암기';
-    byId('appSub').textContent = '기초 · DAY 범위 · 카드/퀴즈/예문 빈칸/해석 연습';
+    byId('appSub').textContent = '기초 · DAY 범위 · 카드/퀴즈/예문';
     updateRangeInfo();
     showPanel('range');
   }
@@ -2724,12 +2755,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     renderQuiz();
   }
   function startRangeStudy() {
-    var mode = byId('rangeModeInterpret').checked ? 'interpret' : (byId('rangeModeCloze').checked ? 'cloze' : (byId('rangeModeQuiz').checked ? 'quiz' : 'card'));
-    if (mode === 'cloze' || mode === 'interpret') {
-      var r = buildRangeList();
-      startCloze(r.list, 'DAY ' + r.s + '~' + r.e, 'range', byId('rangeShuffle').checked, mode);
-    }
-    else if (mode === 'quiz') startRangeQuiz();
+    if (byId('rangeModeExamples').checked) openExampleModes('range');
+    else if (byId('rangeModeQuiz').checked) startRangeQuiz();
     else startRangeCards();
   }
   function studyRangeWrong() {
@@ -2744,17 +2771,20 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   byId('btnRangeStart').addEventListener('click', startRangeStudy);
   ['rangeStart', 'rangeEnd', 'rangeUnknownOnly'].forEach(function (id) { byId(id).addEventListener('change', updateRangeInfo); });
   function syncRangeModeSeg() {
-    var card = byId('rangeModeCard'), quiz = byId('rangeModeQuiz'), cloze = byId('rangeModeCloze'), interpret = byId('rangeModeInterpret');
-    if (interpret && interpret.parentElement) interpret.parentElement.classList.toggle('on', !!interpret.checked);
-    if (cloze && cloze.parentElement) cloze.parentElement.classList.toggle('on', !!cloze.checked);
-    if (card && card.parentElement) card.parentElement.classList.toggle('on', !!card.checked);
-    if (quiz && quiz.parentElement) quiz.parentElement.classList.toggle('on', !!quiz.checked);
+    ['rangeModeCard', 'rangeModeQuiz', 'rangeModeExamples'].forEach(function (id) {
+      var el = byId(id);
+      el.parentElement.classList.toggle('on', !!el.checked);
+    });
   }
   byId('btnRangeQuizDone').addEventListener('click', openRange);
   byId('btnRangeStudyWrong').addEventListener('click', studyRangeWrong);
-  ['rangeModeCard', 'rangeModeQuiz', 'rangeModeCloze', 'rangeModeInterpret'].forEach(function (id) {
-    byId(id).addEventListener('change', syncRangeModeSeg);
+  ['rangeModeCard', 'rangeModeQuiz', 'rangeModeExamples'].forEach(function (id) {
+    byId(id).addEventListener('change', function () {
+      syncRangeModeSeg();
+      if (id === 'rangeModeExamples' && byId(id).checked) openExampleModes('range');
+    });
   });
+  byId('rangeModeExamples').addEventListener('click', function () { openExampleModes('range'); });
   syncRangeModeSeg();
   byId('btnRangeHome').addEventListener('click', function () {
     byId('appTitle').textContent = '단어암기 · GKC 어휘';
