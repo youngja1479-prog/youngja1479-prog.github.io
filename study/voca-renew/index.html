@@ -109,7 +109,7 @@ main { flex: 1; padding: 12px 14px; }
 .toggle { display: flex; align-items: center; gap: 10px; font-size: .9rem; color: var(--text);
   padding: 6px 0; min-height: 44px; }
 .toggle input { width: 20px; height: 20px; accent-color: var(--primary); flex-shrink: 0; }
-.mode-seg { display: flex; gap: 8px; margin: 4px 0 12px; }
+.mode-seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
 .mode-seg label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 12px 10px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--card);
   font-size: .92rem; font-weight: 600; cursor: pointer; color: var(--text); }
@@ -220,14 +220,14 @@ main { flex: 1; padding: 12px 14px; }
       <div class="card" style="padding:12px">
         <button type="button" class="level-card" id="btnRangeEntry" style="margin:0">
           <div class="lv">범위 암기</div>
-          <div class="desc">기초 · 시작 DAY ~ 끝 DAY 단어를 카드로 한꺼번에</div>
+          <div class="desc">기초 · DAY 범위 선택 · 카드 / 퀴즈 / 예문 빈칸</div>
           <div class="prog">탭하여 범위 선택</div>
         </button>
       </div>
       <div class="card">
         <h2>설정</h2>
         <label class="toggle"><input type="checkbox" id="optAutoSpeak"> 자동 발음</label>
-        <p class="hint" style="margin:8px 0 0">켜면 카드·퀴즈에서 영어 단어가 나올 때 자동으로 읽어 줍니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다.</p>
+        <p class="hint" style="margin:8px 0 0">켜면 카드·퀴즈에서 영어 단어가 나올 때 자동으로 읽어 줍니다. 예문 빈칸은 정답 확인 후에만 읽습니다. 꺼두면 🔊 버튼을 눌렀을 때만 재생합니다.</p>
       </div>
       <div class="card">
         <h2>안내</h2>
@@ -265,6 +265,7 @@ main { flex: 1; padding: 12px 14px; }
         <div class="mode-seg" role="radiogroup" aria-label="학습 방식">
           <label><input type="radio" name="rangeMode" id="rangeModeCard" value="card" checked> 카드</label>
           <label><input type="radio" name="rangeMode" id="rangeModeQuiz" value="quiz"> 퀴즈</label>
+          <label><input type="radio" name="rangeMode" id="rangeModeCloze" value="cloze"> 예문 빈칸</label>
         </div>
         <label class="toggle"><input type="checkbox" id="rangeShuffle" checked> 순서 섞기</label>
         <label class="toggle"><input type="checkbox" id="rangeUnknownOnly"> 외움 안 한 단어만</label>
@@ -283,6 +284,7 @@ main { flex: 1; padding: 12px 14px; }
           <label class="toggle"><input type="checkbox" id="optWrongOnly"> 오답만 보기</label>
           <div class="row" style="margin-top:12px">
             <button type="button" class="btn block" id="btnStartCard">카드 암기 시작</button>
+            <button type="button" class="btn ghost block" id="btnDayCloze">예문 빈칸 암기</button>
           </div>
         </div>
         <div id="dayEmpty" class="empty" style="display:none">단어 준비 중</div>
@@ -345,6 +347,40 @@ main { flex: 1; padding: 12px 14px; }
           <div class="row" style="margin-top:8px">
             <button type="button" class="btn ghost block" id="btnRangeQuizDone">범위 선택으로</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Example cloze: independent free-study deck -->
+    <section class="panel" id="panel-cloze">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <span id="clozeCounter"></span>
+        <button type="button" class="btn sm ghost" id="btnClozeBack">← 범위/학습 선택</button>
+      </div>
+      <div class="card">
+        <h2>예문 빈칸</h2>
+        <p class="hint">빈칸의 영어 단어를 떠올린 뒤 정답을 확인하세요. 입력할 필요 없어요.</p>
+        <p class="hint" id="clozeNotice"></p>
+        <div id="clozeQuestionBox">
+          <p id="clozeSentence" style="font-size:1.2rem;line-height:1.9;overflow-wrap:anywhere"></p>
+          <button type="button" class="btn block" id="btnClozeReveal">정답 확인</button>
+          <div id="clozeAnswer" hidden aria-live="polite">
+            <h2 id="clozeWord"></h2>
+            <p id="clozeFullSentence"></p>
+            <p class="hint" id="clozeTranslation"></p>
+            <p id="clozeMeaning"></p>
+            <button type="button" class="speak-btn sm" id="btnClozeSpeak">🔊 발음</button>
+            <p class="hint">모르겠음 → 누적 오답 · 외움 → 누적 오답에서 제거</p>
+            <div class="row" style="margin-top:12px">
+              <button type="button" class="btn ghost" id="btnClozeWrong">모르겠음 · 다음</button>
+              <button type="button" class="btn" id="btnClozeKnown">외움 · 다음</button>
+            </div>
+          </div>
+        </div>
+        <div id="clozeSummary" hidden aria-live="polite">
+          <p id="clozeResult" tabindex="-1"></p>
+          <button type="button" class="btn block" id="btnClozeRetry">이번 오답만 다시</button>
+          <button type="button" class="btn ghost block" id="btnClozeDone" style="margin-top:8px">범위/학습 선택으로</button>
         </div>
       </div>
     </section>
@@ -1574,7 +1610,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
     });
-    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', range: 'home', quiz: 'card', card: 'card', wrong: 'wrong' };
+    var navMap = { home: 'home', days: 'home', day: 'home', placeholder: 'home', range: 'home', cloze: 'card', quiz: 'card', card: 'card', wrong: 'wrong' };
     var tab = navMap[name] || 'home';
     document.querySelectorAll('.nav button').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
@@ -2402,6 +2438,163 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     }
   }
 
+
+  /* ---- Example cloze: reveal first, then explicit self-assessment ---- */
+  var clozeDeck = [], clozeMissed = [], clozeIdx = 0, clozeKnown = 0;
+  var clozeRevealed = false, clozeReturn = 'range', clozeTitle = '', clozeSkipped = 0;
+  var clozeIrregular = {
+    be: ['am','is','are','was','were','been','being'], have: ['has','had','having'],
+    do: ['does','did','done','doing'], go: ['goes','went','gone','going'],
+    get: ['got','gotten','getting'], make: ['made','making'], take: ['took','taken','taking'],
+    come: ['came','coming'], become: ['became','becoming'], give: ['gave','given','giving'],
+    see: ['saw','seen','seeing'], eat: ['ate','eaten','eating'], run: ['ran','running'],
+    write: ['wrote','written','writing'], read: ['read'], speak: ['spoke','spoken'],
+    tell: ['told'], say: ['said'], buy: ['bought'], bring: ['brought'], think: ['thought'],
+    teach: ['taught'], catch: ['caught'], find: ['found'], feel: ['felt'], leave: ['left'],
+    keep: ['kept'], sleep: ['slept'], meet: ['met'], hear: ['heard'], hold: ['held'],
+    stand: ['stood'], understand: ['understood'], sit: ['sat','sitting'],
+    win: ['won','winning'], lose: ['lost','losing'], build: ['built'], send: ['sent'],
+    spend: ['spent'], lend: ['lent'], pay: ['paid'], sell: ['sold'], fall: ['fell','fallen'],
+    break: ['broke','broken'], choose: ['chose','chosen'], drive: ['drove','driven','driving'],
+    ride: ['rode','ridden','riding'], rise: ['rose','risen','rising'], grow: ['grew','grown'],
+    know: ['knew','known'], throw: ['threw','thrown'], fly: ['flew','flown','flies'],
+    draw: ['drew','drawn'], blow: ['blew','blown'], wear: ['wore','worn'],
+    begin: ['began','begun','beginning'], drink: ['drank','drunk'], sing: ['sang','sung'],
+    swim: ['swam','swum','swimming'], wake: ['woke','woken','waking'],
+    feed: ['fed'], lead: ['led'], fight: ['fought'], seek: ['sought'],
+    cut: ['cut','cutting'], hit: ['hit','hitting'], put: ['put','putting'], let: ['let','letting'],
+    set: ['set','setting'], shut: ['shut','shutting'], quit: ['quit','quitting'],
+    child: ['children'], person: ['people'], man: ['men'], woman: ['women'],
+    foot: ['feet'], tooth: ['teeth'], mouse: ['mice'], good: ['better','best'], bad: ['worse','worst']
+  };
+  function clozeEscapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function clozeForms(w) {
+    var base = String(w.word || '').trim().toLowerCase(), out = [base];
+    // Multiword headwords: inflect the first word but match the complete phrase.
+    if (/^[a-z]+(?:\s+[a-z]+)+$/.test(base)) {
+      var pieces = base.split(/\s+/), first = pieces.shift();
+      clozeForms({ word: first }).forEach(function (v) { out.push(v + ' ' + pieces.join(' ')); });
+    }
+    if (/^[a-z]+$/.test(base)) {
+      out.push(base + 's', base + 'es', base + 'ed', base + 'ing');
+      if (/e$/.test(base)) out.push(base + 'd', base.slice(0, -1) + 'ing');
+      if (/[^aeiou]y$/.test(base)) out.push(base.slice(0,-1) + 'ies', base.slice(0,-1) + 'ied', base.slice(0,-1) + 'ier', base.slice(0,-1) + 'iest');
+      if (/[^aeiou][aeiou][^aeiouwxy]$/.test(base)) out.push(base + base.slice(-1) + 'ed', base + base.slice(-1) + 'ing');
+      if (/ie$/.test(base)) out.push(base.slice(0,-2) + 'ying');
+      (clozeIrregular[base] || []).forEach(function (v) { out.push(v); });
+      // Only explicit whole forms; suffix-only hints such as "-es" are not words.
+      String(w.forms || '').split(/[\s,;=()]+/).forEach(function (token) {
+        if (!token || token.charAt(0) === '-') return;
+        token.split('-').forEach(function (v) {
+          if (/^[a-z]{3,}$/.test(v.toLowerCase())) out.push(v.toLowerCase());
+        });
+      });
+    }
+    return out.filter(function (v, i, a) { return v && a.indexOf(v) === i; });
+  }
+  function makeCloze(w) {
+    var ex = String(w.example || ''), sep = ex.indexOf(' / ');
+    if (sep < 0 || !String(w.word || '').trim()) return null;
+    var en = ex.slice(0, sep).trim(), ko = ex.slice(sep + 3).trim();
+    if (!en || !ko) return null;
+    var forms = clozeForms(w).sort(function (a,b) { return b.length-a.length; });
+    var pattern = forms.map(function (v) { return v.split(/\s+/).map(clozeEscapeRegex).join('\\s+'); }).join('|');
+    if (!pattern) return null;
+    var re = new RegExp('(^|[^A-Za-z])(' + pattern + ')(?=$|[^A-Za-z])', 'gi');
+    var hits = 0;
+    var gap = en.replace(re, function (_, lead) { hits++; return lead + '［_____］'; });
+    return hits ? { word: w, en: en, ko: ko, gap: gap } : null;
+  }
+  function startCloze(list, title, back, mix) {
+    var usable = list.map(makeCloze).filter(Boolean);
+    clozeSkipped = list.length - usable.length;
+    if (!usable.length) {
+      showToast(list.length ? '빈칸으로 만들 수 있는 예문이 없습니다' : '학습할 단어가 없습니다');
+      return;
+    }
+    clozeDeck = mix ? shuffle(usable) : usable;
+    clozeReturn = back; clozeTitle = title;
+    clozeIdx = 0; clozeMissed = []; clozeKnown = 0;
+    byId('appTitle').textContent = '예문 빈칸 · ' + title;
+    byId('appSub').textContent = usable.length + '개 · 떠올리고 정답 확인';
+    showPanel('cloze');
+    renderCloze();
+  }
+  function stopClozeSpeech() {
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+  }
+  function renderCloze() {
+    stopClozeSpeech();
+    clozeRevealed = false;
+    var done = clozeIdx >= clozeDeck.length;
+    byId('clozeCounter').textContent = Math.min(clozeIdx + 1, clozeDeck.length) + ' / ' + clozeDeck.length;
+    byId('clozeNotice').textContent = clozeSkipped ? '예문 없음/단어 형태 불일치 ' + clozeSkipped + '개 제외' : '';
+    byId('clozeQuestionBox').hidden = done;
+    byId('clozeSummary').hidden = !done;
+    byId('clozeAnswer').hidden = true;
+    byId('btnClozeReveal').hidden = false;
+    byId('btnClozeWrong').disabled = true;
+    byId('btnClozeKnown').disabled = true;
+    // Clear previous answers from the DOM before each new question.
+    ['clozeWord','clozeFullSentence','clozeTranslation','clozeMeaning'].forEach(function (id) { byId(id).textContent = ''; });
+    if (done) {
+      byId('clozeSentence').textContent = '';
+      byId('clozeResult').textContent = '이번 회차 완료 · 외움 ' + clozeKnown + '개 · 모르겠음 ' + clozeMissed.length + '개';
+      byId('btnClozeRetry').disabled = !clozeMissed.length;
+      byId('clozeResult').focus();
+      return;
+    }
+    byId('clozeSentence').textContent = clozeDeck[clozeIdx].gap;
+    byId('btnClozeReveal').focus();
+  }
+  function revealCloze() {
+    if (clozeRevealed || clozeIdx >= clozeDeck.length) return;
+    clozeRevealed = true;
+    var q = clozeDeck[clozeIdx];
+    byId('clozeWord').textContent = q.word.word;
+    byId('clozeFullSentence').textContent = q.en;
+    byId('clozeTranslation').textContent = q.ko;
+    byId('clozeMeaning').textContent = (q.word.meanings || []).join(' · ');
+    byId('clozeAnswer').hidden = false;
+    byId('btnClozeReveal').hidden = true;
+    byId('btnClozeWrong').disabled = false;
+    byId('btnClozeKnown').disabled = false;
+    if (settings.autoSpeak) speakWord(q.word.word);
+  }
+  function markCloze(known) {
+    if (!clozeRevealed || clozeIdx >= clozeDeck.length) return;
+    var q = clozeDeck[clozeIdx];
+    clozeRevealed = false;
+    if (known) { markKnown(q.word.id); clozeKnown++; }
+    else { addWrong(q.word.id); clozeMissed.push(q); }
+    saveState();
+    clozeIdx++;
+    renderCloze();
+  }
+  function leaveCloze() {
+    stopClozeSpeech();
+    if (clozeReturn === 'day') showDayDetail(currentDay);
+    else openRange();
+  }
+  byId('btnDayCloze').addEventListener('click', function () {
+    var list = getDayWords(currentLevel, currentDay).map(function (w,i) { return enrich(currentLevel, currentDay, i, w); });
+    if (byId('optWrongOnly').checked) list = list.filter(function (w) { return !!state.wrong[w.id]; });
+    startCloze(list, 'DAY ' + currentDay, 'day', byId('optShuffle').checked);
+  });
+  byId('btnClozeReveal').addEventListener('click', revealCloze);
+  byId('btnClozeWrong').addEventListener('click', function () { markCloze(false); });
+  byId('btnClozeKnown').addEventListener('click', function () { markCloze(true); });
+  byId('btnClozeSpeak').addEventListener('click', function () {
+    if (clozeRevealed && clozeIdx < clozeDeck.length) speakWord(clozeDeck[clozeIdx].word.word);
+  });
+  byId('btnClozeRetry').addEventListener('click', function () {
+    if (!clozeMissed.length) return;
+    clozeDeck = clozeMissed.slice(); clozeMissed = []; clozeIdx = 0; clozeKnown = 0;
+    renderCloze();
+  });
+  byId('btnClozeBack').addEventListener('click', leaveCloze);
+  byId('btnClozeDone').addEventListener('click', leaveCloze);
+
   /* ---- Events ---- */
   byId('levelGrid').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-level]');
@@ -2453,7 +2646,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     if (ps) ss.value = ps; else if (days.length) ss.value = days[0];
     if (pe) se.value = pe; else if (days.length) se.value = days[days.length - 1];
     byId('appTitle').textContent = '범위 암기';
-    byId('appSub').textContent = '기초 · DAY 범위 · 카드/퀴즈';
+    byId('appSub').textContent = '기초 · DAY 범위 · 카드/퀴즈/예문 빈칸';
     updateRangeInfo();
     showPanel('range');
   }
@@ -2499,8 +2692,12 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     renderQuiz();
   }
   function startRangeStudy() {
-    var mode = (byId('rangeModeQuiz').checked ? 'quiz' : 'card');
-    if (mode === 'quiz') startRangeQuiz();
+    var mode = byId('rangeModeCloze').checked ? 'cloze' : (byId('rangeModeQuiz').checked ? 'quiz' : 'card');
+    if (mode === 'cloze') {
+      var r = buildRangeList();
+      startCloze(r.list, 'DAY ' + r.s + '~' + r.e, 'range', byId('rangeShuffle').checked);
+    }
+    else if (mode === 'quiz') startRangeQuiz();
     else startRangeCards();
   }
   function studyRangeWrong() {
@@ -2515,13 +2712,14 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   byId('btnRangeStart').addEventListener('click', startRangeStudy);
   ['rangeStart', 'rangeEnd', 'rangeUnknownOnly'].forEach(function (id) { byId(id).addEventListener('change', updateRangeInfo); });
   function syncRangeModeSeg() {
-    var card = byId('rangeModeCard'), quiz = byId('rangeModeQuiz');
+    var card = byId('rangeModeCard'), quiz = byId('rangeModeQuiz'), cloze = byId('rangeModeCloze');
+    if (cloze && cloze.parentElement) cloze.parentElement.classList.toggle('on', !!cloze.checked);
     if (card && card.parentElement) card.parentElement.classList.toggle('on', !!card.checked);
     if (quiz && quiz.parentElement) quiz.parentElement.classList.toggle('on', !!quiz.checked);
   }
   byId('btnRangeQuizDone').addEventListener('click', openRange);
   byId('btnRangeStudyWrong').addEventListener('click', studyRangeWrong);
-  ['rangeModeCard', 'rangeModeQuiz'].forEach(function (id) {
+  ['rangeModeCard', 'rangeModeQuiz', 'rangeModeCloze'].forEach(function (id) {
     byId(id).addEventListener('change', syncRangeModeSeg);
   });
   syncRangeModeSeg();
