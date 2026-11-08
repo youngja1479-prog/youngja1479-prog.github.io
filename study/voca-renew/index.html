@@ -11700,6 +11700,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     byId('calFront').textContent = item.word;
     byId('calBack').textContent = item.meaning;
     byId('calBack').style.display = calRevealed ? 'block' : 'none';
+    if (!calRevealed && settings.autoSpeak) speakWord(item.word);
   }
   function flipCal() {
     calRevealed = !calRevealed;
@@ -11728,6 +11729,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     if (item.example) back += '<div style="margin-top:8px;font-size:.9rem;color:var(--muted)">' + item.example + '</div>';
     byId('prepBack').innerHTML = back;
     byId('prepBack').style.display = prepRevealed ? 'block' : 'none';
+    if (!prepRevealed && settings.autoSpeak) speakWord(item.word);
   }
   function flipPrep() {
     prepRevealed = !prepRevealed;
