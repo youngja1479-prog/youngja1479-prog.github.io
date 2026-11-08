@@ -2587,11 +2587,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     clozeRevealed = true;
     var q = clozeDeck[clozeIdx];
     byId('clozeWord').textContent = q.word.word;
-    byId('clozeFullSentence').textContent = q.en;
-    if (clozePractice === 'interpret') {
-      byId('clozeTranslation').textContent = '예시 해석 (원문 기준): ' + q.ko;
-      byId('clozeTranslation').hidden = false;
-    }
+    byId('clozeFullSentence').textContent = clozePractice === 'interpret'
+      ? '예시 해석 (원문 기준): ' + q.ko : q.en;
     byId('clozeMeaning').textContent = (q.word.meanings || []).join(' · ');
     byId('clozeAnswer').hidden = false;
     byId('btnClozeReveal').hidden = true;
