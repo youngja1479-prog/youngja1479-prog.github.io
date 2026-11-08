@@ -1,0 +1,38 @@
+{
+  "datasetNamespace": "gicho1000-v1",
+  "count": 1000,
+  "days": 25,
+  "sourcePdfSha256": "2eeac6253ee72964aeed2a109ebe00368f3ced828937c7112cbe02ff88f02598",
+  "reviewedExamplesSha256": "dfeba0a8a97770d96d58faa0484883cbfa17155b2f4016605ed6beaa18e7e18a",
+  "htmlSha256": "178a4323c383fc51b280ecf9f96460df63bf05f1e3231fea635022c756024465",
+  "legacyRecordKeysPreserved": [
+    "gkc-voca2-marks-v1",
+    "gkc-voca2-bundle-scores-v2"
+  ],
+  "newRecordKeys": [
+    "gkc-voca-gicho1000-v1-marks-v1",
+    "gkc-voca-gicho1000-v1-bundle-scores-v2"
+  ],
+  "sharedPronunciationKey": "gkc-voca2-settings-v1",
+  "reviewCoverage": {
+    "englishBot": "Source1000 and all1000 bilingual examples independently reviewed;43 changed entries rechecked. Final meaning/short repetition suitability passed. No physical-device assessment.",
+    "evaluationBot": "Source1000, examples1000 and changes, runtime IDs, seeded legacy isolation, pronunciation-call toggles, card/quiz/cloze/interpretation and headless390x844 inspected. Final4.5/5, no requested blocking fixes remain."
+  },
+  "regression": {
+    "checks": 20079,
+    "quizRuns": 3000,
+    "count": 1000,
+    "sourceEquality": true,
+    "cloze1000": true,
+    "legacyKeysUnchanged": true,
+    "pronunciationBothModes": true,
+    "modeRegression": true,
+    "quizPosTagsUniform": true,
+    "limit": "Node VM with stub DOM; not browser rendering, actual audio, semantic distractor review or real-device usability"
+  },
+  "limits": [
+    "No actual iOS/Android device rendering, touch-feel, or audible speech verified.",
+    "Cloze is self-assessed recall of the textbook example, not a claim that synonyms are invalid.",
+    "Quiz sampling is not proof that every possible semantic ambiguity is excluded."
+  ]
+}
