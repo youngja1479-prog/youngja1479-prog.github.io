@@ -4,7 +4,7 @@
   "days": 25,
   "sourcePdfSha256": "2eeac6253ee72964aeed2a109ebe00368f3ced828937c7112cbe02ff88f02598",
   "reviewedExamplesSha256": "dfeba0a8a97770d96d58faa0484883cbfa17155b2f4016605ed6beaa18e7e18a",
-  "htmlSha256": "178a4323c383fc51b280ecf9f96460df63bf05f1e3231fea635022c756024465",
+  "htmlSha256": "a7e8556ee560ae600ace9b91e62dd8f93d0c8f16be196563edea7ccdbb36813b",
   "legacyRecordKeysPreserved": [
     "gkc-voca2-marks-v1",
     "gkc-voca2-bundle-scores-v2"
@@ -19,7 +19,7 @@
     "evaluationBot": "Source1000, examples1000 and changes, runtime IDs, seeded legacy isolation, pronunciation-call toggles, card/quiz/cloze/interpretation and headless390x844 inspected. Final4.5/5, no requested blocking fixes remain."
   },
   "regression": {
-    "checks": 20079,
+    "checks": 20080,
     "quizRuns": 3000,
     "count": 1000,
     "sourceEquality": true,
@@ -34,5 +34,28 @@
     "No actual iOS/Android device rendering, touch-feel, or audible speech verified.",
     "Cloze is self-assessed recall of the textbook example, not a claim that synonyms are invalid.",
     "Quiz sampling is not proof that every possible semantic ambiguity is excluded."
-  ]
+  ],
+  "bundleRanges": [
+    [
+      1,
+      5
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      11,
+      15
+    ],
+    [
+      16,
+      20
+    ],
+    [
+      21,
+      25
+    ]
+  ],
+  "bundleRevision": "User requested5DAY bundles; existing6DAY score entries retained, not reattached to different ranges."
 }
