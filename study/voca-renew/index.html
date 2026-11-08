@@ -359,7 +359,7 @@ main { flex: 1; padding: 12px 14px; }
         <button type="button" class="btn block" id="btnExampleCloze">예문 빈칸</button>
         <p class="hint">한국어 해석을 먼저 보고 영어 빈칸의 단어를 떠올려요.</p>
         <button type="button" class="btn ghost block" id="btnExampleInterpret">예문 해석</button>
-        <p class="hint">영어 빈칸 문장에서 보이는 부분을 해석한 뒤 예시 해석을 확인해요. 입력·자동 채점은 없어요.</p>
+        <p class="hint">영어 예문 전체를 보고 해석을 떠올린 뒤 예시 해석을 확인해요. 입력·자동 채점은 없어요.</p>
       </div>
     </section>
 
@@ -2517,23 +2517,29 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var gap = en.replace(re, function (_, lead) { hits++; return lead + '［_____］'; });
     return hits ? { word: w, en: en, ko: ko, gap: gap } : null;
   }
+  function makeInterpret(w) {
+    var ex = String(w.example || ''), sep = ex.indexOf(' / ');
+    if (sep < 0) return null;
+    var en = ex.slice(0, sep).trim(), ko = ex.slice(sep + 3).trim();
+    return en && ko ? { word: w, en: en, ko: ko } : null;
+  }
   function startCloze(list, title, back, mix, practice) {
-    var usable = list.map(makeCloze).filter(Boolean);
+    var interpret = practice === 'interpret';
+    var usable = list.map(interpret ? makeInterpret : makeCloze).filter(Boolean);
     clozeSkipped = list.length - usable.length;
     if (!usable.length) {
-      showToast(list.length ? '빈칸으로 만들 수 있는 예문이 없습니다' : '학습할 단어가 없습니다');
+      showToast(list.length ? (interpret ? '영어와 한국어 해석이 있는 예문이 없습니다' : '빈칸으로 만들 수 있는 예문이 없습니다') : '학습할 단어가 없습니다');
       return;
     }
     clozeDeck = mix ? shuffle(usable) : usable;
     clozeReturn = back; clozeTitle = title;
     clozePractice = practice === 'interpret' ? 'interpret' : 'cloze';
-    var interpret = clozePractice === 'interpret';
     clozeIdx = 0; clozeMissed = []; clozeKnown = 0;
     byId('appTitle').textContent = (interpret ? '예문 해석 · ' : '예문 빈칸 · ') + title;
     byId('appSub').textContent = usable.length + (interpret ? '개 · 해석을 떠올리고 예시 확인' : '개 · 떠올리고 정답 확인');
     byId('clozeHeading').textContent = interpret ? '예문 해석' : '예문 빈칸';
     byId('clozeInstructions').textContent = interpret
-      ? '빈칸은 빈칸으로 두고 보이는 영어 문장의 뜻을 떠올리세요. 해석 확인 후 원문 기준 예시 해석을 보여줍니다. 빈칸의 정답이나 유일한 번역을 맞히는 자동 채점이 아닙니다. 입력할 필요 없어요.'
+      ? '영어 예문 전체의 뜻을 떠올리세요. 해석 확인을 누르면 예시 해석을 보여줍니다. 유일한 번역을 맞히는 자동 채점이 아니라 스스로 이해도를 확인하는 연습입니다. 입력할 필요 없어요.'
       : '한국어 해석을 보고 예문 빈칸의 영어 단어를 떠올리세요. 정답·뜻·발음은 정답 확인 후 표시됩니다. 입력할 필요 없어요.';
     byId('btnClozeReveal').textContent = interpret ? '해석 확인' : '정답 확인';
     byId('btnClozeRetry').textContent = interpret ? '이해 못한 문장 다시' : '이번 오답만 다시';
@@ -2553,7 +2559,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     clozeRevealed = false;
     var done = clozeIdx >= clozeDeck.length;
     byId('clozeCounter').textContent = Math.min(clozeIdx + 1, clozeDeck.length) + ' / ' + clozeDeck.length;
-    byId('clozeNotice').textContent = clozeSkipped ? '예문 없음/단어 형태 불일치 ' + clozeSkipped + '개 제외' : '';
+    byId('clozeNotice').textContent = clozeSkipped ? (clozePractice === 'interpret' ? '영어/한국어 예문 없음 ' : '예문 없음/단어 형태 불일치 ') + clozeSkipped + '개 제외' : '';
     byId('clozeQuestionBox').hidden = done;
     byId('clozeSummary').hidden = !done;
     byId('clozeAnswer').hidden = true;
@@ -2572,7 +2578,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       byId('clozeResult').focus();
       return;
     }
-    byId('clozeSentence').textContent = clozeDeck[clozeIdx].gap;
+    byId('clozeSentence').textContent = clozePractice === 'interpret' ? clozeDeck[clozeIdx].en : clozeDeck[clozeIdx].gap;
     byId('clozeTranslation').textContent = clozePractice === 'interpret' ? '' : clozeDeck[clozeIdx].ko;
     byId('btnClozeReveal').focus();
   }
