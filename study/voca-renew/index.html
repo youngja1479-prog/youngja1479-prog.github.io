@@ -129,7 +129,9 @@ main { flex: 1; padding: 12px 14px; }
 .flash .speak-slot { margin-top: 10px; display: flex; justify-content: center; }
 .quiz-speak-slot { display: flex; justify-content: center; margin: 6px 0 10px; }
 .flash .meaning { margin-top: 18px; font-size: 1.2rem; font-weight: 600; color: var(--text); line-height: 1.45; }
-.flash .meaning .m-item { display: block; }
+.m-item { display: block; }
+.extra-meanings { margin-top: 8px; font-size: .88rem; font-weight: 400; color: var(--muted); }
+.extra-meanings summary { cursor: pointer; padding: 6px 0; color: var(--primary); }
 .flash .ety { margin-top: 12px; font-size: .82rem; color: #4f46e5; line-height: 1.45; max-width: 92%; font-weight: 500; }
 .flash .ety-label { display:block; font-size:.7rem; color:#818cf8; font-weight:700; letter-spacing:.02em; margin-bottom:2px; }
 .flash .forms { margin-top: 8px; font-size: .8rem; color: #9ca3af; font-weight: 500; }
@@ -231,6 +233,7 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>안내</h2>
+        <p class="hint">교재 전사 뜻은 모두 표시합니다. 확인된 추가 뜻만 접고, 퀴즈는 기본 표시 뜻에서 출제합니다. 예문 확인에서는 참고할 추가 뜻도 펼쳐 보여 줍니다.</p>
         <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후, 한 덱에서 복습(오답) 단어가 먼저 나오고 이어서 오늘 DAY 단어가 나옵니다. 「외움」하면 누적 오답에서 빠집니다.</p>
       </div>
     </section>
@@ -380,7 +383,7 @@ main { flex: 1; padding: 12px 14px; }
           <div id="clozeAnswer" hidden aria-live="polite">
             <h2 id="clozeWord"></h2>
             <p id="clozeFullSentence"></p>
-            <p id="clozeMeaning"></p>
+            <div id="clozeMeaning"></div>
             <button type="button" class="speak-btn sm" id="btnClozeSpeak">🔊 발음</button>
             <p class="hint" id="clozeMarkHint">모르겠음 → 누적 오답 · 외움 → 누적 오답에서 제거</p>
             <div class="row" style="margin-top:12px">
@@ -1324,6 +1327,183 @@ const DATA = {
   advanced: {}
 };
 
+// Source study view only: DATA and storage are never rewritten.
+// DAY1–16: all 640 rows verified against user-provided day1-16.pdf.
+// DAY17–19: 8 entries rechecked against original photos; other entries stay untouched.
+const BOOK_STUDY_MEANINGS = {
+  "basic1:1:21": ["[명] 세포"],
+  "basic1:1:23": ["[동] 지켜보다", "[명] (손목) 시계"],
+  "basic1:1:26": ["[명] 손", "[동] 건네주다"],
+  "basic1:1:32": ["[동] 유지하다, 계속하다"],
+  "basic1:1:38": ["[명] 얼굴", "[동] 직면하다"],
+  "basic1:2:1": ["[동] 부르다, 전화하다"],
+  "basic1:2:4": ["[명] 부분, 부품", "[동] 헤어지다"],
+  "basic1:2:7": ["[명] 연습, 실천, 관행", "[동] 연습(실천)하다"],
+  "basic1:2:9": ["[동] ~에 도달하다", "[명] 범위"],
+  "basic1:2:16": ["[명] 빛", "[형] 밝은, 가벼운"],
+  "basic1:2:19": ["[형] 분명한, 맑은", "[동] 치우다"],
+  "basic1:2:24": ["[동] 판단하다", "[명] 판사, 심판"],
+  "basic1:2:25": ["[동] 떠나다, (상태로) 두다"],
+  "basic1:2:32": ["[동] 의미하다", "[형] 못된"],
+  "basic1:2:33": ["[명] 이름", "[동] ~에게 이름을 붙이다"],
+  "basic1:2:35": ["[명] 주제, 과목"],
+  "basic1:3:0": ["[형] 옳은, 오른쪽의", "[명] 권리"],
+  "basic1:3:2": ["[명] 마음", "[동] 싫어하다"],
+  "basic1:3:6": ["[명] 기초, 기반", "[동] ~에 근거를 두다"],
+  "basic1:3:7": ["[명] 도전", "[동] 이의를 제기하다"],
+  "basic1:3:12": ["[동] 발견하다, 찾다, 생각하다"],
+  "basic1:3:15": ["[동] 얻다", "[명] 이득"],
+  "basic1:3:21": ["[명] 여행"],
+  "basic1:3:23": ["[동] 낭비하다", "[명] 쓰레기, 낭비"],
+  "basic1:3:31": ["[형] 일반적인", "[명] 장군"],
+  "basic1:3:39": ["[형] 자신의", "[동] 소유하다"],
+  "basic1:4:3": ["[동] 구하다, 저축(절약)하다"],
+  "basic1:4:4": ["[동] 올리다, 기르다, 모금하다"],
+  "basic1:4:7": ["[명] 규칙", "[동] 지배하다"],
+  "basic1:4:10": ["[동] 돌리다, 바꾸다"],
+  "basic1:4:11": ["[명] 절반", "[형] 절반의"],
+  "basic1:4:13": ["[명] 선물, 현재", "[형] 현재의, 출석한"],
+  "basic1:4:14": ["[전] ~에 관한", "[부] 대략"],
+  "basic1:4:17": ["[명] 국가, 주, 상태"],
+  "basic1:4:18": ["[동] 발생하다, 일어나다"],
+  "basic1:4:20": ["[동] 얻다, ~되다"],
+  "basic1:4:22": ["[형] 직접적인", "[동] 지시하다"],
+  "basic1:4:26": ["[명] 유니폼", "[형] 획일적인"],
+  "basic1:4:29": ["[동] 제공하다, 제안하다"],
+  "basic1:4:30": ["[동] 만들다, ~하게 하다"],
+  "basic1:4:34": ["[동] 숨다, 숨기다"],
+  "basic1:4:35": ["[동] 초대하다, 요청하다"],
+  "basic1:4:39": ["[동] 데리고 가다, 잡다"],
+  "basic1:5:3": ["[명] 뿌리", "[동] 응원하다"],
+  "basic1:5:8": ["[명] 이야기, 층"],
+  "basic1:5:9": ["[부] 똑바로, 곧장", "[형] 곧은"],
+  "basic1:5:16": ["[명] 많음"],
+  "basic1:5:17": ["[동] 잠그다", "[명] 자물쇠"],
+  "basic1:5:18": ["[동] 출발(시작)하다", "[명] 출발, 시작"],
+  "basic1:5:20": ["[동] 사용하다", "[명] 사용"],
+  "basic1:5:22": ["[동] ~이 되다"],
+  "basic1:5:27": ["[부] 바로, 꼭", "[형] 공정한"],
+  "basic1:5:35": ["[동] 따르다"],
+  "basic1:5:36": ["[부] 잘", "[형] 건강한"],
+  "basic1:5:39": ["[명] 문제, 곤란", "[동] 괴롭히다"],
+  "basic1:6:3": ["[명] 곰", "[동] 견디다"],
+  "basic1:6:6": ["[동] 살다", "[형] 살아 있는"],
+  "basic1:6:11": ["[동] 보다"],
+  "basic1:6:15": ["[동] 이기다, 얻다"],
+  "basic1:6:16": ["[동] 정의하다"],
+  "basic1:6:25": ["[동] 떨어지다", "[명] 가을, 넘어짐"],
+  "basic1:6:37": ["[명] 돌봄", "[동] 상관하다"],
+  "basic1:6:39": ["[명] 습관"],
+  "basic1:7:2": ["[명] 공간, 우주"],
+  "basic1:7:8": ["[동] 공급하다", "[명] 공급"],
+  "basic1:7:12": ["[명] 경주, 인종"],
+  "basic1:7:14": ["[명] 땅[육지]", "[동] 착륙하다"],
+  "basic1:7:17": ["[명] 측[쪽], 측면"],
+  "basic1:7:19": ["[형] 깨끗한", "[동] 청소하다"],
+  "basic1:7:23": ["[동] 머무르다, ~인 채로 있다"],
+  "basic1:7:25": ["[동] 깨다, 고장나다", "[명] 휴식"],
+  "basic1:7:27": ["[동] 날다", "[명] 파리"],
+  "basic1:7:30": ["[형] 같은", "[명] 같은 것[사람]"],
+  "basic1:7:31": ["[동] 뜨다, 올라가다", "[명] 오름"],
+  "basic1:7:39": ["[형] 추운, 차가운", "[명] 감기, 추위"],
+  "basic1:8:1": ["[명] 앞", "[형] 앞쪽의"],
+  "basic1:9:11": ["[동] 잡다, 개최하다"],
+  "basic1:9:13": ["[동] 바꾸다, 변하다", "[명] 변화, 잔돈"],
+  "basic1:9:32": ["[동] 고치다, 고정시키다"],
+  "basic1:9:34": ["[부] 오직, 단지", "[형] 유일한"],
+  "basic1:9:39": ["[명] 소리", "[동] ~하게 들리다"],
+  "basic1:10:11": ["[동] 그리다, 끌어당기다"],
+  "basic1:11:2": ["[동] 놓다, 두다"],
+  "basic1:11:5": ["[명] 휴식, 나머지", "[동] 쉬다"],
+  "basic1:11:7": ["[동] 점검하다", "[명] 점검, 수표"],
+  "basic1:11:12": ["[명] 과거", "[형] 지나간"],
+  "basic1:11:17": ["[동] 흐르다", "[명] 흐름"],
+  "basic1:11:19": ["[동] 닫다", "[형] 가까운"],
+  "basic1:11:22": ["[동] 좋아하다", "[전] ~처럼"],
+  "basic1:11:23": ["[명] 농작물, 수확량"],
+  "basic1:11:26": ["[형] 날카로운"],
+  "basic1:11:28": ["[형] 가득 찬"],
+  "basic1:11:29": ["[명] 과일, 성과"],
+  "basic1:11:37": ["[명] 우연, 기회, 가능성"],
+  "basic1:11:39": ["[명] 사막"],
+  "basic1:12:6": ["[명] 비용", "[동] 비용이 들다"],
+  "basic1:12:8": ["[형] 살찐", "[명] 지방"],
+  "basic1:12:12": ["[형] 어두운"],
+  "basic1:12:13": ["[동] 잡다, (병에) 걸리다"],
+  "basic1:12:15": ["[동] 여행[이동]하다", "[명] 여행"],
+  "basic1:12:19": ["[형] 자유로운, 무료의", "[동] 자유롭게 하다"],
+  "basic1:12:24": ["[형] 빈", "[동] 비우다"],
+  "basic1:12:37": ["[형] 드문, 살짝 익힌"],
+  "basic1:13:0": ["[명] 신뢰", "[동] 신뢰하다"],
+  "basic1:13:11": ["[명] 몫", "[동] 나누다, 공유하다"],
+  "basic1:13:19": ["[동] 당기다"],
+  "basic1:13:23": ["[명] 목표, 골"],
+  "basic1:13:29": ["[명] 지도"],
+  "basic1:13:32": ["[형] 야생의", "[명] 황야"],
+  "basic1:13:36": ["[형] 바쁜, 붐비는"],
+  "basic1:13:38": ["[동] 다치게 하다", "[형] 다친"],
+  "basic1:14:4": ["[동] 보다"],
+  "basic1:14:5": ["[형] 빠른"],
+  "basic1:14:6": ["[형] 태어난, 타고난"],
+  "basic1:14:9": ["[동] 발달하다, 개발하다"],
+  "basic1:14:10": ["[형] 틀린, 가짜의"],
+  "basic1:14:13": ["[동] 관리하다, 용케 ~해내다"],
+  "basic1:14:16": ["[형] 간단한[단순한]"],
+  "basic1:14:21": ["[동] 경향이 있다"],
+  "basic1:14:25": ["[형] 피곤한, 싫증난"],
+  "basic1:14:26": ["[명] 사고"],
+  "basic1:14:31": ["[형] 진지한, 심각한"],
+  "basic1:14:34": ["[형] 가까운", "[부] 가까이"],
+  "basic1:14:35": ["[명] 자원 봉사자", "[동] 자원하다"],
+  "basic1:14:36": ["[부] ~조차(도)", "[형] 평평한"],
+  "basic1:14:38": ["[동] 지불하다", "[명] 급료, 보수"],
+  "basic1:15:0": ["[명] 모양, 형태", "[동] 형성하다"],
+  "basic1:15:1": ["[명] 순간, 잠깐"],
+  "basic1:15:3": ["[동] 일[작동]하다", "[명] 일"],
+  "basic1:15:4": ["[명] 저자"],
+  "basic1:15:5": ["[명] 사건[행사]"],
+  "basic1:15:13": ["[명] 비밀", "[형] 비밀의"],
+  "basic1:15:14": ["[동] 움직이다, 이사하다"],
+  "basic1:15:19": ["[명] 생산물, 제품, 산물"],
+  "basic1:15:20": ["[동] 던지다"],
+  "basic1:15:21": ["[명] 감각", "[동] 느끼다"],
+  "basic1:15:24": ["[명] 목소리", "[동] 말로 표현하다"],
+  "basic1:15:26": ["[명] 수도, 대문자, 자본"],
+  "basic1:15:27": ["[명] 요점, 지점", "[동] 가리키다"],
+  "basic1:15:31": ["[명] 합계, 총계", "[동] 요약하다"],
+  "basic1:15:36": ["[동] 기쁘게 하다", "[부] 제발"],
+  "basic1:15:37": ["[명] 모형, 모델"],
+  "basic1:15:38": ["[명] 밑바닥"],
+  "basic1:15:39": ["[명] 견해, 관점", "[동] 바라보다"],
+  "basic1:16:0": ["[명] 흙[토양]"],
+  "basic1:16:4": ["[동] 돌아오다", "[명] 돌아옴, 수익"],
+  "basic1:16:6": ["[명] 과업[과제]"],
+  "basic1:16:7": ["[동] 말하다"],
+  "basic1:16:9": ["[동] 펼치다, 퍼지다"],
+  "basic1:16:10": ["[명] 시력, 보기, 광경"],
+  "basic1:16:11": ["[동] 구입하다", "[명] 구입(품)"],
+  "basic1:16:13": ["[명] 모양, 형체", "[동] 형성하다"],
+  "basic1:16:14": ["[동] (회)피하다"],
+  "basic1:16:15": ["[형] 가난한, (질이) 좋지 못한"],
+  "basic1:16:17": ["[동] 나타나다, ~인 것 같다"],
+  "basic1:16:19": ["[동] ~을 할 수 있게 하다"],
+  "basic1:16:26": ["[형] 느린", "[동] 늦추다"],
+  "basic1:16:28": ["[동] 죽다"],
+  "basic1:16:29": ["[형] 얇은, 가는"],
+  "basic1:16:32": ["[명] 변명, 핑계", "[동] 용서[변명]하다"],
+  "basic1:16:35": ["[동] 밀다, 밀치다"],
+  "basic1:16:36": ["[명] 선, 줄", "[동] 줄을 서다"],
+  "basic1:16:38": ["[명] 행동", "[동] 행동[연기]하다"],
+  "basic1:17:9": ["[명] 환자", "[형] 참을성 있는"],
+  "basic1:17:27": ["[형] 국제의, 국제적인"],
+  "basic1:17:10": ["[명] 사무실, 관직, 관청"],
+  "basic1:18:6": ["[형] 둥근, 왕복의", "[부] 주위에"],
+  "basic1:18:16": ["[형] 진짜의, 현실의"],
+  "basic1:18:22": ["[동] 궁금하다", "[명] 경탄[경이]"],
+  "basic1:18:37": ["[명] 성격, 특성, 등장인물"],
+  "basic1:19:34": ["[동] 묶다", "[명] 유대, 동점"]
+};
+
 const WORDS_PER_DAY = 40;
 const LS_PREFIX = 'gkc-voca2-';
 const LS_KEY = LS_PREFIX + 'marks-v1';
@@ -1483,42 +1663,60 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     return (w.meanings || []).join('; ');
   }
 
+  function sourceMeanings(w) {
+    var id = w && (w.id || (w.level && w.day != null && w.idx != null ? wordId(w.level, w.day, w.idx) : ''));
+    return (BOOK_STUDY_MEANINGS[id] || (w && w.meanings) || []).slice();
+  }
+  function studyMeanings(w) {
+    return allSubMeanings({ meanings: sourceMeanings(w) });
+  }
+  function additionalMeanings(w) {
+    var id = w && (w.id || (w.level && w.day != null && w.idx != null ? wordId(w.level, w.day, w.idx) : ''));
+    if (!BOOK_STUDY_MEANINGS[id]) return [];
+    var visible = studyMeanings(w), used = {};
+    visible.forEach(function (m) { used[m] = 1; });
+    // Bracketed book aliases remain visible as one intact book gloss; don't call them extras.
+    var bracketAliases = [];
+    sourceMeanings(w).forEach(function (m) {
+      var body = m.replace(/^\[[^\]]+\]\s*/, '');
+      var match = body.match(/^([^\[\]]+)\[([^\[\]]+)\]$/);
+      if (match) {
+        var tag = (m.match(/^\[[^\]]+\]/) || [''])[0];
+        bracketAliases.push(tag + ' ' + match[1], tag + ' ' + match[2]);
+      }
+    });
+    return allSubMeanings(w).filter(function (m) { return !used[m] && bracketAliases.indexOf(m) < 0; });
+  }
+
   function primaryMeaning(w) {
     return oneMeaning(w);
   }
 
   /** 괄호 밖 mid 구분기호(, / ; · 、)로만 분리 */
   function splitListOutsideParens(body) {
-    var s = String(body || '');
-    var parts = [];
-    var cur = '';
-    var depth = 0;
+    var parts = [], cur = '', stack = [], s = String(body || '');
+    var close = { ')': '(', '）': '（', ']': '[', '］': '［' };
     for (var i = 0; i < s.length; i++) {
       var ch = s[i];
-      if (ch === '(' || ch === '（') depth++;
-      else if (ch === ')' || ch === '）') depth = Math.max(0, depth - 1);
-      if (depth === 0 && (ch === ',' || ch === '/' || ch === ';' || ch === '·' || ch === '、' || ch === '・')) {
+      if ('(（[［'.indexOf(ch) >= 0) stack.push(ch);
+      else if (close[ch] && stack[stack.length - 1] === close[ch]) stack.pop();
+      if (!stack.length && ',/;·、・'.indexOf(ch) >= 0) {
         if (cur.trim()) parts.push(cur.trim());
         cur = '';
-        continue;
-      }
-      cur += ch;
+      } else cur += ch;
     }
     if (cur.trim()) parts.push(cur.trim());
-    return parts.length ? parts : (s.trim() ? [s.trim()] : []);
+    return parts;
   }
 
   function isBalancedParens(s) {
-    var d = 0;
+    var stack = [], close = { ')': '(', '）': '（', ']': '[', '］': '［' };
     for (var i = 0; i < s.length; i++) {
       var ch = s[i];
-      if (ch === '(' || ch === '（') d++;
-      else if (ch === ')' || ch === '）') {
-        d--;
-        if (d < 0) return false;
-      }
+      if ('(（[［'.indexOf(ch) >= 0) stack.push(ch);
+      else if (close[ch] && stack.pop() !== close[ch]) return false;
     }
-    return d === 0;
+    return !stack.length;
   }
 
   /** 한 뜻 항목 → 품사태그 + 단일 세부뜻들. 예: "[명] 방법, 방식, 길" → ["[명] 방법","[명] 방식","[명] 길"] */
@@ -1572,8 +1770,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
   }
 
   function oneMeaning(w) {
-    // 매 렌더마다 세부 뜻 중 하나를 무작위 선택 (예: 방법/방식/길)
-    var ms = allSubMeanings(w);
+    // 원자료 전사 뜻 중에서만 단일 뜻 선택. 확인 불가한 단어는 기존 뜻 유지.
+    var ms = studyMeanings(w);
     if (!ms.length) return '';
     return ms[Math.floor(Math.random() * ms.length)];
   }
@@ -1803,7 +2001,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       var status = isK ? ' <span class="badge known">외움</span>' :
         (isW ? ' <span class="badge wrong">오답</span>' : '');
       return '<li data-id="' + esc(ew.id) + '"><div><div class="w">' + esc(ew.word) + formBit + sample + status +
-        '</div><div class="m">' + esc(shortMeaning(ew)) + '</div></div>' +
+        '</div><div class="m">' + formatMeanings(ew) + '</div></div>' +
         '<div class="mark-btns">' +
         '<button type="button" class="btn sm good' + (isK ? ' on-known' : '') + '" data-act="mem" aria-pressed="' + (isK ? 'true' : 'false') + '">외움</button>' +
         '<button type="button" class="btn sm bad' + (isW ? ' on-wrong' : '') + '" data-act="unk" aria-pressed="' + (isW ? 'true' : 'false') + '">모르겠음</button>' +
@@ -1895,7 +2093,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
 
   function pickChoices(correctWord) {
     var levelWords = allLevelWords(correctWord.level);
-    var targetSubs = allSubMeanings(correctWord);
+    var targetSubs = allSubMeanings(correctWord).concat(studyMeanings(correctWord));
     var correctPrimary = oneMeaning(correctWord);
     var distractors = [];
     var usedExact = {};
@@ -1912,7 +2110,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var candidates = shuffle(levelWords.filter(function (w) { return w.id !== correctWord.id; }));
     for (var i = 0; i < candidates.length && distractors.length < 3; i++) {
       var cand = candidates[i];
-      var pool = shuffle(allSubMeanings(cand)).filter(function (m) {
+      var pool = shuffle(studyMeanings(cand)).filter(function (m) {
         if (!m || usedExact[m]) return false;
         var n = normalizeGloss(m);
         if (n && usedNorm[n]) return false;
@@ -1937,26 +2135,10 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
 
   function isCorrectChoice(word, chosen) {
     if (!chosen) return false;
-    if (meaningsText(word) === chosen) return true;
-    var subs = allSubMeanings(word);
-    var i;
-    for (i = 0; i < subs.length; i++) {
-      if (subs[i] === chosen) return true;
-    }
-    // 원 항목 전체 문자열도 허용
-    var ms = word.meanings || [];
-    for (i = 0; i < ms.length; i++) {
-      if (ms[i] === chosen) return true;
-    }
-    var n = normalizeGloss(chosen);
-    if (!n) return false;
-    for (i = 0; i < subs.length; i++) {
-      if (normalizeGloss(subs[i]) === n) return true;
-    }
-    for (i = 0; i < ms.length; i++) {
-      if (normalizeGloss(ms[i]) === n) return true;
-    }
-    return false;
+    var subs = studyMeanings(word), n = normalizeGloss(chosen);
+    return subs.some(function (s) {
+      return s === chosen || (!!n && normalizeGloss(s) === n);
+    });
   }
 
   function renderQuiz() {
@@ -2216,10 +2398,17 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     startCardsWithList(list, '누적 오답 카드', list.length + '개');
   }
 
-  function formatMeanings(w) {
-    return (w.meanings || []).map(function (m) {
+  function formatMeanings(w, forExample) {
+    var html = sourceMeanings(w).map(function (m) {
       return '<span class="m-item">' + esc(m) + '</span>';
     }).join('');
+    var extras = additionalMeanings(w);
+    if (extras.length) {
+      html += '<details class="extra-meanings"' + (forExample ? ' open' : '') + '>' +
+        '<summary>추가 뜻 (+' + extras.length + ')</summary>' +
+        extras.map(function (m) { return '<span class="m-item">' + esc(m) + '</span>'; }).join('') + '</details>';
+    }
+    return html;
   }
 
   function formatEty(w) {
@@ -2411,7 +2600,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
         var sample = w.sample ? ' <span class="badge sample">예시 데이터</span>' : '';
         return '<li data-id="' + esc(id) + '"><div><div class="w">' + esc(w.word) + sample +
           ' <span class="badge">DAY ' + w.day + '</span></div>' +
-          '<div class="m">' + esc(meaningsText(w)) + '</div></div>' +
+          '<div class="m">' + formatMeanings(w) + '</div></div>' +
           '<div class="actions-r"><button type="button" class="btn sm good" data-act="mem">외움</button>' +
           '<button type="button" class="btn sm ghost" data-act="del">삭제</button></div></li>';
       }).join('');
@@ -2424,7 +2613,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
       return '<li data-id="' + esc(id) + '"><div><div class="w">' + esc(w.word) +
         ' <span class="badge known mark-toggle" data-mark-id="' + esc(id) + '" title="탭: 모르겠음으로 변경">외움</span>' +
         ' <span class="badge">DAY ' + w.day + '</span></div>' +
-        '<div class="m">' + esc(meaningsText(w)) + '</div></div>' +
+        '<div class="m">' + formatMeanings(w) + '</div></div>' +
         '<div class="actions-r"><button type="button" class="btn sm bad" data-act="unk">모르겠음</button></div></li>';
     }).join('') + (kids.length > 300 ? '<li class="hint">…외 ' + (kids.length - 300) + '개</li>' : '');
   }
@@ -2589,7 +2778,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     byId('clozeWord').textContent = q.word.word;
     byId('clozeFullSentence').textContent = clozePractice === 'interpret'
       ? '예시 해석 (원문 기준): ' + q.ko : q.en;
-    byId('clozeMeaning').textContent = (q.word.meanings || []).join(' · ');
+    byId('clozeMeaning').innerHTML = formatMeanings(q.word, true);
     byId('clozeAnswer').hidden = false;
     byId('btnClozeReveal').hidden = true;
     byId('btnClozeWrong').disabled = false;
@@ -2819,7 +3008,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var el = byId('flashWrap');
     if (!el) return;
     function isSpeakTarget(t) {
-      return !!(t && t.closest && t.closest('.speak-btn, #ttsBtn, #quizTtsBtn'));
+      return !!(t && t.closest && t.closest('.speak-btn, #ttsBtn, #quizTtsBtn, details, summary'));
     }
     function onFlip(e) {
       if (isSpeakTarget(e.target)) return;
