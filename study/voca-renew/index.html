@@ -233,7 +233,7 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>안내</h2>
-        <p class="hint">교재 전사 뜻은 모두 표시합니다. 확인된 추가 뜻만 접고, 퀴즈는 기본 표시 뜻에서 출제합니다. 예문 확인에서는 참고할 추가 뜻도 펼쳐 보여 줍니다.</p>
+        <p class="hint">교재 전사 뜻은 모두 표시합니다. 확인된 추가 뜻만 접고, 퀴즈는 기본 표시 뜻에서 출제합니다. 예문 빈칸·해석도 기본 표시 뜻으로만 연습합니다.</p>
         <p class="hint" style="margin:0">DAY 1은 바로 카드 학습. DAY 2부터는 전날 복습 퀴즈 후, 한 덱에서 복습(오답) 단어가 먼저 나오고 이어서 오늘 DAY 단어가 나옵니다. 「외움」하면 누적 오답에서 빠집니다.</p>
       </div>
     </section>
@@ -506,7 +506,7 @@ const DATA = {
       {"word": "battle", "meanings": ["[명] 전투"], "etymology": "battuere(치다) → 전투", "example": "They won a hard battle. / 그들은 힘든 전투에서 이겼다."},
       {"word": "cell", "meanings": ["[명] 세포", "[명] 감방", "[명] 전지", "[명] 휴대전화"], "etymology": "cella(작은 방) → 세포·감방·전지", "example": "A plant cell has a thick wall. / 식물 세포는 두꺼운 벽이 있다."},
       {"word": "language", "meanings": ["[명] 언어"], "etymology": "lingua(혀) → 언어", "example": "Korean is my first language. / 한국어는 나의 모국어이다."},
-      {"word": "watch", "meanings": ["[동] 지켜보다", "[명] (손목) 시계", "[동] 시청하다"], "etymology": "", "forms": "-es", "example": "I watch the news before bed. / 자기 전에 뉴스를 본다."},
+      {"word": "watch", "meanings": ["[동] 지켜보다", "[명] (손목) 시계", "[동] 시청하다"], "etymology": "", "forms": "-es", "example": "I watch the birds. / 나는 새들을 지켜본다."},
       {"word": "place", "meanings": ["[명] 장소", "[동] 놓다, 두다"], "etymology": "platea(넓은 길) → 장소; 놓다", "example": "This park is a quiet place. / 이 공원은 조용한 장소다."},
       {"word": "quit", "meanings": ["[동] 그만두다"], "etymology": "", "forms": "quit", "example": "He quit smoking last year. / 그는 작년에 담배를 끊었다."},
       {"word": "hand", "meanings": ["[명] 손", "[동] 건네주다", "[동] 건네다"], "etymology": "", "example": "Please hand me that pencil. / 저 연필을 건네 주세요."},
@@ -541,7 +541,7 @@ const DATA = {
       {"word": "flood", "meanings": ["[명] 홍수", "[동] 물에 잠기게 하다"], "etymology": "flod(흐르다) → 홍수", "example": "Heavy rain caused a flood. / 폭우가 홍수를 일으켰다."},
       {"word": "try", "meanings": ["[동] 노력(시도)하다", "[명] 시도"], "etymology": "", "forms": "tried", "example": "Please try again. / 다시 시도해 보세요."},
       {"word": "method", "meanings": ["[명] 방법"], "etymology": "meta(따라) + hod(길) → 방법", "example": "This is a new study method. / 이것은 새로운 공부 방법이다."},
-      {"word": "light", "meanings": ["[명] 빛", "[형] 밝은, 가벼운", "[동] 불을 켜다", "[동] 밝아지다"], "etymology": "", "example": "Please turn on the light. / 불을 켜 주세요."},
+      {"word": "light", "meanings": ["[명] 빛", "[형] 밝은, 가벼운", "[동] 불을 켜다", "[동] 밝아지다"], "etymology": "", "example": "Plants need light. / 식물은 빛이 필요하다."},
       {"word": "know", "meanings": ["[동] 알다"], "etymology": "", "forms": "knew-known", "example": "I know the answer. / 나는 답을 안다."},
       {"word": "immediate", "meanings": ["[형] 즉각적인"], "etymology": "im(부정) + medi(중간) → 중간 없이 → 즉각적인", "example": "We need an immediate reply. / 즉각적인 답변이 필요하다."},
       {"word": "clear", "meanings": ["[형] 분명한, 맑은", "[동] 치우다", "[동] 맑아지다"], "etymology": "clar(밝다) → 분명한·맑은", "example": "The sky is clear this morning. / 오늘 아침 하늘이 맑다."},
@@ -552,7 +552,7 @@ const DATA = {
       {"word": "judge", "meanings": ["[동] 판단하다", "[명] 판사, 심판", "[동] 판정하다"], "etymology": "jud(법) → 판단하다; 판사", "example": "Don't judge him too quickly. / 그를 너무 빨리 판단하지 마라."},
       {"word": "leave", "meanings": ["[동] 떠나다, (상태로) 두다", "[명] 휴가", "[동] 남기다"], "etymology": "", "forms": "left", "example": "Please leave your shoes outside. / 신발은 밖에 두세요."},
       {"word": "math", "meanings": ["[명] 수학"], "etymology": "", "forms": "= mathematics", "example": "Math is my favorite subject. / 수학은 내가 가장 좋아하는 과목이다."},
-      {"word": "native", "meanings": ["[형] 태어난 곳의", "[명] 현지인"], "etymology": "nat(태어나다) → 원주민의·모국의", "example": "She is a native speaker of English. / 그녀는 영어 원어민이다."},
+      {"word": "native", "meanings": ["[형] 태어난 곳의", "[명] 현지인"], "etymology": "nat(태어나다) → 원주민의·모국의", "example": "This is my native country. / 이곳은 내가 태어난 나라이다."},
       {"word": "have", "meanings": ["[동] 가지다, 먹다, ~하게 시키다"], "etymology": "", "forms": "had", "example": "I have two sisters. / 나는 자매가 둘 있다."},
       {"word": "clothes", "meanings": ["[명] 옷, 의복"], "etymology": "", "example": "Wash your dirty clothes. / 더러운 옷을 세탁해라."},
       {"word": "plan", "meanings": ["[동] 계획하다", "[명] 계획"], "etymology": "", "forms": "planned", "example": "We planned a trip to Jeju. / 우리는 제주 여행을 계획했다."},
@@ -598,7 +598,7 @@ const DATA = {
       {"word": "danger", "meanings": ["[명] 위험"], "etymology": "dominus(주인) 관련 → 위험", "example": "Fire is a real danger here. / 여기서 불은 진짜 위험이다."},
       {"word": "earn", "meanings": ["[동] (돈을) 벌다, 얻다"], "etymology": "", "example": "She earns money by teaching. / 그녀는 가르치며 돈을 번다."},
       {"word": "foot", "meanings": ["[명] 발, 피트"], "etymology": "", "forms": "feet", "example": "My left foot hurts. / 왼쪽 발이 아프다."},
-      {"word": "general", "meanings": ["[형] 일반적인", "[명] 장군", "[부] 일반적으로"], "etymology": "", "example": "In general, dogs are friendly. / 일반적으로 개는 친근하다."},
+      {"word": "general", "meanings": ["[형] 일반적인", "[명] 장군", "[부] 일반적으로"], "etymology": "", "example": "This is a general rule. / 이것은 일반적인 규칙이다."},
       {"word": "honest", "meanings": ["[형] 정직한"], "etymology": "honestus(명예로운) → 정직한", "example": "Please be honest with me. / 나에게 솔직해 줘."},
       {"word": "justice", "meanings": ["[명] 정의, 사법"], "etymology": "just(바른) → 정의·사법", "example": "People want justice for all. / 사람들은 모두를 위한 정의를 원한다."},
       {"word": "park", "meanings": ["[명] 공원", "[동] 주차하다"], "etymology": "", "example": "Let's walk in the park. / 공원에서 걷자."},
@@ -617,21 +617,21 @@ const DATA = {
       {"word": "quality", "meanings": ["[명] 질"], "etymology": "qual(어떤) → 질", "example": "This phone has good quality. / 이 휴대폰은 품질이 좋다."},
       {"word": "grade", "meanings": ["[명] 등급, 성적, 학년"], "etymology": "grad(단계) → 등급·성적", "example": "She got a high grade in English. / 그녀는 영어에서 높은 성적을 받았다."},
       {"word": "rule", "meanings": ["[명] 규칙", "[동] 지배하다", "[동] 판결하다"], "etymology": "", "example": "Follow the school rules. / 학교 규칙을 지켜라."},
-      {"word": "sale", "meanings": ["[명] 판매, 매출"], "etymology": "", "example": "The store has a big sale today. / 가게에서 오늘 큰 세일을 한다."},
+      {"word": "sale", "meanings": ["[명] 판매, 매출"], "etymology": "", "example": "The sale of the house is complete. / 그 집의 판매가 완료되었다."},
       {"word": "retire", "meanings": ["[동] 은퇴하다"], "etymology": "re(뒤로) + tire(끌다) → 은퇴하다", "example": "My grandfather will retire soon. / 할아버지는 곧 은퇴하실 것이다."},
-      {"word": "turn", "meanings": ["[동] 돌리다, 바꾸다", "[동] ~이 되다", "[명] 차례"], "etymology": "", "example": "Turn right at the next corner. / 다음 모퉁이에서 우회전해라."},
+      {"word": "turn", "meanings": ["[동] 돌리다, 바꾸다", "[동] ~이 되다", "[명] 차례"], "etymology": "", "example": "Please turn the handle. / 손잡이를 돌려 주세요."},
       {"word": "half", "meanings": ["[명] 절반", "[형] 절반의", "[부] 반쯤"], "etymology": "", "forms": "halves", "example": "I ate half of the apple. / 사과의 절반을 먹었다."},
-      {"word": "finance", "meanings": ["[명] 자금", "[동] 자금을 대다"], "etymology": "fin(끝·결제) → 자금", "example": "She works in finance. / 그녀는 금융 분야에서 일한다."},
-      {"word": "present", "meanings": ["[명] 선물, 현재", "[형] 현재의, 출석한", "[동] 제시하다, 주다"], "etymology": "pre(앞) + sent(있다) → 현재의; 제시하다", "example": "She presented her idea clearly. / 그녀는 아이디어를 분명히 제시했다."},
+      {"word": "finance", "meanings": ["[명] 자금", "[동] 자금을 대다"], "etymology": "fin(끝·결제) → 자금", "example": "The bank will finance the project. / 은행이 그 사업에 자금을 댈 것이다."},
+      {"word": "present", "meanings": ["[명] 선물, 현재", "[형] 현재의, 출석한", "[동] 제시하다, 주다"], "etymology": "pre(앞) + sent(있다) → 현재의; 제시하다", "example": "This present is for you. / 이 선물은 너를 위한 것이다."},
       {"word": "about", "meanings": ["[전] ~에 관한", "[부] 대략", "[부] 주위에"], "etymology": "", "example": "This book is about animals. / 이 책은 동물에 관한 것이다."},
       {"word": "bake", "meanings": ["[동] 굽다"], "etymology": "bacan(굽다) → 굽다", "example": "I bake cookies on Sundays. / 나는 일요일에 쿠키를 굽는다."},
       {"word": "career", "meanings": ["[명] 직업, 경력"], "etymology": "carr(수레) → 경력·직업", "example": "Teaching is a rewarding career. / 교직은 보람 있는 직업이다."},
-      {"word": "state", "meanings": ["[명] 국가, 주, 상태", "[동] 진술하다"], "etymology": "stat(서다) → 국가·상태; 진술하다", "example": "Please state your full name. / 성명을 말해 주세요."},
+      {"word": "state", "meanings": ["[명] 국가, 주, 상태", "[동] 진술하다"], "etymology": "stat(서다) → 국가·상태; 진술하다", "example": "The machine is in a good state. / 그 기계는 상태가 좋다."},
       {"word": "happen", "meanings": ["[동] 발생하다, 일어나다", "[동] (~에게) 생기다"], "etymology": "", "example": "What happened to your bag? / 가방에 무슨 일이 생겼니?"},
       {"word": "neighbor", "meanings": ["[명] 이웃"], "etymology": "neah(가까운) + gebur(거주자) → 이웃", "example": "Our neighbor is very kind. / 우리 이웃은 매우 친절하다."},
-      {"word": "get", "meanings": ["[동] 얻다, 받다, 가져오다", "[동] ~되다", "[동] 도착하다", "[동] 이해하다"], "etymology": "", "forms": "got-gotten", "example": "How did you get here so early? / 어떻게 이렇게 일찍 도착했니?"},
+      {"word": "get", "meanings": ["[동] 얻다, 받다, 가져오다", "[동] ~되다", "[동] 도착하다", "[동] 이해하다"], "etymology": "", "forms": "got-gotten", "example": "I get useful information from books. / 나는 책에서 유용한 정보를 얻는다."},
       {"word": "store", "meanings": ["[명] 가게", "[동] 저장하다"], "etymology": "", "example": "I bought milk at the store. / 가게에서 우유를 샀다."},
-      {"word": "direct", "meanings": ["[형] 직접적인", "[동] 지시하다", "[부] 곧바로", "[동] 감독하다"], "etymology": "di(완전히) + rect(곧다) → 직접적인; 지시하다", "example": "Is there a direct train to Busan? / 부산행 직행 기차가 있나요?"},
+      {"word": "direct", "meanings": ["[형] 직접적인", "[동] 지시하다", "[부] 곧바로", "[동] 감독하다"], "etymology": "di(완전히) + rect(곧다) → 직접적인; 지시하다", "example": "She asked a direct question. / 그녀는 직접적인 질문을 했다."},
       {"word": "meal", "meanings": ["[명] 식사"], "etymology": "", "example": "Breakfast is an important meal. / 아침은 중요한 식사다."},
       {"word": "send", "meanings": ["[동] 보내다"], "etymology": "", "forms": "sent", "example": "Please send me the file. / 파일을 보내 주세요."},
       {"word": "thick", "meanings": ["[형] 두꺼운, 빽빽한, 짙은"], "etymology": "", "example": "This book has a thick cover. / 이 책은 두꺼운 표지가 있다."},
@@ -648,7 +648,7 @@ const DATA = {
       {"word": "kind", "meanings": ["[명] 종류", "[형] 친절한"], "etymology": "", "example": "What kind of music do you like? / 어떤 종류의 음악을 좋아하니?"},
       {"word": "vacation", "meanings": ["[명] 휴가, 방학"], "etymology": "vac(비다) → 휴가", "example": "We spent our vacation at the beach. / 우리는 휴가를 해변에서 보냈다."},
       {"word": "debt", "meanings": ["[명] 빚, 부채"], "etymology": "deb(빚지다) → 빚", "example": "He paid off his debt. / 그는 빚을 갚았다."},
-      {"word": "take", "meanings": ["[동] 데리고 가다, 잡다, 가져가다, 받다", "[동] (시간이) 걸리다", "[동] 타다"], "etymology": "", "forms": "took-taken", "example": "It takes ten minutes to walk there. / 거기 걸어가는 데 10분이 걸린다."}
+      {"word": "take", "meanings": ["[동] 데리고 가다, 잡다, 가져가다, 받다", "[동] (시간이) 걸리다", "[동] 타다"], "etymology": "", "forms": "took-taken", "example": "I take my son to school. / 나는 아들을 학교에 데리고 간다."}
     ],
     5: [
       {"word": "heat", "meanings": ["[명] 열기, 열"], "etymology": "hat(뜨거운) → 열", "example": "I can't stand this heat. / 이 더위를 견딜 수 없다."},
@@ -678,7 +678,7 @@ const DATA = {
       {"word": "away", "meanings": ["[부] 멀리, 떨어져서"], "etymology": "", "example": "She lives far away. / 그녀는 멀리 떨어져 산다."},
       {"word": "interesting", "meanings": ["[형] 흥미있는"], "etymology": "", "example": "This book is very interesting. / 이 책은 매우 흥미롭다."},
       {"word": "increase", "meanings": ["[명] 증가", "[동] 증가하다"], "etymology": "in(안으로) + crease(자라다) → 증가하다", "example": "There was an increase in prices. / 가격이 올랐다."},
-      {"word": "just", "meanings": ["[부] 바로, 꼭", "[형] 공정한", "[부] 방금", "[형] 정당한"], "etymology": "", "example": "I just arrived home. / 방금 집에 도착했다."},
+      {"word": "just", "meanings": ["[부] 바로, 꼭", "[형] 공정한", "[부] 방금", "[형] 정당한"], "etymology": "", "example": "This hat is just right for me. / 이 모자는 나에게 꼭 맞는다."},
       {"word": "teenager", "meanings": ["[명] 10대의 소년[소녀]"], "etymology": "teen(13–19) + ager → 십 대", "forms": "= teen", "example": "My brother is a teenager. / 내 동생은 십 대이다."},
       {"word": "teach", "meanings": ["[동] 가르치다"], "etymology": "", "forms": "taught", "example": "She teaches English at school. / 그녀는 학교에서 영어를 가르친다."},
       {"word": "fun", "meanings": ["[형] 재미있는", "[명] 재미"], "etymology": "", "example": "The party was a lot of fun. / 파티가 아주 재미있었다."},
@@ -704,7 +704,7 @@ const DATA = {
       {"word": "weekend", "meanings": ["[명] 주말"], "etymology": "", "example": "I rest on the weekend. / 주말에는 쉰다."},
       {"word": "vote", "meanings": ["[동] 투표하다", "[명] 투표"], "etymology": "", "example": "Citizens vote for a leader. / 시민들은 지도자를 위해 투표한다."},
       {"word": "laugh", "meanings": ["[동] 웃다", "[명] 웃음"], "etymology": "", "example": "The joke made everyone laugh. / 그 농담에 모두가 웃었다."},
-      {"word": "look", "meanings": ["[동] 보다", "[동] ~처럼 보이다", "[명] 외모, 표정"], "etymology": "", "example": "You look happy today. / 오늘 행복해 보인다."},
+      {"word": "look", "meanings": ["[동] 보다", "[동] ~처럼 보이다", "[명] 외모, 표정"], "etymology": "", "example": "Look at the moon. / 달을 보세요."},
       {"word": "male", "meanings": ["[형] 남성의", "[명] 수컷"], "etymology": "mas(수컷) → 남성의", "example": "The male bird has bright colors. / 수컷 새는 색깔이 밝다."},
       {"word": "enjoy", "meanings": ["[동] 즐기다"], "etymology": "en(만들다) + joy(기쁨) → 즐기다", "example": "I enjoy reading at night. / 밤에 책 읽는 것을 즐긴다."},
       {"word": "memory", "meanings": ["[명] 기억, 추억"], "etymology": "memor(기억하다) → 기억", "example": "I have a good memory of that day. / 그날의 좋은 추억이 있다."},
@@ -771,7 +771,7 @@ const DATA = {
       {"word": "shadow", "meanings": ["[명] 그림자[그늘]"], "etymology": "", "example": "My shadow is long in the evening. / 저녁에는 그림자가 길다."},
       {"word": "grow", "meanings": ["[동] 자라다, 키우다"], "etymology": "", "forms": "grew-grown", "example": "Flowers grow in spring. / 꽃은 봄에 자란다."},
       {"word": "harmful", "meanings": ["[형] 해로운"], "etymology": "harm(해) + ful → 해로운", "example": "Smoking is harmful to health. / 흡연은 건강에 해롭다."},
-      {"word": "climate", "meanings": ["[명] 기후"], "etymology": "clima(기울기·지역) → 기후", "example": "Korea has four climate seasons. / 한국은 네 계절이 있다."},
+      {"word": "climate", "meanings": ["[명] 기후"], "etymology": "clima(기울기·지역) → 기후", "example": "This country has a warm climate. / 이 나라는 기후가 따뜻하다."},
       {"word": "choose", "meanings": ["[동] 고르다, 선택하다"], "etymology": "ceosan(고르다) → 선택하다", "forms": "chose-chosen", "example": "Choose the correct answer. / 정답을 고르세요."},
       {"word": "advertisement", "meanings": ["[명] 광고"], "etymology": "ad(~로) + vert(돌리다) → 광고", "forms": "= ad", "example": "I saw an advertisement on TV. / TV에서 광고를 봤다."},
       {"word": "cold", "meanings": ["[형] 추운, 차가운", "[명] 감기, 추위", "[형] 냉정한"], "etymology": "", "example": "It is cold outside today. / 오늘은 밖이 춥다."}
@@ -909,7 +909,7 @@ const DATA = {
       {"word": "mirror", "meanings": ["[명] 거울"], "etymology": "mir(놀라다·보다) → 거울", "example": "Look at yourself in the mirror. / 거울을 보라."},
       {"word": "explain", "meanings": ["[동] 설명하다"], "etymology": "ex(밖으로) + plain(평평) → 설명하다", "example": "Please explain this sentence. / 이 문장을 설명해 주세요."},
       {"word": "rest", "meanings": ["[명] 휴식, 나머지", "[동] 쉬다", "[동] 놓다"], "etymology": "", "example": "I need to rest after work. / 일 후에 쉬어야겠다."},
-      {"word": "separate", "meanings": ["[동] 분리되다", "[형] 분리된"], "etymology": "se(따로) + par(준비하다) → 분리하다", "example": "Please separate the trash. / 쓰레기를 분리해 주세요."},
+      {"word": "separate", "meanings": ["[동] 분리되다", "[형] 분리된"], "etymology": "se(따로) + par(준비하다) → 분리하다", "example": "These are separate rooms. / 이것들은 분리된 방들이다."},
       {"word": "check", "meanings": ["[동] 점검하다", "[명] 점검, 수표", "[명] 계산서", "[동] 억제하다"], "etymology": "", "example": "Check your answers again. / 답을 다시 점검해라."},
       {"word": "popular", "meanings": ["[형] 인기 있는, 대중적인"], "etymology": "popul(사람들) → 인기 있는", "example": "This song is very popular. / 이 노래는 매우 인기 있다."},
       {"word": "pollution", "meanings": ["[명] 오염, 공해"], "etymology": "pollu(더럽히다) → 오염", "example": "Air pollution is a big problem. / 대기 오염은 큰 문제다."},
@@ -928,13 +928,13 @@ const DATA = {
       {"word": "like", "meanings": ["[동] 좋아하다", "[전] ~처럼", "[형] 비슷한", "[접] 마치 ~처럼"], "etymology": "", "example": "I like warm weather. / 따뜻한 날씨를 좋아한다."},
       {"word": "crop", "meanings": ["[명] 농작물, 수확량", "[동] 수확하다", "[동] 잘라 내다"], "etymology": "", "example": "Rice is an important crop here. / 쌀은 여기서 중요한 농작물이다."},
       {"word": "modern", "meanings": ["[형] 현대의, 현대적인"], "etymology": "modo(방금) → 현대의", "example": "This is a modern building. / 이것은 현대적인 건물이다."},
-      {"word": "rich", "meanings": ["[형] 부유한, 풍부한"], "etymology": "", "example": "The soil is rich and dark. / 흙이 비옥하고 검다."},
+      {"word": "rich", "meanings": ["[형] 부유한, 풍부한"], "etymology": "", "example": "He is rich. / 그는 부유하다."},
       {"word": "sharp", "meanings": ["[형] 날카로운", "[부] 정각에", "[형] 예리한"], "etymology": "", "example": "Be careful. The knife is sharp. / 조심해. 칼이 날카롭다."},
       {"word": "invent", "meanings": ["[동] 발명하다"], "etymology": "in(안에) + vent(오다) → 발명하다", "example": "Who invented the light bulb? / 누가 전구를 발명했니?"},
       {"word": "full", "meanings": ["[형] 가득 찬", "[부] 아주"], "etymology": "", "example": "The bus is full. / 버스가 가득 찼다."},
       {"word": "fruit", "meanings": ["[명] 과일, 성과", "[명] 결과"], "etymology": "", "example": "Apples are my favorite fruit. / 사과는 내가 가장 좋아하는 과일이다."},
       {"word": "agree", "meanings": ["[동] 동의하다, 의견이 일치하다"], "etymology": "ad(~로) + gratus(기분 좋은) → 동의하다", "example": "I agree with your idea. / 네 생각에 동의한다."},
-      {"word": "rice", "meanings": ["[명] 쌀"], "etymology": "", "example": "Koreans eat rice every day. / 한국인은 매일 밥을 먹는다."},
+      {"word": "rice", "meanings": ["[명] 쌀"], "etymology": "", "example": "This bag contains rice. / 이 자루에는 쌀이 들어 있다."},
       {"word": "competition", "meanings": ["[명] 경쟁, 대회"], "etymology": "com(함께) + pet(구하다) → 경쟁", "example": "Our school won the competition. / 우리 학교가 대회에서 이겼다."},
       {"word": "restaurant", "meanings": ["[명] 레스토랑(식당)"], "etymology": "restaur(회복하다) → 식당", "example": "We ate at a Korean restaurant. / 한국 식당에서 먹었다."},
       {"word": "satisfy", "meanings": ["[동] 만족시키다"], "etymology": "satis(충분) + fy(만들다) → 만족시키다", "example": "The meal satisfied everyone. / 식사가 모두를 만족시켰다."},
@@ -1019,7 +1019,7 @@ const DATA = {
       {"word": "map", "meanings": ["[명] 지도", "[동] 지도로 만들다"], "etymology": "", "example": "Look at the map carefully. / 지도를 주의 깊게 보아라."},
       {"word": "meaning", "meanings": ["[명] 의미(뜻)"], "etymology": "", "example": "What is the meaning of this word? / 이 단어의 의미는 무엇인가?"},
       {"word": "nervous", "meanings": ["[형] 불안한, 초조한, 신경의"], "etymology": "nerv(신경) → 신경질적인", "example": "I feel nervous before tests. / 시험 전에 초조하다."},
-      {"word": "wild", "meanings": ["[형] 야생의", "[명] 황야", "[부] 몹시"], "etymology": "", "example": "Lions live in the wild. / 사자는 야생에 산다."},
+      {"word": "wild", "meanings": ["[형] 야생의", "[명] 황야", "[부] 몹시"], "etymology": "", "example": "That is a wild bird. / 저것은 야생의 새이다."},
       {"word": "arrive", "meanings": ["[동] 도착하다"], "etymology": "ad(~로) + rive(해안) → 도착하다", "example": "The train arrived on time. / 기차가 제시간에 도착했다."},
       {"word": "spring", "meanings": ["[명] 봄, 용수철, 샘", "[동] 튀어오르다"], "etymology": "", "forms": "sprang-sprung", "example": "Spring is my favorite season. / 봄은 내가 가장 좋아하는 계절이다."},
       {"word": "exciting", "meanings": ["[형] 신나는, 흥분시키는"], "etymology": "", "example": "The game was exciting. / 경기가 신났다."},
@@ -1033,8 +1033,8 @@ const DATA = {
       {"word": "add", "meanings": ["[동] 더하다, 덧붙이다"], "etymology": "", "example": "Add some sugar to the tea. / 차에 설탕을 조금 더해라."},
       {"word": "passenger", "meanings": ["[명] 승객"], "etymology": "pass(지나가다) → 승객", "example": "Every passenger needs a ticket. / 모든 승객은 표가 필요하다."},
       {"word": "sentence", "meanings": ["[명] 문장"], "etymology": "sent(느끼다·생각) → 문장; 선고", "example": "Write a short sentence. / 짧은 문장을 써라."},
-      {"word": "see", "meanings": ["[동] 보다", "[동] 만나다", "[동] 이해하다"], "etymology": "", "forms": "saw-seen", "example": "I see what you mean. / 무슨 말인지 알겠다."},
-      {"word": "rapid", "meanings": ["[형] 빠른", "[명] 급류"], "etymology": "rap(낚아채다) → 빠른", "example": "There was a rapid change. / 급격한 변화가 있었다."},
+      {"word": "see", "meanings": ["[동] 보다", "[동] 만나다", "[동] 이해하다"], "etymology": "", "forms": "saw-seen", "example": "I see a bird in the tree. / 나는 나무 위의 새를 본다."},
+      {"word": "rapid", "meanings": ["[형] 빠른", "[명] 급류"], "etymology": "rap(낚아채다) → 빠른", "example": "We need a rapid reply. / 우리는 빠른 답변이 필요하다."},
       {"word": "born", "meanings": ["[형] 태어난, 타고난", "[동] 태어나다"], "etymology": "", "example": "She was born in Seoul. / 그녀는 서울에서 태어났다."},
       {"word": "below", "meanings": ["[전] ~의 아래에"], "etymology": "", "example": "The temperature is below zero. / 기온이 영하다."},
       {"word": "exam", "meanings": ["[명] 시험"], "etymology": "examen(시험) → 시험", "forms": "= examination", "example": "I have an English exam tomorrow. / 내일 영어 시험이 있다."},
@@ -1063,7 +1063,7 @@ const DATA = {
       {"word": "serious", "meanings": ["[형] 진지한, 심각한", "[형] 중대한"], "etymology": "serius(무게 있는) → 진지한·심각한", "example": "This is a serious problem. / 이것은 심각한 문제다."},
       {"word": "afraid", "meanings": ["[형] 두려워하는, 걱정하는"], "etymology": "afright(겁먹이다) 관련 → 두려워하는", "example": "I am afraid of spiders. / 거미가 무섭다."},
       {"word": "loud", "meanings": ["[형] (소리가) 큰", "[부] 크게"], "etymology": "", "example": "The music is too loud. / 음악이 너무 크다."},
-      {"word": "near", "meanings": ["[형] 가까운", "[부] 가까이", "[동] 접근하다"], "etymology": "", "example": "The school is near my house. / 학교는 우리 집 근처에 있다."},
+      {"word": "near", "meanings": ["[형] 가까운", "[부] 가까이", "[동] 접근하다"], "etymology": "", "example": "Please come near. / 가까이 와 주세요."},
       {"word": "volunteer", "meanings": ["[명] 자원 봉사자", "[동] 자원하다", "[형] 자발적인"], "etymology": "volunt(의지) → 자원봉사자", "example": "She works as a volunteer. / 그녀는 자원봉사자로 일한다."},
       {"word": "even", "meanings": ["[부] ~조차(도)", "[형] 평평한", "[부] 심지어", "[형] 짝수의"], "etymology": "", "example": "Even children can do this. / 어린아이들도 이것을 할 수 있다."},
       {"word": "calm", "meanings": ["[형] 침착한", "[동] 진정시키다"], "etymology": "", "example": "Stay calm and breathe slowly. / 침착하게 천천히 숨 쉬어라."},
@@ -1091,14 +1091,14 @@ const DATA = {
       {"word": "war", "meanings": ["[명] 전쟁"], "etymology": "werre(혼란) → 전쟁", "example": "War brings great pain. / 전쟁은 큰 고통을 가져온다."},
       {"word": "theory", "meanings": ["[명] 이론[학설]"], "etymology": "theor(보다) → 이론", "example": "This is only a theory. / 이것은 이론일 뿐이다."},
       {"word": "product", "meanings": ["[명] 생산물, 제품, 산물", "[명] 곱"], "etymology": "pro(앞) + duct(이끌다) → 제품", "example": "This product is made in Korea. / 이 제품은 한국에서 만들어졌다."},
-      {"word": "throw", "meanings": ["[동] 던지다", "[명] 던지기"], "etymology": "", "forms": "threw-thrown", "example": "Don't throw trash on the ground. / 바닥에 쓰레기를 버리지 마라."},
+      {"word": "throw", "meanings": ["[동] 던지다", "[명] 던지기"], "etymology": "", "forms": "threw-thrown", "example": "Throw the ball to me. / 공을 나에게 던져라."},
       {"word": "sense", "meanings": ["[명] 감각", "[동] 느끼다", "[명] 의미, 감각"], "etymology": "sent(느끼다) → 감각", "example": "Dogs have a strong sense of smell. / 개는 후각이 뛰어나다."},
       {"word": "comment", "meanings": ["[명] 논평", "[동] 논평하다"], "etymology": "com(함께) + ment(생각) → 논평", "example": "He made a short comment. / 그는 짧은 논평을 했다."},
       {"word": "gather", "meanings": ["[동] 모으다[모이다]"], "etymology": "", "example": "We gathered in the hall. / 우리는 홀에 모였다."},
       {"word": "voice", "meanings": ["[명] 목소리", "[동] 말로 표현하다", "[명] 음성"], "etymology": "", "example": "She has a clear voice. / 그녀는 목소리가 맑다."},
       {"word": "trash", "meanings": ["[명] 쓰레기"], "etymology": "trasch(잡동사니) → 쓰레기", "example": "Please take out the trash. / 쓰레기를 버려 주세요."},
       {"word": "capital", "meanings": ["[명] 수도, 대문자, 자본", "[형] 주요한"], "etymology": "capit(머리) → 수도·대문자·자본", "example": "Seoul is the capital of Korea. / 서울은 한국의 수도다."},
-      {"word": "point", "meanings": ["[명] 요점, 지점", "[동] 가리키다", "[명] 점수", "[명] 소수점"], "etymology": "", "example": "That is a good point. / 좋은 지적이다."},
+      {"word": "point", "meanings": ["[명] 요점, 지점", "[동] 가리키다", "[명] 점수", "[명] 소수점"], "etymology": "", "example": "Please explain the main point. / 핵심 요점을 설명해 주세요."},
       {"word": "marry", "meanings": ["[동] ~와 결혼하다"], "etymology": "maritare → 결혼하다", "example": "They will marry next year. / 그들은 내년에 결혼할 것이다."},
       {"word": "pray", "meanings": ["[동] 기도하다"], "etymology": "precari(간청하다) → 기도하다", "example": "People pray at the temple. / 사람들은 절에서 기도한다."},
       {"word": "surprise", "meanings": ["[동] 놀라게 하다", "[명] 놀람"], "etymology": "sur(위에) + prise(잡다) → 놀라게 하다", "example": "The gift was a big surprise. / 선물은 큰 놀라움이었다."},
@@ -1110,14 +1110,14 @@ const DATA = {
       {"word": "please", "meanings": ["[동] 기쁘게 하다", "[부] 제발", "[동] 제발 (~해 주세요)"], "etymology": "", "example": "Please open the window. / 창문을 열어 주세요."},
       {"word": "model", "meanings": ["[명] 모형, 모델", "[동] 모델이 되다"], "etymology": "modus(방식·척도) → 모형·모델", "example": "This car is a new model. / 이 차는 새 모델이다."},
       {"word": "bottom", "meanings": ["[명] 밑바닥", "[형] 맨 아래의"], "etymology": "", "example": "The keys are at the bottom. / 열쇠는 맨 아래에 있다."},
-      {"word": "view", "meanings": ["[명] 견해, 관점", "[동] 바라보다", "[동] 검토하다"], "etymology": "vid(보다) → 견해; 바라보다", "example": "The view from the hill is great. / 언덕에서 본 전망이 훌륭하다."}
+      {"word": "view", "meanings": ["[명] 견해, 관점", "[동] 바라보다", "[동] 검토하다"], "etymology": "vid(보다) → 견해; 바라보다", "example": "I share your view. / 나는 당신의 견해에 동의한다."}
     ],
     16: [
       {"word": "soil", "meanings": ["[명] 흙[토양]", "[동] 더럽히다"], "etymology": "", "example": "Plants grow in rich soil. / 식물은 비옥한 흙에서 자란다."},
       {"word": "palace", "meanings": ["[명] 궁전"], "etymology": "palatium → 궁전", "example": "The king lived in a palace. / 왕은 궁전에 살았다."},
       {"word": "shout", "meanings": ["[동] 외치다", "[명] 외침"], "etymology": "scout(외치다) 관련 → 외치다", "example": "Don't shout in the library. / 도서관에서 외치지 마라."},
       {"word": "creature", "meanings": ["[명] 생물, 동물, 창조물"], "etymology": "cre(만들다) → 생물·창조물", "example": "A whale is a huge creature. / 고래는 거대한 생물이다."},
-      {"word": "return", "meanings": ["[동] 돌아오다", "[명] 돌아옴, 수익", "[형] 왕복의"], "etymology": "re(뒤로) + turn(돌다) → 돌아가다", "example": "Please return the book tomorrow. / 내일 책을 반납해 주세요."},
+      {"word": "return", "meanings": ["[동] 돌아오다", "[명] 돌아옴, 수익", "[형] 왕복의"], "etymology": "re(뒤로) + turn(돌다) → 돌아가다", "example": "I will return home soon. / 나는 곧 집으로 돌아올 것이다."},
       {"word": "army", "meanings": ["[명] 군대, 육군"], "etymology": "arm(무기) → 군대", "example": "The army protected the city. / 군대가 도시를 지켰다."},
       {"word": "task", "meanings": ["[명] 과업[과제]", "[동] 임무를 주다"], "etymology": "taxa(평가·일) → 과업", "example": "This task is difficult. / 이 과업은 어렵다."},
       {"word": "tell", "meanings": ["[동] 말하다", "[동] 구별하다", "[동] 명하다"], "etymology": "", "forms": "told", "example": "Tell me the truth. / 진실을 말해 줘."},
@@ -1139,7 +1139,7 @@ const DATA = {
       {"word": "rock", "meanings": ["[명] 바위, 록 음악", "[동] 흔들다"], "etymology": "", "example": "He sat on a large rock. / 그는 큰 바위에 앉았다."},
       {"word": "individual", "meanings": ["[형] 개개의, 개인의", "[명] 개인"], "etymology": "in(부정) + divid(나누다) → 개인", "example": "Each individual is unique. / 각 개인은 고유하다."},
       {"word": "ground", "meanings": ["[명] 땅, 운동장, 근거"], "etymology": "", "example": "Kids play on the ground. / 아이들이 운동장에서 논다."},
-      {"word": "slow", "meanings": ["[형] 느린", "[동] 늦추다", "[부] 천천히"], "etymology": "", "example": "Please speak more slowly. / 더 천천히 말해 주세요."},
+      {"word": "slow", "meanings": ["[형] 느린", "[동] 늦추다", "[부] 천천히"], "etymology": "", "example": "This bus is slow. / 이 버스는 느리다."},
       {"word": "situation", "meanings": ["[명] 상황"], "etymology": "situ(놓다) → 상황", "example": "The situation is under control. / 상황은 통제되고 있다."},
       {"word": "die", "meanings": ["[동] 죽다", "[동] 꺼지다"], "etymology": "", "example": "Flowers die without water. / 물이 없으면 꽃이 죽는다."},
       {"word": "thin", "meanings": ["[형] 얇은, 가는", "[동] 얇아지다"], "etymology": "thynne → 얇은", "example": "The ice is too thin to walk on. / 얼음이 너무 얇아 걸을 수 없다."},
@@ -1273,12 +1273,12 @@ const DATA = {
       {"word": "outside", "meanings": ["[부] 밖으로, 밖에", "[명] 바깥쪽"], "etymology": "", "example": "The kids play outside. / 아이들은 밖에서 논다."},
       {"word": "perform", "meanings": ["[동] 수행하다, 공연[연주]하다"], "etymology": "", "example": "The band will perform tonight. / 밴드가 오늘 밤 공연할 것이다."},
       {"word": "stage", "meanings": ["[명] 무대, 단계"], "etymology": "", "example": "Actors stood on the stage. / 배우들이 무대 위에 섰다."},
-      {"word": "tie", "meanings": ["[동] 묶다", "[명] 넥타이, 동점"], "etymology": "", "example": "He wore a blue tie. / 그는 파란 넥타이를 맸다."},
+      {"word": "tie", "meanings": ["[동] 묶다", "[명] 넥타이, 동점"], "etymology": "", "example": "Please tie the rope. / 밧줄을 묶어 주세요."},
       {"word": "laundry", "meanings": ["[명] 세탁물, 세탁"], "etymology": "", "example": "I need to do the laundry. / 나는 세탁을 해야 한다."},
       {"word": "pour", "meanings": ["[동] (마구) 붓다, 따르다"], "etymology": "", "example": "Pour the milk into the cup. / 컵에 우유를 따르세요."},
       {"word": "practical", "meanings": ["[형] 실제적인, 실용적인"], "etymology": "", "example": "This is a practical tip. / 이것은 실용적인 팁이다."},
       {"word": "careful", "meanings": ["[형] 조심하는, 주의 깊은"], "etymology": "", "example": "Be careful on the ice. / 빙판에서 조심하세요."},
-      {"word": "signal", "meanings": ["[명] 신호", "[동] 신호를 보내다"], "etymology": "", "example": "The traffic signal turned red. / 신호등이 빨간색으로 바뀌었다."}
+      {"word": "signal", "meanings": ["[명] 신호", "[동] 신호를 보내다"], "etymology": "", "example": "Wait for my signal. / 내 신호를 기다려라."}
     ],
     20: [
       {"word": "account", "meanings": ["[명] 계좌, 설명"], "etymology": "", "example": "I opened a bank account. / 나는 은행 계좌를 개설했다."},
@@ -1320,7 +1320,7 @@ const DATA = {
       {"word": "generation", "meanings": ["[명] 세대"], "etymology": "", "example": "This song is loved by my generation. / 이 노래는 우리 세대가 좋아한다."},
       {"word": "wise", "meanings": ["[형] 지혜로운, 현명한"], "etymology": "", "example": "It was a wise choice. / 그것은 현명한 선택이었다."},
       {"word": "selfish", "meanings": ["[형] 이기적인"], "etymology": "", "example": "Sharing is better than being selfish. / 나누는 것이 이기적인 것보다 낫다."},
-      {"word": "direction", "meanings": ["[명] 방향, 지시"], "etymology": "", "example": "Ask for directions if you are lost. / 길을 잃으면 길을 물어보세요."}
+      {"word": "direction", "meanings": ["[명] 방향, 지시"], "etymology": "", "example": "We walked in the same direction. / 우리는 같은 방향으로 걸었다."}
     ]
   },
   basic2: {},
@@ -2402,9 +2402,11 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
     var html = sourceMeanings(w).map(function (m) {
       return '<span class="m-item">' + esc(m) + '</span>';
     }).join('');
+    // Example practice uses only retained study senses, even after reveal.
+    if (forExample) return html;
     var extras = additionalMeanings(w);
     if (extras.length) {
-      html += '<details class="extra-meanings"' + (forExample ? ' open' : '') + '>' +
+      html += '<details class="extra-meanings">' +
         '<summary>추가 뜻 (+' + extras.length + ')</summary>' +
         extras.map(function (m) { return '<span class="m-item">' + esc(m) + '</span>'; }).join('') + '</details>';
     }

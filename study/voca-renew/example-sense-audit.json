@@ -1,0 +1,415 @@
+{
+  "reviewed_examples": 800,
+  "changed_examples": 30,
+  "authoring_note": "New examples are authored learning sentences, not textbook quotations. Meanings and all non-example word data are unchanged.",
+  "scope": "Target-word senses only; context words are not additional target senses. All 800 sentences were reviewed against the retained study view; 30 changed for extra-sense, ambiguity, POS or valid-gap reasons.",
+  "changes": [
+    {
+      "id": "basic1:1:23",
+      "word": "watch",
+      "old_example": "I watch the news before bed. / 자기 전에 뉴스를 본다.",
+      "new_example": "I watch the birds. / 나는 새들을 지켜본다.",
+      "retained_study_meanings": [
+        "[동] 지켜보다",
+        "[명] (손목) 시계"
+      ],
+      "selected_retained_sense": "[동] 지켜보다",
+      "changed": true,
+      "review": "confirmed extra 시청하다",
+      "evidence": "source PDF day 1"
+    },
+    {
+      "id": "basic1:2:16",
+      "word": "light",
+      "old_example": "Please turn on the light. / 불을 켜 주세요.",
+      "new_example": "Plants need light. / 식물은 빛이 필요하다.",
+      "retained_study_meanings": [
+        "[명] 빛",
+        "[형] 밝은, 가벼운"
+      ],
+      "selected_retained_sense": "[명] 빛",
+      "changed": true,
+      "review": "avoid ambiguous lamp/fixture sense",
+      "evidence": "source PDF day 2"
+    },
+    {
+      "id": "basic1:2:27",
+      "word": "native",
+      "old_example": "She is a native speaker of English. / 그녀는 영어 원어민이다.",
+      "new_example": "This is my native country. / 이곳은 내가 태어난 나라이다.",
+      "retained_study_meanings": [
+        "[형] 태어난 곳의",
+        "[명] 현지인"
+      ],
+      "selected_retained_sense": "[형] 태어난 곳의",
+      "changed": true,
+      "review": "clearer direct use of retained adjective",
+      "evidence": "source PDF day 2"
+    },
+    {
+      "id": "basic1:3:31",
+      "word": "general",
+      "old_example": "In general, dogs are friendly. / 일반적으로 개는 친근하다.",
+      "new_example": "This is a general rule. / 이것은 일반적인 규칙이다.",
+      "retained_study_meanings": [
+        "[형] 일반적인",
+        "[명] 장군"
+      ],
+      "selected_retained_sense": "[형] 일반적인",
+      "changed": true,
+      "review": "replace idiomatic in general with direct adjective",
+      "evidence": "source PDF day 3"
+    },
+    {
+      "id": "basic1:4:8",
+      "word": "sale",
+      "old_example": "The store has a big sale today. / 가게에서 오늘 큰 세일을 한다.",
+      "new_example": "The sale of the house is complete. / 그 집의 판매가 완료되었다.",
+      "retained_study_meanings": [
+        "[명] 판매, 매출"
+      ],
+      "selected_retained_sense": "[명] 판매, 매출",
+      "changed": true,
+      "review": "discount sale is not a retained sense",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:10",
+      "word": "turn",
+      "old_example": "Turn right at the next corner. / 다음 모퉁이에서 우회전해라.",
+      "new_example": "Please turn the handle. / 손잡이를 돌려 주세요.",
+      "retained_study_meanings": [
+        "[동] 돌리다, 바꾸다"
+      ],
+      "selected_retained_sense": "[동] 돌리다, 바꾸다",
+      "changed": true,
+      "review": "replace directional intransitive turn with retained transitive 돌리다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:12",
+      "word": "finance",
+      "old_example": "She works in finance. / 그녀는 금융 분야에서 일한다.",
+      "new_example": "The bank will finance the project. / 은행이 그 사업에 자금을 댈 것이다.",
+      "retained_study_meanings": [
+        "[명] 자금",
+        "[동] 자금을 대다"
+      ],
+      "selected_retained_sense": "[동] 자금을 대다",
+      "changed": true,
+      "review": "finance sector is not retained 자금/자금을 대다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:13",
+      "word": "present",
+      "old_example": "She presented her idea clearly. / 그녀는 아이디어를 분명히 제시했다.",
+      "new_example": "This present is for you. / 이 선물은 너를 위한 것이다.",
+      "retained_study_meanings": [
+        "[명] 선물, 현재",
+        "[형] 현재의, 출석한"
+      ],
+      "selected_retained_sense": "[명] 선물, 현재",
+      "changed": true,
+      "review": "confirmed extra 제시하다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:17",
+      "word": "state",
+      "old_example": "Please state your full name. / 성명을 말해 주세요.",
+      "new_example": "The machine is in a good state. / 그 기계는 상태가 좋다.",
+      "retained_study_meanings": [
+        "[명] 국가, 주, 상태"
+      ],
+      "selected_retained_sense": "[명] 국가, 주, 상태",
+      "changed": true,
+      "review": "confirmed extra 진술하다/말하다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "old_example": "How did you get here so early? / 어떻게 이렇게 일찍 도착했니?",
+      "new_example": "I get useful information from books. / 나는 책에서 유용한 정보를 얻는다.",
+      "retained_study_meanings": [
+        "[동] 얻다, ~되다"
+      ],
+      "selected_retained_sense": "[동] 얻다, ~되다",
+      "changed": true,
+      "review": "confirmed extra 도착하다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:22",
+      "word": "direct",
+      "old_example": "Is there a direct train to Busan? / 부산행 직행 기차가 있나요?",
+      "new_example": "She asked a direct question. / 그녀는 직접적인 질문을 했다.",
+      "retained_study_meanings": [
+        "[형] 직접적인",
+        "[동] 지시하다"
+      ],
+      "selected_retained_sense": "[형] 직접적인",
+      "changed": true,
+      "review": "avoid travel-specific 직행/직통 sense",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "old_example": "It takes ten minutes to walk there. / 거기 걸어가는 데 10분이 걸린다.",
+      "new_example": "I take my son to school. / 나는 아들을 학교에 데리고 간다.",
+      "retained_study_meanings": [
+        "[동] 데리고 가다, 잡다"
+      ],
+      "selected_retained_sense": "[동] 데리고 가다, 잡다",
+      "changed": true,
+      "review": "confirmed extra 시간이 걸리다",
+      "evidence": "source PDF day 4"
+    },
+    {
+      "id": "basic1:5:27",
+      "word": "just",
+      "old_example": "I just arrived home. / 방금 집에 도착했다.",
+      "new_example": "This hat is just right for me. / 이 모자는 나에게 꼭 맞는다.",
+      "retained_study_meanings": [
+        "[부] 바로, 꼭",
+        "[형] 공정한"
+      ],
+      "selected_retained_sense": "[부] 바로, 꼭",
+      "changed": true,
+      "review": "avoid temporal 방금 sense; retain 꼭",
+      "evidence": "source PDF day 5"
+    },
+    {
+      "id": "basic1:6:11",
+      "word": "look",
+      "old_example": "You look happy today. / 오늘 행복해 보인다.",
+      "new_example": "Look at the moon. / 달을 보세요.",
+      "retained_study_meanings": [
+        "[동] 보다"
+      ],
+      "selected_retained_sense": "[동] 보다",
+      "changed": true,
+      "review": "confirmed extra ~처럼 보이다",
+      "evidence": "source PDF day 6"
+    },
+    {
+      "id": "basic1:7:36",
+      "word": "climate",
+      "old_example": "Korea has four climate seasons. / 한국은 네 계절이 있다.",
+      "new_example": "This country has a warm climate. / 이 나라는 기후가 따뜻하다.",
+      "retained_study_meanings": [
+        "[명] 기후"
+      ],
+      "selected_retained_sense": "[명] 기후",
+      "changed": true,
+      "review": "replace unclear unidiomatic climate seasons",
+      "evidence": "source PDF day 7"
+    },
+    {
+      "id": "basic1:11:6",
+      "word": "separate",
+      "old_example": "Please separate the trash. / 쓰레기를 분리해 주세요.",
+      "new_example": "These are separate rooms. / 이것들은 분리된 방들이다.",
+      "retained_study_meanings": [
+        "[동] 분리되다",
+        "[형] 분리된"
+      ],
+      "selected_retained_sense": "[형] 분리된",
+      "changed": true,
+      "review": "source verb is 분리되다; use unambiguous retained adjective",
+      "evidence": "source PDF day 11"
+    },
+    {
+      "id": "basic1:11:25",
+      "word": "rich",
+      "old_example": "The soil is rich and dark. / 흙이 비옥하고 검다.",
+      "new_example": "He is rich. / 그는 부유하다.",
+      "retained_study_meanings": [
+        "[형] 부유한, 풍부한"
+      ],
+      "selected_retained_sense": "[형] 부유한, 풍부한",
+      "changed": true,
+      "review": "avoid soil-specific 비옥한 sense",
+      "evidence": "source PDF day 11"
+    },
+    {
+      "id": "basic1:11:31",
+      "word": "rice",
+      "old_example": "Koreans eat rice every day. / 한국인은 매일 밥을 먹는다.",
+      "new_example": "This bag contains rice. / 이 자루에는 쌀이 들어 있다.",
+      "retained_study_meanings": [
+        "[명] 쌀"
+      ],
+      "selected_retained_sense": "[명] 쌀",
+      "changed": true,
+      "review": "avoid cooked-rice 밥 sense",
+      "evidence": "source PDF day 11"
+    },
+    {
+      "id": "basic1:13:32",
+      "word": "wild",
+      "old_example": "Lions live in the wild. / 사자는 야생에 산다.",
+      "new_example": "That is a wild bird. / 저것은 야생의 새이다.",
+      "retained_study_meanings": [
+        "[형] 야생의",
+        "[명] 황야"
+      ],
+      "selected_retained_sense": "[형] 야생의",
+      "changed": true,
+      "review": "use explicit retained adjective rather than noun 야생/황야 ambiguity",
+      "evidence": "source PDF day 13"
+    },
+    {
+      "id": "basic1:14:4",
+      "word": "see",
+      "old_example": "I see what you mean. / 무슨 말인지 알겠다.",
+      "new_example": "I see a bird in the tree. / 나는 나무 위의 새를 본다.",
+      "retained_study_meanings": [
+        "[동] 보다"
+      ],
+      "selected_retained_sense": "[동] 보다",
+      "changed": true,
+      "review": "confirmed extra 이해하다",
+      "evidence": "source PDF day 14"
+    },
+    {
+      "id": "basic1:14:5",
+      "word": "rapid",
+      "old_example": "There was a rapid change. / 급격한 변화가 있었다.",
+      "new_example": "We need a rapid reply. / 우리는 빠른 답변이 필요하다.",
+      "retained_study_meanings": [
+        "[형] 빠른"
+      ],
+      "selected_retained_sense": "[형] 빠른",
+      "changed": true,
+      "review": "avoid abrupt-change reading 급격한",
+      "evidence": "source PDF day 14"
+    },
+    {
+      "id": "basic1:14:34",
+      "word": "near",
+      "old_example": "The school is near my house. / 학교는 우리 집 근처에 있다.",
+      "new_example": "Please come near. / 가까이 와 주세요.",
+      "retained_study_meanings": [
+        "[형] 가까운",
+        "[부] 가까이"
+      ],
+      "selected_retained_sense": "[부] 가까이",
+      "changed": true,
+      "review": "confirmed extra preposition ~근처에",
+      "evidence": "source PDF day 14"
+    },
+    {
+      "id": "basic1:15:20",
+      "word": "throw",
+      "old_example": "Don't throw trash on the ground. / 바닥에 쓰레기를 버리지 마라.",
+      "new_example": "Throw the ball to me. / 공을 나에게 던져라.",
+      "retained_study_meanings": [
+        "[동] 던지다"
+      ],
+      "selected_retained_sense": "[동] 던지다",
+      "changed": true,
+      "review": "replace 버리다 wording with direct retained 던지다",
+      "evidence": "source PDF day 15"
+    },
+    {
+      "id": "basic1:15:27",
+      "word": "point",
+      "old_example": "That is a good point. / 좋은 지적이다.",
+      "new_example": "Please explain the main point. / 핵심 요점을 설명해 주세요.",
+      "retained_study_meanings": [
+        "[명] 요점, 지점",
+        "[동] 가리키다"
+      ],
+      "selected_retained_sense": "[명] 요점, 지점",
+      "changed": true,
+      "review": "avoid observation/지적 ambiguity",
+      "evidence": "source PDF day 15"
+    },
+    {
+      "id": "basic1:15:39",
+      "word": "view",
+      "old_example": "The view from the hill is great. / 언덕에서 본 전망이 훌륭하다.",
+      "new_example": "I share your view. / 나는 당신의 견해에 동의한다.",
+      "retained_study_meanings": [
+        "[명] 견해, 관점",
+        "[동] 바라보다"
+      ],
+      "selected_retained_sense": "[명] 견해, 관점",
+      "changed": true,
+      "review": "confirmed extra 전망/경치",
+      "evidence": "source PDF day 15"
+    },
+    {
+      "id": "basic1:16:4",
+      "word": "return",
+      "old_example": "Please return the book tomorrow. / 내일 책을 반납해 주세요.",
+      "new_example": "I will return home soon. / 나는 곧 집으로 돌아올 것이다.",
+      "retained_study_meanings": [
+        "[동] 돌아오다",
+        "[명] 돌아옴, 수익"
+      ],
+      "selected_retained_sense": "[동] 돌아오다",
+      "changed": true,
+      "review": "confirmed extra 돌려주다/반납하다",
+      "evidence": "source PDF day 16"
+    },
+    {
+      "id": "basic1:16:26",
+      "word": "slow",
+      "old_example": "Please speak more slowly. / 더 천천히 말해 주세요.",
+      "new_example": "This bus is slow. / 이 버스는 느리다.",
+      "retained_study_meanings": [
+        "[형] 느린",
+        "[동] 늦추다"
+      ],
+      "selected_retained_sense": "[형] 느린",
+      "changed": true,
+      "review": "replace derived adverb slowly with retained adjective; valid cloze target",
+      "evidence": "source PDF day 16"
+    },
+    {
+      "id": "basic1:19:34",
+      "word": "tie",
+      "old_example": "He wore a blue tie. / 그는 파란 넥타이를 맸다.",
+      "new_example": "Please tie the rope. / 밧줄을 묶어 주세요.",
+      "retained_study_meanings": [
+        "[동] 묶다",
+        "[명] 유대, 동점"
+      ],
+      "selected_retained_sense": "[동] 묶다",
+      "changed": true,
+      "review": "confirmed extra 넥타이",
+      "evidence": "rechecked source photo study view"
+    },
+    {
+      "id": "basic1:19:39",
+      "word": "signal",
+      "old_example": "The traffic signal turned red. / 신호등이 빨간색으로 바뀌었다.",
+      "new_example": "Wait for my signal. / 내 신호를 기다려라.",
+      "retained_study_meanings": [
+        "[명] 신호",
+        "[동] 신호를 보내다"
+      ],
+      "selected_retained_sense": "[명] 신호",
+      "changed": true,
+      "review": "avoid device-specific 신호등 sense",
+      "evidence": "existing retained study meanings; no uncertain senses removed"
+    },
+    {
+      "id": "basic1:20:39",
+      "word": "direction",
+      "old_example": "Ask for directions if you are lost. / 길을 잃으면 길을 물어보세요.",
+      "new_example": "We walked in the same direction. / 우리는 같은 방향으로 걸었다.",
+      "retained_study_meanings": [
+        "[명] 방향, 지시"
+      ],
+      "selected_retained_sense": "[명] 방향, 지시",
+      "changed": true,
+      "review": "use direct 방향 instead of idiomatic 길 안내",
+      "evidence": "existing retained study meanings; no uncertain senses removed"
+    }
+  ]
+}
