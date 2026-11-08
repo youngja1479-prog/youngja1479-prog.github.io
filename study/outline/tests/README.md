@@ -127,3 +127,9 @@ must stay cream with blue/black/yellow marks and a transparent eraser cut. Read
 context attributes/empty pixel output and take screenshots. A desktop pass does
 not establish Android compatibility; if the screenshot symptom remains, further
 device investigation is needed. Never clear actual storage as a diagnostic step.
+
+Release decision: the browser could not reach the box HTTP fixture and file URLs
+were blocked, so no browser visual verification occurred. The conservative
+compatibility rollback is released with the CPU raster/regression checks only;
+Android cause and symptom resolution remain unverified. The public fixture after
+Pages deployment is available for a subsequent real-browser check.
