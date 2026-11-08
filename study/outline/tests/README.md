@@ -102,3 +102,28 @@ roundtrip with the animated green dot. It reads production function source but
 never loads the app or accesses the user's storage/accounts. Real existing-note
 navigation/scroll/write/save/sync checks are still required before asserting the
 user's overall lag is resolved.
+
+## Black-page report: staged compatibility repair
+
+The screenshot's Android compositor behavior has NOT been reproduced on this box.
+The renderer explicitly fills paper `#fffef8`; no source path intentionally fills
+the entire paper black. The newly enabled desynchronized transparent context plus
+existing self-copy `globalCompositeOperation='copy'` is a compatibility suspect,
+not a proven device diagnosis. The repair removes both accelerated dependencies:
+normal alpha Canvas2D and repaint retained strokes on viewport relocation. Worker,
+sync and viewport-only background work remain. Scroll can do more redraw work,
+which is an intentional correctness-first trade-off. No stored content changes.
+
+`canvas-pixels.cjs` executes actual renderer functions on a native CPU canvas and
+checks 36 combinations (37/100/114% zoom, lined/grid/blank, 1/100 sheets, DPR1/2,
+scrolled viewport, pen/eraser). These are real raster pixels but NOT browser/GPU
+compositing. Dependency is installed outside the repository under
+`/workspace/canvas-regression-tools/node_modules/@napi-rs/canvas`.
+
+BEFORE MERGE: open the storage-free `tests/black-page-fixture.html` in a real
+browser. Left is the repair, right recreates previous context/self-copy choices.
+Check 37%, 100%, 114%, offset0/72000, all backgrounds and repeat redraw. Left paper
+must stay cream with blue/black/yellow marks and a transparent eraser cut. Read
+context attributes/empty pixel output and take screenshots. A desktop pass does
+not establish Android compatibility; if the screenshot symptom remains, further
+device investigation is needed. Never clear actual storage as a diagnostic step.
