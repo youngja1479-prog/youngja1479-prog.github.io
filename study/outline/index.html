@@ -616,7 +616,6 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
         <button class="tool-btn" id="btn-add-sheet" title="종이 한 장 추가 (아래에)">📄＋ 종이</button>
         <button class="tool-btn" id="btn-del-sheet" title="마지막 종이 삭제 (비어 있을 때만)">📄－</button>
-        <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
       </div>
       <div class="tool-group zoom-group" title="확대/축소">
         <button type="button" class="zoom-btn" id="btn-zoom-out" title="축소" aria-label="축소">−</button>
@@ -763,21 +762,39 @@ function scheduleSave() {
 
 /** localStorage copy is a fallback only — strip heavy image data (kept in IndexedDB). */
 let lsLastSave = 0, lsTooBig = 0;
-function lsSaveData(force) {
+let lsSaveGeneration = 0;
+async function lsSaveData(force, lifecycle) {
   const now = Date.now();
-  if (!force && now - lsLastSave < 30000) return;          // fallback copy at most every 30s
-  if (!force && lsTooBig && now - lsTooBig < 300000) return; // quota hit recently → don't re-stringify
+  if (!force && now - lsLastSave < 30000) return;
+  if (!force && lsTooBig && now - lsTooBig < 300000) return;
+  const generation = ++lsSaveGeneration;
+  const snapshot = DATA, revision = DATA.updatedAt;
   lsLastSave = now;
-  try { localStorage.setItem(LS_KEY, JSON.stringify(DATA, (k, v) => (k === 'src' && typeof v === 'string' && v.startsWith('data:')) ? undefined : v)); lsTooBig = 0; } catch (e) { lsTooBig = Date.now(); }
+  try {
+    let serialized;
+    // Lifecycle fallback stays synchronous: don't depend on a worker surviving
+    // page suspension. Normal saves serialize off-thread after durable IDB save.
+    if (!lifecycle && document.visibilityState !== 'hidden') {
+      const reply = await runPerfTask('fallback', snapshot);
+      if (!reply.unavailable) serialized = reply.result;
+      if (generation !== lsSaveGeneration) return;
+      if (DATA !== snapshot || DATA.updatedAt !== revision || state.drawing) {
+        lsLastSave = 0; return; // next committed change will schedule its own save
+      }
+    }
+    if (serialized === undefined) serialized = JSON.stringify(snapshot, (k, v) =>
+      (k === 'src' && typeof v === 'string' && v.startsWith('data:')) ? undefined : v);
+    localStorage.setItem(LS_KEY, serialized); lsTooBig = 0;
+  } catch (e) { lsTooBig = Date.now(); }
 }
 let saveWarned = false;
-async function doSave() {
+async function doSave(lifecycle) {
   const ok = await idbSet('app', DATA);
   if (!ok && !saveWarned) { saveWarned = true; toast('저장 공간이 부족합니다 — 이미지를 줄이거나 삭제해 주세요'); }
   if (ok) saveWarned = false;
   // IndexedDB may finish after a new stroke has started. Never stringify the
   // entire notebook synchronously in that stroke; its pen-up queues another save.
-  if (!state.drawing) lsSaveData();
+  if (!state.drawing) await lsSaveData(false, lifecycle);
   scheduleSyncPush();
   return ok;
 }
@@ -790,7 +807,7 @@ async function flushSave() {
     }
   }
   cancelScheduledSave();
-  await doSave();
+  await doSave(true);
 }
 
 /* ========== Cross-device sync (password vault) ========== */
@@ -810,7 +827,7 @@ let syncApplyingRemote = false;
 function bufToB64(buf) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   let s = '';
-  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.length; i += 32768) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
   return btoa(s);
 }
 function b64ToBuf(b64) {
@@ -842,7 +859,49 @@ async function deriveAesKey(password, saltU8) {
     ['encrypt', 'decrypt']
   );
 }
+// A failure to create/load the optional worker keeps the existing in-page path.
+// Crypto/data errors are returned to the caller, never mistaken for worker failure.
+let perfWorker = null, perfWorkerDisabled = false, perfTaskId = 0;
+const perfTasks = new Map();
+function disablePerfWorker() {
+  perfWorkerDisabled = true;
+  if (perfWorker) perfWorker.terminate();
+  perfWorker = null;
+  for (const task of perfTasks.values()) task.resolve({ unavailable: true });
+  perfTasks.clear();
+}
+function runPerfTask(kind, payload, password) {
+  if (perfWorkerDisabled || typeof Worker === 'undefined') return Promise.resolve({ unavailable: true });
+  if (!perfWorker) {
+    try {
+      perfWorker = new Worker(new URL('perf-worker.js?v=20261108-2', document.baseURI));
+      perfWorker.onmessage = ({ data: reply }) => {
+        const task = perfTasks.get(reply.id); if (!task) return;
+        perfTasks.delete(reply.id);
+        if (reply.error) {
+          const err = new Error(reply.error.message); err.name = reply.error.name;
+          task.reject(err);
+        } else task.resolve({ result: reply.result });
+      };
+      perfWorker.onerror = disablePerfWorker;
+      perfWorker.onmessageerror = disablePerfWorker;
+    } catch (_) { disablePerfWorker(); return Promise.resolve({ unavailable: true }); }
+  }
+  return new Promise((resolve, reject) => {
+    const id = ++perfTaskId; perfTasks.set(id, { resolve, reject });
+    try { perfWorker.postMessage({ id, kind, payload, password }); }
+    catch (_) { disablePerfWorker(); }
+  });
+}
 async function encryptData(dataObj, password) {
+  const reply = await runPerfTask('encrypt', dataObj, password);
+  return reply.unavailable ? encryptDataFallback(dataObj, password) : reply.result;
+}
+async function decryptEnvelope(env, password) {
+  const reply = await runPerfTask('decrypt', env, password);
+  return reply.unavailable ? decryptEnvelopeFallback(env, password) : reply.result;
+}
+async function encryptDataFallback(dataObj, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveAesKey(password, salt);
@@ -856,7 +915,7 @@ async function encryptData(dataObj, password) {
     updatedAt: dataObj.updatedAt || Date.now()
   };
 }
-async function decryptEnvelope(env, password) {
+async function decryptEnvelopeFallback(env, password) {
   const salt = b64ToBuf(env.salt);
   const iv = b64ToBuf(env.iv);
   const ct = b64ToBuf(env.ct);
@@ -1045,6 +1104,11 @@ function mergeLocalRemote(local, remote, remoteAt, localAt) {
 }
 
 async function syncPushNow() {
+  if (state.drawing) {
+    syncPendingPush = true; clearTimeout(syncPushTimer);
+    syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+    return { ok: false, reason: 'busy' };
+  }
   if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
   if (!navigator.onLine) {
     syncPendingPush = true;
@@ -1063,6 +1127,11 @@ async function syncPushNow() {
         const rd = await decryptEnvelope(renv, syncPassword);
         if (dataHasContent(rd)) {
           const remoteAt = (renv.updatedAt != null ? renv.updatedAt : rd.updatedAt) || 0;
+          if (state.drawing) {
+            syncBusy = false; syncPendingPush = true;
+            clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+            return { ok: false, reason: 'busy' };
+          }
           const mr = mergeLocalRemote(DATA, rd, remoteAt, DATA.updatedAt || 0);
           if (mr.fromRemote > 0 && state.drawing) {
             syncBusy = false; syncPendingPush = true;
@@ -1080,8 +1149,17 @@ async function syncPushNow() {
     } catch (me) {
       throw me; // could not read the cloud copy: do NOT overwrite it blindly; retry later
     }
-    const env = await encryptData(DATA, syncPassword);
+    const pushData = DATA, pushRevision = DATA.updatedAt;
+    const env = await encryptData(pushData, syncPassword);
     await syncFetchPut(syncVaultId, env);
+    // Worker encryption uses a snapshot. A stroke committed while it was busy
+    // must get another push, not be marked as already uploaded.
+    if (DATA !== pushData || DATA.updatedAt !== pushRevision) {
+      syncBusy = false; syncPendingPush = true;
+      clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+      updateSyncStatusUI();
+      return { ok: true, pending: true };
+    }
     syncPendingPush = false;
     syncBusy = false;
     syncLastError = '';
@@ -1121,13 +1199,23 @@ async function applyRemoteData(remoteData) {
   DATA = remoteData;
   if (!DATA.version) DATA.version = 1;
   if (DATA.updatedAt == null) DATA.updatedAt = Date.now();
+  // Render atomically with DATA replacement, not after asynchronous IDB work:
+  // a new stroke may have begun while that write was pending.
+  reRenderAfterSync();
   const ok = await idbSet('app', DATA);
   lsSaveData();
-  reRenderAfterSync();
   syncApplyingRemote = false;
   return ok;
 }
 
+let lastQuietPull = null;
+function sameQuietPull(env) {
+  const prev = lastQuietPull;
+  return prev && prev.data === DATA && prev.updatedAt === DATA.updatedAt &&
+    prev.vault === syncVaultId &&
+    prev.env.v === env.v && prev.env.updatedAt === env.updatedAt &&
+    prev.env.salt === env.salt && prev.env.iv === env.iv && prev.env.ct === env.ct;
+}
 async function syncPullAndMaybeApply(opts) {
   opts = opts || {};
   if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
@@ -1135,7 +1223,7 @@ async function syncPullAndMaybeApply(opts) {
     if (!opts.quiet) updateSyncStatusUI('offline');
     return { ok: false, reason: 'offline' };
   }
-  if (syncBusy && opts.quiet) return { ok: false, reason: 'busy' };
+  if ((syncBusy || state.drawing) && opts.quiet) return { ok: false, reason: 'busy' };
   syncBusy = true;
   if (!opts.quiet) {
     syncLastError = '';
@@ -1148,6 +1236,12 @@ async function syncPullAndMaybeApply(opts) {
       if (!opts.quiet) updateSyncStatusUI('synced');
       return { ok: true, remote: null };
     }
+    // Repeated unchanged auto-polls must not decrypt/parse/merge/rebuild the same
+    // notebook every five seconds. Manual refresh and any local revision bypass.
+    if (opts.quiet && sameQuietPull(env)) {
+      syncBusy = false; syncLastError = ''; updateSyncStatusUI('synced');
+      return { ok: true, unchanged: true };
+    }
     let remoteData;
     try {
       remoteData = await decryptEnvelope(env, syncPassword);
@@ -1158,6 +1252,7 @@ async function syncPullAndMaybeApply(opts) {
       updateSyncStatusUI('error');
       return { ok: false, reason: 'decrypt' };
     }
+    if (state.drawing) { syncBusy = false; return { ok: false, reason: 'busy' }; }
     const remoteAt = (env.updatedAt != null ? env.updatedAt : remoteData.updatedAt) || 0;
     const localAt = DATA.updatedAt || 0;
     const localEmpty = !dataHasContent(DATA);
@@ -1189,6 +1284,7 @@ async function syncPullAndMaybeApply(opts) {
     syncBusy = false;
     syncLastError = '';
     updateSyncStatusUI('synced');
+    lastQuietPull = { env, data: DATA, updatedAt: DATA.updatedAt, vault: syncVaultId };
     return { ok: true, remote: env, remoteData, remoteAt };
   } catch (e) {
     syncBusy = false;
@@ -2087,7 +2183,7 @@ function strokeBox(st) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const p of st.points) { if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y; }
   const pad = strokeLineWidth(st) + 2;
-  b = { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad, n: st.points.length };
+  b = { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad, rawY1: y1, n: st.points.length };
   strokeBoxCache.set(st, b);
   return b;
 }
@@ -2701,14 +2797,20 @@ function initDrawPage() {
   $('#btn-bg-grid').classList.toggle('active', state.bg === 'grid');
   $('#btn-bg-blank').classList.toggle('active', state.bg === 'blank');
   applyFingerModeUI();
-  $('#btn-guides').classList.toggle('active', state.showGuides);
 
   CSS_H = sebu.pageHeight || 1200;
   {
     // never hide content below the stored sheet count (e.g. pageHeight older than strokes)
     let maxY = 0;
     const pg = ensurePage();
-    (pg ? pg.strokes : []).forEach(st => (st && st.points || []).forEach(q => { if (q.y > maxY) maxY = q.y; }));
+    // Reuse the same bounds as viewport culling; revisiting a note need not scan
+    // every historical point just to recover its sheet count.
+    (pg ? pg.strokes : []).forEach(st => {
+      if (st && st.points && st.points.length) {
+        const y = strokeBox(st).rawY1;
+        if (y > maxY) maxY = y;
+      }
+    });
     (pg && pg.images || []).forEach(im => { if (im.y + im.h > maxY) maxY = im.y + im.h; });
     if (maxY > CSS_H) CSS_H = Math.ceil((maxY + 20) / 1200) * 1200;
   }
@@ -2792,43 +2894,31 @@ function resizeCanvas() {
   applyZoomTransform();
 }
 
-function drawBackground(ctx) {
+function drawBackground(ctx, region) {
+  // Export defaults to the full page; screen redraw only submits visible lines.
+  const r = region || { x: 0, y: 0, w: CSS_W, h: CSS_H };
+  const x0 = Math.max(0, r.x), y0 = Math.max(0, r.y);
+  const x1 = Math.min(CSS_W, r.x + r.w), y1 = Math.min(CSS_H, r.y + r.h);
   ctx.save();
   ctx.fillStyle = '#fffef8';
-  ctx.fillRect(0, 0, CSS_W, CSS_H);
+  ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   if (state.bg === 'lined') {
-    ctx.strokeStyle = '#c5d0e0';
-    ctx.lineWidth = 1;
-    const gap = 28;
-    const top = 40;
-    for (let y = top; y < CSS_H; y += gap) {
-      ctx.beginPath();
-      ctx.moveTo(20, y);
-      ctx.lineTo(CSS_W - 20, y);
-      ctx.stroke();
+    ctx.strokeStyle = '#c5d0e0'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let y = 40 + Math.max(0, Math.ceil((y0 - 40) / 28)) * 28; y < Math.min(CSS_H, y1 + 1); y += 28) {
+      ctx.moveTo(20, y); ctx.lineTo(CSS_W - 20, y);
     }
-    // left margin
-    ctx.strokeStyle = '#f0a0a0';
-    ctx.beginPath();
-    ctx.moveTo(48, 0);
-    ctx.lineTo(48, CSS_H);
     ctx.stroke();
+    ctx.strokeStyle = '#f0a0a0'; ctx.beginPath();
+    ctx.moveTo(48, y0); ctx.lineTo(48, y1); ctx.stroke();
   } else if (state.bg === 'grid') {
-    ctx.strokeStyle = '#d5dde8';
-    ctx.lineWidth = 1;
-    const gap = 24;
-    for (let x = 0; x < CSS_W; x += gap) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, CSS_H);
-      ctx.stroke();
+    ctx.strokeStyle = '#d5dde8'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let x = Math.ceil(x0 / 24) * 24; x < Math.min(CSS_W, x1 + 1); x += 24) {
+      ctx.moveTo(x, y0); ctx.lineTo(x, y1);
     }
-    for (let y = 0; y < CSS_H; y += gap) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(CSS_W, y);
-      ctx.stroke();
+    for (let y = Math.ceil(y0 / 24) * 24; y < Math.min(CSS_H, y1 + 1); y += 24) {
+      ctx.moveTo(x0, y); ctx.lineTo(x1, y);
     }
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -2943,7 +3033,7 @@ function redrawBackground() {
   const ctx = bg.getContext('2d');
   inkT(ctx);
   ctx.clearRect(0, 0, CSS_W, CSS_H);
-  drawBackground(ctx);
+  drawBackground(ctx, { x: VX, y: VY, w: VW, h: VH });
 }
 
 function redrawInk() {
@@ -3084,12 +3174,17 @@ function flushLiveInk() {
     return;
   }
 
+  let pathOpen = false, pathWidth = -1;
   while (liveDrawnCount < pts.length) {
     const i = liveDrawnCount;
     if (i === 0) { liveDrawnCount++; continue; }
     const a = pts[i - 1];
     const b = pts[i];
-    ctx.beginPath();
+    const width = stroke.pr ? (segWidth(stroke, i - 1, pts.length, false) + segWidth(stroke, i, pts.length, false)) / 2 : lineW;
+    if (!pathOpen || width !== pathWidth) {
+      if (pathOpen) ctx.stroke();
+      ctx.beginPath(); ctx.lineWidth = width; pathWidth = width; pathOpen = true;
+    }
     if (i >= 2) {
       const c0 = pts[i - 2];
       const mid0x = (c0.x + a.x) / 2;
@@ -3102,10 +3197,10 @@ function flushLiveInk() {
       ctx.moveTo(a.x, a.y);
       ctx.lineTo((a.x + b.x) / 2, (a.y + b.y) / 2);
     }
-    if (stroke.pr) ctx.lineWidth = (segWidth(stroke, i - 1, pts.length, false) + segWidth(stroke, i, pts.length, false)) / 2;
-    ctx.stroke();
+
     liveDrawnCount++;
   }
+  if (pathOpen) ctx.stroke();
   ctx.restore();
 }
 
@@ -3905,13 +4000,6 @@ function wireEvents() {
   $('#btn-del-sheet').addEventListener('click', removeSheet);
   $('#btn-add-img').addEventListener('click', () => { const f = $('#img-file'); f.value = ''; f.click(); });
   $('#img-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertImageFile(f); e.target.value = ''; });
-  $('#btn-guides').addEventListener('click', () => {
-    state.showGuides = !state.showGuides;
-    const s = getSebu(); if (s) s.guidesVisible = state.showGuides;
-    scheduleSave();
-    $('#btn-guides').classList.toggle('active', state.showGuides);
-    updateGuideOverlay();
-  });
   $('#btn-export-png').addEventListener('click', exportPng);
   $('#btn-print').addEventListener('click', () => window.print());
 

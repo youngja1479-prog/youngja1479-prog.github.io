@@ -42,3 +42,63 @@ pen/eraser/highlighter, pan/zoom, lasso, text/image placement, undo/redo; write 
 immediately background/return/reload and confirm the final stroke and images
 survive. Check another device's normal sync behavior. Record actual input-to-ink
 latency on that device before declaring the symptom resolved.
+
+## Whole-app follow-up (after user reported the first fix insufficient)
+
+New tests:
+
+```
+node study/outline/tests/performance.cjs
+node study/outline/tests/main-thread-benchmark.cjs
+```
+
+Source-confirmed shared UI-thread work: each encrypted sync encoded the entire
+notebook and built its base64 string by concatenating one character per byte;
+unchanged five-second auto-polls still decoded/decrypted/parsed/merged all data;
+localStorage fallback serialized the whole notebook on the main thread. Screen
+background redraws submitted lines for the entire page height despite using a
+viewport-size canvas. Pen/eraser submitted a separate stroke() per new segment.
+Existing live pen rendering was already independent of historical strokes; the
+follow-up does not falsely claim to have removed a per-move full-history redraw.
+
+The optional same-origin worker now handles sync JSON/base64/crypto and normal
+fallback JSON. Envelope v1, PBKDF2/AES parameters, IndexedDB schema, keys, union/
+tombstone merge rules and manual refresh remain unchanged. Worker load failure
+uses the old page path; wrong-password errors propagate. Base64 fallback uses
+32KB chunks instead of millions of one-character concatenations. Unchanged quiet
+pulls skip decode/merge only if ciphertext, vault, DATA reference and local
+updatedAt all match a successful pull. New edits invalidate the shortcut and edits
+arriving during encryption queue another push. Lifecycle fallback remains
+synchronous, and stale worker fallback output cannot overwrite newer revisions.
+
+Background geometry is clipped to the viewport for screen use; full-page export
+retains full geometry. Cached stroke bounds avoid rescanning every historical
+point on revisits. Equal-width pen/eraser subpaths are batched without connecting
+independent segments or changing their widths; highlighter behavior is unchanged.
+A remote apply renders before asynchronous IDB completion, so it cannot discard a
+new stroke which started during that wait.
+
+One synthetic Node run, 12 pages, 2400 *distinct* strokes ×80 points plus 12×100KB
+image strings:
+
+| Work | Total | Largest main-thread 5ms-heartbeat gap |
+| --- | ---: | ---: |
+| Original main-thread sync encrypt/base64 | 1379.7ms | 1319.8ms |
+| Worker sync encrypt/base64 | 344.8ms | 42.2ms |
+| Original main-thread fallback JSON | 77.2ms | 81.4ms |
+| Worker fallback JSON | 184.1ms | 56.5ms |
+
+Worker postMessage cloning still blocked 36.8–51.2ms in that run, and worker
+fallback has greater total overhead. These are not browser INP or user-device
+results. localStorage.setItem, IDB clone, first history scan, remote merge and
+browser rasterization can still block and have not been proven fast on the user's
+device. Full 120000px lined-page screen background commands fall from 4286 line
+segments to 44; grid 5030 to 81. A 100-segment equal-width live batch falls from
+100 stroke calls to 1; pressure width changes retain separate batches.
+
+Storage-free browser fixture: `study/outline/tests/perf-fixture.html`. Compare
+full-export-clipped versus viewport backgrounds (lined/grid), then run the worker
+roundtrip with the animated green dot. It reads production function source but
+never loads the app or accesses the user's storage/accounts. Real existing-note
+navigation/scroll/write/save/sync checks are still required before asserting the
+user's overall lag is resolved.
