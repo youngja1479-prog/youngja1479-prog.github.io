@@ -11691,6 +11691,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     calRevealed = false;
     byId('calCardArea').style.display = 'block';
     renderCal();
+    if (settings.autoSpeak && calPool[0]) speakWord(calPool[0].word);
   }
   function renderCal() {
     if (!calPool.length) return;
@@ -11718,6 +11719,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     prepIdx = 0;
     prepRevealed = false;
     renderPrep();
+    if (settings.autoSpeak && prepPool[0]) speakWord(prepPool[0].word);
   }
   function renderPrep() {
     if (!prepPool.length) return;
