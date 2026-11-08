@@ -1,0 +1,28 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Outline synthetic performance fixture</title>
+<style>body{font:16px system-ui;margin:20px;background:#eee;color:#222}button{padding:12px;margin:6px}canvas{background:white;width:min(44vw,360px);height:auto;border:1px solid #888}#beat{width:20px;height:20px;background:#16a34a;border-radius:50%;position:relative}pre{white-space:pre-wrap}</style>
+<h1>목차 성능 확인 — 합성 데이터만 사용</h1>
+<p>실제 노트·저장소·동기화 계정에 접근하거나 저장하지 않습니다.</p>
+<p>왼쪽: 전체 페이지 배경을 잘라 표시 / 오른쪽: 뷰포트만 그리기. 줄 위치가 같아야 합니다.</p>
+<button id="lined">줄 노트</button><button id="grid">격자 노트</button><br>
+<canvas id="full" width="720" height="1200"></canvas> <canvas id="visible" width="720" height="1200"></canvas>
+<p>초록 점이 움직이는 동안 작업 실행. 표시값은 이 브라우저의 합성 데이터 처리이며 실제 노트 필기 지연이 아닙니다.</p>
+<div id="beat"></div><button id="stress">작업자 암호화·복호화 검사</button><pre id="result">준비 중…</pre>
+<script>
+(async()=>{
+const source=(await (await fetch('../index.html',{cache:'no-store'})).text()).match(/<script>([\s\S]*?)<\/script>/)[1];
+function fn(name){const a=source.indexOf('function '+name+'('),b=source.indexOf('\n}',a);return source.slice(source.slice(a-6,a)==='async '?a-6:a,b+2);}
+const state={bg:'lined'};
+const draw=new Function('CSS_W','CSS_H','state',fn('drawBackground')+';return drawBackground;')(720,120000,state);
+function paint(bg){state.bg=bg;for(const id of ['full','visible']){const ctx=document.getElementById(id).getContext('2d');ctx.setTransform(1,0,0,1,0,-48000);draw(ctx,id==='visible'?{x:0,y:48000,w:720,h:1200}:undefined);}}
+paint('lined');document.getElementById('lined').onclick=()=>paint('lined');document.getElementById('grid').onclick=()=>paint('grid');
+let prev=performance.now(),maxGap=0;function beat(t){maxGap=Math.max(maxGap,t-prev);prev=t;document.getElementById('beat').style.transform=`translateX(${(Math.sin(t/500)+1)*100}px)`;requestAnimationFrame(beat);}requestAnimationFrame(beat);
+const result=document.getElementById('result');result.textContent='준비 완료. 배경 두 칸을 비교하세요.';
+document.getElementById('stress').onclick=async()=>{
+ const button=document.getElementById('stress');button.disabled=true;maxGap=0;
+ const worker=new Worker('../perf-worker.js?v=20261108-2');let id=0;const pending=new Map();worker.onmessage=({data:m})=>{const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);};
+ const task=(kind,payload)=>new Promise((resolve,reject)=>{pending.set(++id,{resolve,reject});worker.postMessage({id,kind,payload,password:'fixture-test-only'});});
+ try {const data={version:1,updatedAt:1,notebooks:[{strokes:Array.from({length:2400},(_,i)=>({id:'s'+i,points:Array.from({length:80},(_,j)=>({x:j,y:i+j/2,p:.5}))}))}]};const start=performance.now();const env=await task('encrypt',data);const restored=await task('decrypt',env);await new Promise(r=>setTimeout(r,40));result.textContent=`Worker roundtrip: ${restored.notebooks[0].strokes.length} strokes preserved\nTotal: ${(performance.now()-start).toFixed(1)} ms\nLargest animation frame gap: ${maxGap.toFixed(1)} ms\nThese are synthetic browser results, not the user's device.`;}catch(e){result.textContent=e.message;}finally{worker.terminate();button.disabled=false;}
+};
+})().catch(e=>document.getElementById('result').textContent=e.message);
+</script>
