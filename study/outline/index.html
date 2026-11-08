@@ -616,7 +616,6 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
         <button class="tool-btn" id="btn-add-sheet" title="종이 한 장 추가 (아래에)">📄＋ 종이</button>
         <button class="tool-btn" id="btn-del-sheet" title="마지막 종이 삭제 (비어 있을 때만)">📄－</button>
-        <button class="tool-btn" id="btn-guides" title="가이드 표시/숨김">🏷</button>
       </div>
       <div class="tool-group zoom-group" title="확대/축소">
         <button type="button" class="zoom-btn" id="btn-zoom-out" title="축소" aria-label="축소">−</button>
@@ -2798,7 +2797,6 @@ function initDrawPage() {
   $('#btn-bg-grid').classList.toggle('active', state.bg === 'grid');
   $('#btn-bg-blank').classList.toggle('active', state.bg === 'blank');
   applyFingerModeUI();
-  $('#btn-guides').classList.toggle('active', state.showGuides);
 
   CSS_H = sebu.pageHeight || 1200;
   {
@@ -4002,13 +4000,6 @@ function wireEvents() {
   $('#btn-del-sheet').addEventListener('click', removeSheet);
   $('#btn-add-img').addEventListener('click', () => { const f = $('#img-file'); f.value = ''; f.click(); });
   $('#img-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertImageFile(f); e.target.value = ''; });
-  $('#btn-guides').addEventListener('click', () => {
-    state.showGuides = !state.showGuides;
-    const s = getSebu(); if (s) s.guidesVisible = state.showGuides;
-    scheduleSave();
-    $('#btn-guides').classList.toggle('active', state.showGuides);
-    updateGuideOverlay();
-  });
   $('#btn-export-png').addEventListener('click', exportPng);
   $('#btn-print').addEventListener('click', () => window.print());
 
