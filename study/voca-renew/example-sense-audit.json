@@ -1,23 +1,15 @@
 {
   "reviewed_examples": 800,
-  "changed_examples": 30,
+  "changed_examples": 23,
   "authoring_note": "New examples are authored learning sentences, not textbook quotations. Meanings and all non-example word data are unchanged.",
-  "scope": "Target-word senses only; context words are not additional target senses. All 800 sentences were reviewed against the retained study view; 30 changed for extra-sense, ambiguity, POS or valid-gap reasons.",
+  "promotion_review": {
+    "reviewed_extra_senses": 218,
+    "promoted_senses": 23,
+    "promoted_words": 18,
+    "remaining_optional_senses": 195
+  },
+  "baseline": "a308bf2 before example changes; new sentences are authored learning examples, not textbook quotations.",
   "changes": [
-    {
-      "id": "basic1:1:23",
-      "word": "watch",
-      "old_example": "I watch the news before bed. / 자기 전에 뉴스를 본다.",
-      "new_example": "I watch the birds. / 나는 새들을 지켜본다.",
-      "retained_study_meanings": [
-        "[동] 지켜보다",
-        "[명] (손목) 시계"
-      ],
-      "selected_retained_sense": "[동] 지켜보다",
-      "changed": true,
-      "review": "confirmed extra 시청하다",
-      "evidence": "source PDF day 1"
-    },
     {
       "id": "basic1:2:16",
       "word": "light",
@@ -79,7 +71,8 @@
       "old_example": "Turn right at the next corner. / 다음 모퉁이에서 우회전해라.",
       "new_example": "Please turn the handle. / 손잡이를 돌려 주세요.",
       "retained_study_meanings": [
-        "[동] 돌리다, 바꾸다"
+        "[동] 돌리다, 바꾸다",
+        "[명] 차례"
       ],
       "selected_retained_sense": "[동] 돌리다, 바꾸다",
       "changed": true,
@@ -128,19 +121,6 @@
       "evidence": "source PDF day 4"
     },
     {
-      "id": "basic1:4:20",
-      "word": "get",
-      "old_example": "How did you get here so early? / 어떻게 이렇게 일찍 도착했니?",
-      "new_example": "I get useful information from books. / 나는 책에서 유용한 정보를 얻는다.",
-      "retained_study_meanings": [
-        "[동] 얻다, ~되다"
-      ],
-      "selected_retained_sense": "[동] 얻다, ~되다",
-      "changed": true,
-      "review": "confirmed extra 도착하다",
-      "evidence": "source PDF day 4"
-    },
-    {
       "id": "basic1:4:22",
       "word": "direct",
       "old_example": "Is there a direct train to Busan? / 부산행 직행 기차가 있나요?",
@@ -153,46 +133,6 @@
       "changed": true,
       "review": "avoid travel-specific 직행/직통 sense",
       "evidence": "source PDF day 4"
-    },
-    {
-      "id": "basic1:4:39",
-      "word": "take",
-      "old_example": "It takes ten minutes to walk there. / 거기 걸어가는 데 10분이 걸린다.",
-      "new_example": "I take my son to school. / 나는 아들을 학교에 데리고 간다.",
-      "retained_study_meanings": [
-        "[동] 데리고 가다, 잡다"
-      ],
-      "selected_retained_sense": "[동] 데리고 가다, 잡다",
-      "changed": true,
-      "review": "confirmed extra 시간이 걸리다",
-      "evidence": "source PDF day 4"
-    },
-    {
-      "id": "basic1:5:27",
-      "word": "just",
-      "old_example": "I just arrived home. / 방금 집에 도착했다.",
-      "new_example": "This hat is just right for me. / 이 모자는 나에게 꼭 맞는다.",
-      "retained_study_meanings": [
-        "[부] 바로, 꼭",
-        "[형] 공정한"
-      ],
-      "selected_retained_sense": "[부] 바로, 꼭",
-      "changed": true,
-      "review": "avoid temporal 방금 sense; retain 꼭",
-      "evidence": "source PDF day 5"
-    },
-    {
-      "id": "basic1:6:11",
-      "word": "look",
-      "old_example": "You look happy today. / 오늘 행복해 보인다.",
-      "new_example": "Look at the moon. / 달을 보세요.",
-      "retained_study_meanings": [
-        "[동] 보다"
-      ],
-      "selected_retained_sense": "[동] 보다",
-      "changed": true,
-      "review": "confirmed extra ~처럼 보이다",
-      "evidence": "source PDF day 6"
     },
     {
       "id": "basic1:7:36",
@@ -262,19 +202,6 @@
       "evidence": "source PDF day 13"
     },
     {
-      "id": "basic1:14:4",
-      "word": "see",
-      "old_example": "I see what you mean. / 무슨 말인지 알겠다.",
-      "new_example": "I see a bird in the tree. / 나는 나무 위의 새를 본다.",
-      "retained_study_meanings": [
-        "[동] 보다"
-      ],
-      "selected_retained_sense": "[동] 보다",
-      "changed": true,
-      "review": "confirmed extra 이해하다",
-      "evidence": "source PDF day 14"
-    },
-    {
       "id": "basic1:14:5",
       "word": "rapid",
       "old_example": "There was a rapid change. / 급격한 변화가 있었다.",
@@ -298,7 +225,7 @@
       ],
       "selected_retained_sense": "[부] 가까이",
       "changed": true,
-      "review": "confirmed extra preposition ~근처에",
+      "review": "unlisted non-study sense preposition ~근처에",
       "evidence": "source PDF day 14"
     },
     {
@@ -321,7 +248,8 @@
       "new_example": "Please explain the main point. / 핵심 요점을 설명해 주세요.",
       "retained_study_meanings": [
         "[명] 요점, 지점",
-        "[동] 가리키다"
+        "[동] 가리키다",
+        "[명] 점수"
       ],
       "selected_retained_sense": "[명] 요점, 지점",
       "changed": true,
@@ -339,7 +267,7 @@
       ],
       "selected_retained_sense": "[명] 견해, 관점",
       "changed": true,
-      "review": "confirmed extra 전망/경치",
+      "review": "unlisted non-study sense 전망/경치",
       "evidence": "source PDF day 15"
     },
     {
@@ -353,7 +281,7 @@
       ],
       "selected_retained_sense": "[동] 돌아오다",
       "changed": true,
-      "review": "confirmed extra 돌려주다/반납하다",
+      "review": "unlisted non-study sense 돌려주다/반납하다",
       "evidence": "source PDF day 16"
     },
     {
@@ -369,20 +297,6 @@
       "changed": true,
       "review": "replace derived adverb slowly with retained adjective; valid cloze target",
       "evidence": "source PDF day 16"
-    },
-    {
-      "id": "basic1:19:34",
-      "word": "tie",
-      "old_example": "He wore a blue tie. / 그는 파란 넥타이를 맸다.",
-      "new_example": "Please tie the rope. / 밧줄을 묶어 주세요.",
-      "retained_study_meanings": [
-        "[동] 묶다",
-        "[명] 유대, 동점"
-      ],
-      "selected_retained_sense": "[동] 묶다",
-      "changed": true,
-      "review": "confirmed extra 넥타이",
-      "evidence": "rechecked source photo study view"
     },
     {
       "id": "basic1:19:39",

@@ -1,0 +1,1836 @@
+{
+  "reviewed_extra_senses": 218,
+  "promoted_senses": 23,
+  "promoted_words": 18,
+  "remaining_optional_senses": 195,
+  "policy": "All textbook senses preserved. Only exact existing additional senses are promoted. CEFR belongs to the cited sense, not the whole word; no frequency ranking claimed. Remaining optional senses are not used in meaning quizzes or example reveals.",
+  "promotions": [
+    {
+      "id": "basic1:1:23",
+      "word": "watch",
+      "meaning": "[동] 시청하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/watch",
+      "learner_level": "A1",
+      "verified_section": "LOOK AT, explicit TV viewing usage",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:1:32",
+      "word": "keep",
+      "meaning": "[동] 보관하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/keep",
+      "learner_level": "A2",
+      "verified_section": "keep sth in/on: store in a particular place",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:2:1",
+      "word": "call",
+      "meaning": "[명] 전화",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/call",
+      "learner_level": "A2",
+      "verified_section": "noun TELEPHONE",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:3",
+      "word": "save",
+      "meaning": "[동] 저장하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/save",
+      "learner_level": "A2",
+      "verified_section": "KEEP: put information into computer memory",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:10",
+      "word": "turn",
+      "meaning": "[명] 차례",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/turn",
+      "learner_level": "B1",
+      "verified_section": "noun TIME TO DO STH: order/opportunity to do something",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 받다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A1",
+      "verified_section": "OBTAIN: receive or be given",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 가져오다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A2",
+      "verified_section": "OBTAIN: go somewhere and bring back",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 도착하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A1",
+      "verified_section": "REACH: reach or arrive at a place",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:29",
+      "word": "offer",
+      "meaning": "[명] 제안",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/offer",
+      "learner_level": "A2",
+      "verified_section": "noun ASK: offer of help, job offer",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] 가져가다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A1",
+      "verified_section": "MOVE: move something from one place to another",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] (시간이) 걸리다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A2",
+      "verified_section": "NEED: particular time is needed to complete something",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] 타다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A2",
+      "verified_section": "TRANSPORT: travel using a vehicle",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:5:27",
+      "word": "just",
+      "meaning": "[부] 방금",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/just",
+      "learner_level": "A2",
+      "verified_section": "RECENTLY: a very short time ago",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:6:11",
+      "word": "look",
+      "meaning": "[동] ~처럼 보이다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/look",
+      "learner_level": "A2",
+      "verified_section": "SEEM: appear or seem",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:9:13",
+      "word": "change",
+      "meaning": "[동] 갈아입다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/change",
+      "learner_level": "A2",
+      "verified_section": "CLOTHES: put on different clothes",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:12:12",
+      "word": "dark",
+      "meaning": "[명] 어둠",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/dark",
+      "learner_level": "B1",
+      "verified_section": "the dark: somewhere with no light",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:12:19",
+      "word": "free",
+      "meaning": "[형] 한가한",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/free",
+      "learner_level": "A2",
+      "verified_section": "NOT BUSY",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:14:4",
+      "word": "see",
+      "meaning": "[동] 만나다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/see",
+      "learner_level": "A1",
+      "verified_section": "MEET: meet or visit someone",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:14:4",
+      "word": "see",
+      "meaning": "[동] 이해하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/see",
+      "learner_level": "B1",
+      "verified_section": "UNDERSTAND: understand, know or realize",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:15:3",
+      "word": "work",
+      "meaning": "[동] 효과가 있다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/work",
+      "learner_level": "B1",
+      "verified_section": "SUCCEED: effective and successful",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:15:27",
+      "word": "point",
+      "meaning": "[명] 점수",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/point",
+      "learner_level": "B1",
+      "verified_section": "GAME: unit showing who is winning",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:16:15",
+      "word": "poor",
+      "meaning": "[형] 불쌍한",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/poor",
+      "learner_level": "A2",
+      "verified_section": "SYMPATHY: used to show sympathy",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:19:34",
+      "word": "tie",
+      "meaning": "[명] 넥타이",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/tie",
+      "learner_level": "A2",
+      "verified_section": "noun FASTENING: material worn under a shirt collar",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    }
+  ],
+  "review": [
+    {
+      "id": "basic1:1:21",
+      "word": "cell",
+      "meaning": "[명] 감방",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:1:21",
+      "word": "cell",
+      "meaning": "[명] 전지",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:1:21",
+      "word": "cell",
+      "meaning": "[명] 휴대전화",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:1:23",
+      "word": "watch",
+      "meaning": "[동] 시청하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/watch",
+      "learner_level": "A1",
+      "verified_section": "LOOK AT, explicit TV viewing usage",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:1:26",
+      "word": "hand",
+      "meaning": "[동] 건네다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:1:32",
+      "word": "keep",
+      "meaning": "[동] 보관하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/keep",
+      "learner_level": "A2",
+      "verified_section": "keep sth in/on: store in a particular place",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:1:32",
+      "word": "keep",
+      "meaning": "[동] ~한 상태를 유지하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:1:38",
+      "word": "face",
+      "meaning": "[동] 향하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:1",
+      "word": "call",
+      "meaning": "[명] 전화",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/call",
+      "learner_level": "A2",
+      "verified_section": "noun TELEPHONE",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:2:1",
+      "word": "call",
+      "meaning": "[명] 부름",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:1",
+      "word": "call",
+      "meaning": "[동] ~라고 부르다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:1",
+      "word": "call",
+      "meaning": "[동] 요청하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:4",
+      "word": "part",
+      "meaning": "[부] 부분적으로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:7",
+      "word": "practice",
+      "meaning": "[동] 개업하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:9",
+      "word": "reach",
+      "meaning": "[동] 연락하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:16",
+      "word": "light",
+      "meaning": "[동] 불을 켜다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:16",
+      "word": "light",
+      "meaning": "[동] 밝아지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:19",
+      "word": "clear",
+      "meaning": "[동] 맑아지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:24",
+      "word": "judge",
+      "meaning": "[동] 판정하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:25",
+      "word": "leave",
+      "meaning": "[명] 휴가",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:25",
+      "word": "leave",
+      "meaning": "[동] 남기다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:32",
+      "word": "mean",
+      "meaning": "[형] 평균의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:33",
+      "word": "name",
+      "meaning": "[동] 지명하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:35",
+      "word": "subject",
+      "meaning": "[명] 대상",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:35",
+      "word": "subject",
+      "meaning": "[형] ~되기 쉬운",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:2:35",
+      "word": "subject",
+      "meaning": "[동] 종속시키다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:0",
+      "word": "right",
+      "meaning": "[부] 바로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:0",
+      "word": "right",
+      "meaning": "[부] 정확히",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:2",
+      "word": "mind",
+      "meaning": "[동] 신경 쓰다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:2",
+      "word": "mind",
+      "meaning": "[명] 정신",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:6",
+      "word": "base",
+      "meaning": "[형] 비천한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:7",
+      "word": "challenge",
+      "meaning": "[동] 도전하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:12",
+      "word": "find",
+      "meaning": "[동] (~라고) 여기다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:15",
+      "word": "gain",
+      "meaning": "[명] 이익",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:21",
+      "word": "trip",
+      "meaning": "[동] 걸려 넘어지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:23",
+      "word": "waste",
+      "meaning": "[형] 폐물의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:31",
+      "word": "general",
+      "meaning": "[부] 일반적으로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:3:39",
+      "word": "own",
+      "meaning": "[동] 인정하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:3",
+      "word": "save",
+      "meaning": "[동] 저장하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/save",
+      "learner_level": "A2",
+      "verified_section": "KEEP: put information into computer memory",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:4",
+      "word": "raise",
+      "meaning": "[동] 제기하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:7",
+      "word": "rule",
+      "meaning": "[동] 판결하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:10",
+      "word": "turn",
+      "meaning": "[동] ~이 되다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:10",
+      "word": "turn",
+      "meaning": "[명] 차례",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/turn",
+      "learner_level": "B1",
+      "verified_section": "noun TIME TO DO STH: order/opportunity to do something",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:11",
+      "word": "half",
+      "meaning": "[부] 반쯤",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:13",
+      "word": "present",
+      "meaning": "[동] 제시하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:13",
+      "word": "present",
+      "meaning": "[동] 주다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:14",
+      "word": "about",
+      "meaning": "[부] 주위에",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:17",
+      "word": "state",
+      "meaning": "[동] 진술하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:18",
+      "word": "happen",
+      "meaning": "[동] (~에게) 생기다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 받다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A1",
+      "verified_section": "OBTAIN: receive or be given",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 가져오다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A2",
+      "verified_section": "OBTAIN: go somewhere and bring back",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 도착하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/get",
+      "learner_level": "A1",
+      "verified_section": "REACH: reach or arrive at a place",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:20",
+      "word": "get",
+      "meaning": "[동] 이해하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:22",
+      "word": "direct",
+      "meaning": "[부] 곧바로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:22",
+      "word": "direct",
+      "meaning": "[동] 감독하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:26",
+      "word": "uniform",
+      "meaning": "[형] 한결같은",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:29",
+      "word": "offer",
+      "meaning": "[명] 제안",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/offer",
+      "learner_level": "A2",
+      "verified_section": "noun ASK: offer of help, job offer",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:29",
+      "word": "offer",
+      "meaning": "[명] 제공",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:30",
+      "word": "make",
+      "meaning": "[동] (강제하여) ~하게 하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:30",
+      "word": "make",
+      "meaning": "[동] (돈을) 벌다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:34",
+      "word": "hide",
+      "meaning": "[명] 가죽",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:35",
+      "word": "invite",
+      "meaning": "[동] 초래하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] 가져가다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A1",
+      "verified_section": "MOVE: move something from one place to another",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] 받다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] (시간이) 걸리다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A2",
+      "verified_section": "NEED: particular time is needed to complete something",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:4:39",
+      "word": "take",
+      "meaning": "[동] 타다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/take",
+      "learner_level": "A2",
+      "verified_section": "TRANSPORT: travel using a vehicle",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:5:3",
+      "word": "root",
+      "meaning": "[동] 뿌리내리다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:8",
+      "word": "story",
+      "meaning": "[명] (건물의) 층",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:9",
+      "word": "straight",
+      "meaning": "[형] 솔직한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:16",
+      "word": "lot",
+      "meaning": "[명] 제비",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:16",
+      "word": "lot",
+      "meaning": "[명] 운명",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:16",
+      "word": "lot",
+      "meaning": "[형] 많은",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:17",
+      "word": "lock",
+      "meaning": "[동] 고정하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:18",
+      "word": "start",
+      "meaning": "[동] 깜짝 놀라다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:20",
+      "word": "use",
+      "meaning": "[명] 용도",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:22",
+      "word": "become",
+      "meaning": "[동] (~에) 어울리다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:27",
+      "word": "just",
+      "meaning": "[부] 방금",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/just",
+      "learner_level": "A2",
+      "verified_section": "RECENTLY: a very short time ago",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:5:27",
+      "word": "just",
+      "meaning": "[형] 정당한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:35",
+      "word": "follow",
+      "meaning": "[동] 이해하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:36",
+      "word": "well",
+      "meaning": "[명] 우물",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:36",
+      "word": "well",
+      "meaning": "[부] 제대로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:5:39",
+      "word": "trouble",
+      "meaning": "[동] 수고를 끼치다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:3",
+      "word": "bear",
+      "meaning": "[동] 낳다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:3",
+      "word": "bear",
+      "meaning": "[동] 지니다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:6",
+      "word": "live",
+      "meaning": "[부] 생중계로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:11",
+      "word": "look",
+      "meaning": "[동] ~처럼 보이다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/look",
+      "learner_level": "A2",
+      "verified_section": "SEEM: appear or seem",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:6:11",
+      "word": "look",
+      "meaning": "[명] 외모",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:11",
+      "word": "look",
+      "meaning": "[명] 표정",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:15",
+      "word": "win",
+      "meaning": "[명] 승리",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:16",
+      "word": "define",
+      "meaning": "[동] 규정하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:25",
+      "word": "fall",
+      "meaning": "[동] (수치·기온이) 내리다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:37",
+      "word": "care",
+      "meaning": "[동] 돌보다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:6:39",
+      "word": "habit",
+      "meaning": "[명] 버릇",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:2",
+      "word": "space",
+      "meaning": "[명] 여유",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:8",
+      "word": "supply",
+      "meaning": "[명] 비품",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:12",
+      "word": "race",
+      "meaning": "[동] 경주하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:14",
+      "word": "land",
+      "meaning": "[동] 착륙시키다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:17",
+      "word": "side",
+      "meaning": "[동] 편들다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:19",
+      "word": "clean",
+      "meaning": "[부] 완전히",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:23",
+      "word": "stay",
+      "meaning": "[명] 체류",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:25",
+      "word": "break",
+      "meaning": "[동] 위반하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:27",
+      "word": "fly",
+      "meaning": "[동] 비행기로 가다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:30",
+      "word": "same",
+      "meaning": "[부] 마찬가지로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:31",
+      "word": "rise",
+      "meaning": "[동] 일어나다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:31",
+      "word": "rise",
+      "meaning": "[명] 상승",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:7:39",
+      "word": "cold",
+      "meaning": "[형] 냉정한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:8:1",
+      "word": "front",
+      "meaning": "[동] 향하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:11",
+      "word": "hold",
+      "meaning": "[동] 수용하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:11",
+      "word": "hold",
+      "meaning": "[동] (의견·직책을) 가지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:13",
+      "word": "change",
+      "meaning": "[동] 갈아입다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/change",
+      "learner_level": "A2",
+      "verified_section": "CLOTHES: put on different clothes",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:9:13",
+      "word": "change",
+      "meaning": "[명] 거스름돈",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:32",
+      "word": "fix",
+      "meaning": "[명] 궁지",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:32",
+      "word": "fix",
+      "meaning": "[동] 수리하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:34",
+      "word": "only",
+      "meaning": "[접] 다만",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:9:39",
+      "word": "sound",
+      "meaning": "[형] 건전한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:10:11",
+      "word": "draw",
+      "meaning": "[동] 끌다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:10:11",
+      "word": "draw",
+      "meaning": "[동] (결론을) 도출하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:2",
+      "word": "put",
+      "meaning": "[동] 넣다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:2",
+      "word": "put",
+      "meaning": "[동] (상태·말로) 표현하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:5",
+      "word": "rest",
+      "meaning": "[동] 놓다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:7",
+      "word": "check",
+      "meaning": "[명] 계산서",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:7",
+      "word": "check",
+      "meaning": "[동] 억제하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:12",
+      "word": "past",
+      "meaning": "[전] ~을 지나",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:17",
+      "word": "flow",
+      "meaning": "[명] 유동",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:19",
+      "word": "close",
+      "meaning": "[부] 가까이",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:19",
+      "word": "close",
+      "meaning": "[형] 친밀한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:22",
+      "word": "like",
+      "meaning": "[형] 비슷한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:22",
+      "word": "like",
+      "meaning": "[접] 마치 ~처럼",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:23",
+      "word": "crop",
+      "meaning": "[동] 수확하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:23",
+      "word": "crop",
+      "meaning": "[동] 잘라 내다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:26",
+      "word": "sharp",
+      "meaning": "[부] 정각에",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:26",
+      "word": "sharp",
+      "meaning": "[형] 예리한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:28",
+      "word": "full",
+      "meaning": "[부] 아주",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:29",
+      "word": "fruit",
+      "meaning": "[명] 결과",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:37",
+      "word": "chance",
+      "meaning": "[동] 우연히 ~하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:11:39",
+      "word": "desert",
+      "meaning": "[동] 버리다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:6",
+      "word": "cost",
+      "meaning": "[동] 희생을 치르게 하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:8",
+      "word": "fat",
+      "meaning": "[형] 두꺼운",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:12",
+      "word": "dark",
+      "meaning": "[명] 어둠",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/dark",
+      "learner_level": "B1",
+      "verified_section": "the dark: somewhere with no light",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:12:13",
+      "word": "catch",
+      "meaning": "[동] 알아듣다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:13",
+      "word": "catch",
+      "meaning": "[명] 낚은 것",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:15",
+      "word": "travel",
+      "meaning": "[명] 여행기",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:19",
+      "word": "free",
+      "meaning": "[형] 한가한",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/free",
+      "learner_level": "A2",
+      "verified_section": "NOT BUSY",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:12:24",
+      "word": "empty",
+      "meaning": "[명] 빈 용기",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:12:37",
+      "word": "rare",
+      "meaning": "[형] 진귀한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:0",
+      "word": "trust",
+      "meaning": "[명] 신탁",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:11",
+      "word": "share",
+      "meaning": "[명] 주식",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:19",
+      "word": "pull",
+      "meaning": "[명] 인력",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:23",
+      "word": "goal",
+      "meaning": "[명] 골인",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:29",
+      "word": "map",
+      "meaning": "[동] 지도로 만들다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:32",
+      "word": "wild",
+      "meaning": "[부] 몹시",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:36",
+      "word": "busy",
+      "meaning": "[동] 바쁘게 하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:13:38",
+      "word": "hurt",
+      "meaning": "[명] 상처",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:4",
+      "word": "see",
+      "meaning": "[동] 만나다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/see",
+      "learner_level": "A1",
+      "verified_section": "MEET: meet or visit someone",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:14:4",
+      "word": "see",
+      "meaning": "[동] 이해하다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/see",
+      "learner_level": "B1",
+      "verified_section": "UNDERSTAND: understand, know or realize",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:14:5",
+      "word": "rapid",
+      "meaning": "[명] 급류",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:6",
+      "word": "born",
+      "meaning": "[동] 태어나다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:9",
+      "word": "develop",
+      "meaning": "[동] 현상하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:10",
+      "word": "false",
+      "meaning": "[부] 거짓으로",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:13",
+      "word": "manage",
+      "meaning": "[동] 그럭저럭 ~하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:16",
+      "word": "simple",
+      "meaning": "[형] 순진한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:21",
+      "word": "tend",
+      "meaning": "[동] 돌보다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:25",
+      "word": "tired",
+      "meaning": "[형] 싫증 난",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:26",
+      "word": "accident",
+      "meaning": "[명] 우연",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:31",
+      "word": "serious",
+      "meaning": "[형] 중대한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:34",
+      "word": "near",
+      "meaning": "[동] 접근하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:35",
+      "word": "volunteer",
+      "meaning": "[형] 자발적인",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:36",
+      "word": "even",
+      "meaning": "[부] 심지어",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:36",
+      "word": "even",
+      "meaning": "[형] 짝수의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:14:38",
+      "word": "pay",
+      "meaning": "[동] 갚다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:0",
+      "word": "form",
+      "meaning": "[동] 결성하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:1",
+      "word": "moment",
+      "meaning": "[명] 중요성",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:3",
+      "word": "work",
+      "meaning": "[동] 효과가 있다",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/work",
+      "learner_level": "B1",
+      "verified_section": "SUCCEED: effective and successful",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:15:3",
+      "word": "work",
+      "meaning": "[명] 작품",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:4",
+      "word": "author",
+      "meaning": "[동] 쓰다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:5",
+      "word": "event",
+      "meaning": "[명] 결과",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:13",
+      "word": "secret",
+      "meaning": "[부] 비밀히",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:14",
+      "word": "move",
+      "meaning": "[동] 감동시키다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:19",
+      "word": "product",
+      "meaning": "[명] 곱",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:20",
+      "word": "throw",
+      "meaning": "[명] 던지기",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:21",
+      "word": "sense",
+      "meaning": "[명] 의미",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:24",
+      "word": "voice",
+      "meaning": "[명] 음성",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:26",
+      "word": "capital",
+      "meaning": "[형] 주요한",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:27",
+      "word": "point",
+      "meaning": "[명] 점수",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/point",
+      "learner_level": "B1",
+      "verified_section": "GAME: unit showing who is winning",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:15:27",
+      "word": "point",
+      "meaning": "[명] 소수점",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:31",
+      "word": "sum",
+      "meaning": "[동] 합계하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:36",
+      "word": "please",
+      "meaning": "[동] 제발 (~해 주세요)",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:37",
+      "word": "model",
+      "meaning": "[동] 모델이 되다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:38",
+      "word": "bottom",
+      "meaning": "[형] 맨 아래의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:15:39",
+      "word": "view",
+      "meaning": "[동] 검토하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:0",
+      "word": "soil",
+      "meaning": "[동] 더럽히다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:4",
+      "word": "return",
+      "meaning": "[형] 왕복의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:6",
+      "word": "task",
+      "meaning": "[동] 임무를 주다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:7",
+      "word": "tell",
+      "meaning": "[동] 구별하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:7",
+      "word": "tell",
+      "meaning": "[동] 명하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:9",
+      "word": "spread",
+      "meaning": "[명] 확산",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:10",
+      "word": "sight",
+      "meaning": "[동] 보다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:11",
+      "word": "purchase",
+      "meaning": "[명] 구입품",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:13",
+      "word": "shape",
+      "meaning": "[동] 영향을 주다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:14",
+      "word": "avoid",
+      "meaning": "[동] 막다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:15",
+      "word": "poor",
+      "meaning": "[형] 불쌍한",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/learner-english/poor",
+      "learner_level": "A2",
+      "verified_section": "SYMPATHY: used to show sympathy",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    },
+    {
+      "id": "basic1:16:17",
+      "word": "appear",
+      "meaning": "[동] 출현하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:19",
+      "word": "enable",
+      "meaning": "[동] 가능하게 하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:26",
+      "word": "slow",
+      "meaning": "[부] 천천히",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:28",
+      "word": "die",
+      "meaning": "[동] 꺼지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:29",
+      "word": "thin",
+      "meaning": "[동] 얇아지다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:32",
+      "word": "excuse",
+      "meaning": "[동] 양해를 구하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:35",
+      "word": "push",
+      "meaning": "[명] 추진",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:36",
+      "word": "line",
+      "meaning": "[명] 대사",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:16:38",
+      "word": "act",
+      "meaning": "[명] 막",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:17:9",
+      "word": "patient",
+      "meaning": "[형] 인내심 있는",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:17:10",
+      "word": "office",
+      "meaning": "[명] 직무",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:17:27",
+      "word": "international",
+      "meaning": "[형] 국제상의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:18:6",
+      "word": "round",
+      "meaning": "[형] 원형의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:18:16",
+      "word": "real",
+      "meaning": "[형] 실제의",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:18:22",
+      "word": "wonder",
+      "meaning": "[동] 궁금해하다",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:18:37",
+      "word": "character",
+      "meaning": "[명] 특징",
+      "decision": "remain_optional",
+      "reason": "Not selected in this conservative compact-learning pass; may duplicate a book sense or be specialized/context-dependent. Not a claim that this sense is unimportant or incorrect."
+    },
+    {
+      "id": "basic1:19:34",
+      "word": "tie",
+      "meaning": "[명] 넥타이",
+      "decision": "promoted",
+      "source_url": "https://dictionary.cambridge.org/dictionary/english/tie",
+      "learner_level": "A2",
+      "verified_section": "noun FASTENING: material worn under a shirt collar",
+      "reason": "Distinct everyday learner sense; selected for compact repeat practice, not a claim about frequency."
+    }
+  ]
+}
