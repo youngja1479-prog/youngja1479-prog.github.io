@@ -11750,11 +11750,20 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     byId('appSub').textContent = '기초 · 기본 · 심화 · 추가';
   });
   byId('btnAddCalendar').addEventListener('click', openCalendar);
-  byId('btnAddPrep').addEventListener('click', openPrep);
+  byId('btnAddPrep').addEventListener('click', function () {
+    openPrep();
+    if (settings.autoSpeak && prepPool[0]) speakWord(prepPool[0].word);
+  });
   byId('btnCalBack').addEventListener('click', openAdd);
   byId('btnPrepBack').addEventListener('click', openAdd);
-  byId('btnCalMonths').addEventListener('click', function () { startCal(CAL_MONTHS); });
-  byId('btnCalDays').addEventListener('click', function () { startCal(CAL_DAYS); });
+  byId('btnCalMonths').addEventListener('click', function () { 
+    startCal(CAL_MONTHS); 
+    if (settings.autoSpeak && calPool[0]) speakWord(calPool[0].word);
+  });
+  byId('btnCalDays').addEventListener('click', function () { 
+    startCal(CAL_DAYS); 
+    if (settings.autoSpeak && calPool[0]) speakWord(calPool[0].word);
+  });
   byId('calFlip').addEventListener('click', flipCal);
   byId('btnCalNext').addEventListener('click', nextCal);
   byId('btnCalPrev').addEventListener('click', prevCal);
