@@ -253,7 +253,7 @@ main { flex: 1; padding: 12px 14px; }
       </div>
       <div class="card">
         <h2>기초 · DAY 선택</h2>
-        <p class="hint" id="daysHint">DAY당 40단어 · 외움 수 / 40 · 6DAY마다 묶음 복습</p>
+        <p class="hint" id="daysHint">DAY당 40단어 · 외움 수 / 40 · 5DAY마다 묶음 복습</p>
         <div class="day-grid" id="dayGrid"></div>
       </div>
     </section>
@@ -9834,7 +9834,7 @@ const WORDS_PER_DAY = 40;
 const LS_PREFIX = 'gkc-voca-gicho1000-v1-';
 const LS_KEY = LS_PREFIX + 'marks-v1';
 const LS_SETTINGS = 'gkc-voca2-settings-v1'; // retain existing pronunciation preference
-const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY 점수 무시)
+const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점수 보존 (이전 6DAY 기록 삭제 없음)
 
 (function () {
   'use strict';
@@ -9916,9 +9916,9 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // v2: 6DAY 묶음 (구 5DAY �
 
   function getBundles() {
     var list = [];
-    // 6DAY 묶음: 1-6, 7-12, 13-18, 19-24, 25(마지막 부분)
-    for (var start = 1; start <= TOTAL_DAYS; start += 6) {
-      var end = Math.min(start + 5, TOTAL_DAYS);
+    // 5DAY 묶음: 1-5, 6-10, 11-15, 16-20, 21-25
+    for (var start = 1; start <= TOTAL_DAYS; start += 5) {
+      var end = Math.min(start + 4, TOTAL_DAYS);
       list.push({ start: start, end: end, key: start + '-' + end, afterDay: end });
     }
     return list;
