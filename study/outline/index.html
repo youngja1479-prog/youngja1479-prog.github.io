@@ -721,6 +721,7 @@ const defaultData = () => ({
 
 let DATA = defaultData();
 let saveTimer = null;
+let saveIdle = null;
 
 async function loadData() {
   let d = await idbGet('app');
@@ -734,15 +735,30 @@ async function loadData() {
   else DATA = defaultData();
 }
 
+// An idle callback can run much later than the timer which queued it. Cancel stale
+// callbacks and re-check at execution time, not just before requesting idle time.
+function cancelScheduledSave() {
+  clearTimeout(saveTimer);
+  if (saveIdle !== null) {
+    window.cancelIdleCallback(saveIdle);
+    saveIdle = null;
+  }
+}
+function runScheduledSave() {
+  saveIdle = null;
+  if (state.drawing) { saveTimer = setTimeout(queueIdleSave, 400); return; }
+  doSave();
+}
+function queueIdleSave() {
+  if (state.drawing) { saveTimer = setTimeout(queueIdleSave, 400); return; }
+  if (window.requestIdleCallback && window.cancelIdleCallback) {
+    saveIdle = window.requestIdleCallback(runScheduledSave, { timeout: 2000 });
+  } else runScheduledSave();
+}
 function scheduleSave() {
   DATA.updatedAt = Date.now();
-  clearTimeout(saveTimer);
-  // Debounced + deferred: never serialize while the pen is down
-  saveTimer = setTimeout(function trySave() {
-    let busy = false; try { busy = !!state.drawing; } catch (_) {}
-    if (busy) { saveTimer = setTimeout(trySave, 400); return; }
-    if (window.requestIdleCallback) requestIdleCallback(() => doSave(), { timeout: 2000 }); else doSave();
-  }, 2000);
+  cancelScheduledSave();
+  saveTimer = setTimeout(queueIdleSave, 2000);
 }
 
 /** localStorage copy is a fallback only — strip heavy image data (kept in IndexedDB). */
@@ -759,13 +775,21 @@ async function doSave() {
   const ok = await idbSet('app', DATA);
   if (!ok && !saveWarned) { saveWarned = true; toast('저장 공간이 부족합니다 — 이미지를 줄이거나 삭제해 주세요'); }
   if (ok) saveWarned = false;
-  lsSaveData();
+  // IndexedDB may finish after a new stroke has started. Never stringify the
+  // entire notebook synchronously in that stroke; its pen-up queues another save.
+  if (!state.drawing) lsSaveData();
   scheduleSyncPush();
   return ok;
 }
 
 async function flushSave() {
-  clearTimeout(saveTimer);
+  // Commit a captured stroke before lifecycle saves, even if pointerup never fires.
+  if (state.drawing && state.currentStroke) {
+    for (const pointerId of Array.from(state.pointers.keys())) {
+      onPointerUp({ pointerId, pointerType: 'pen', type: 'pointercancel' });
+    }
+  }
+  cancelScheduledSave();
   await doSave();
 }
 
@@ -2719,7 +2743,7 @@ function getInkCtx() {
   if (inkCtxCache && inkCtxCanvas === c) return inkCtxCache;
   let ctx = null;
     if (!ctx) {
-    try { ctx = c.getContext('2d', { alpha: true }); } catch (_) {}
+    try { ctx = c.getContext('2d', { alpha: true, desynchronized: true }); } catch (_) {}
   }
   if (!ctx) ctx = c.getContext('2d');
   inkCtxCache = ctx;
@@ -2999,6 +3023,13 @@ function isPalmRejectedTouch(e) {
 
 let liveSnap = null, liveSnapValid = false, liveNeedsRedraw = false;
 function scheduleLiveInk() {
+  // Opaque pen/eraser segments are incremental: submit them in the input task,
+  // before a queued notebook save can occupy the next animation frame. Keep the
+  // full-path translucent highlighter frame-batched to avoid repeated blits.
+  if (state.currentStroke && (state.currentStroke.tool === 'pen' || state.currentStroke.tool === 'eraser')) {
+    flushLiveInk();
+    return;
+  }
   if (liveRaf) return;
   liveRaf = requestAnimationFrame(() => {
     liveRaf = 0;
@@ -3975,6 +4006,7 @@ function wireEvents() {
       stopSyncPolling();
     }
   });
+  window.addEventListener('pagehide', () => { flushSave(); });
   window.addEventListener('beforeunload', () => { flushSave(); });
   window.addEventListener('online', () => {
     syncLastError = '';
