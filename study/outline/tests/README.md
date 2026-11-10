@@ -133,3 +133,24 @@ were blocked, so no browser visual verification occurred. The conservative
 compatibility rollback is released with the CPU raster/regression checks only;
 Android cause and symptom resolution remain unverified. The public fixture after
 Pages deployment is available for a subsequent real-browser check.
+
+## Sync fix: tablet ink not reaching the phone (2026-11-11)
+
+Cause (from Cloudflare analytics + KV): the encrypted vault had grown to 19.84 MB,
+just under the old Worker's 20,000,000-char PUT limit. Every upload since
+2026-11-04 11:30 UTC was rejected (`PUT 413`, zero KV writes since), so new tablet
+ink never reached the cloud. The old Worker also buffered 20 MB strings
+(`exceededResources` errors), and every 5-second poll downloaded the whole vault.
+
+Fix: envelope v2 = ink coordinates rounded to 0.01 px (only strokes with an id) +
+gzip, then AES-GCM (≈ 8× smaller; v1 still readable). The Worker (`sync-worker/`,
+deployed as `gkc-notes-sync`) streams GET/PUT, allows 25 MB, stores a revision in KV
+metadata, answers `?meta=1` cheaply for unchanged polls, and supports
+compare-and-swap (`X-Base-Rev` → 409) so a device that merged an older copy re-reads
+and merges instead of overwriting newer ink. Old clients cannot decrypt v2, so they
+fail closed (no upload) until refreshed.
+
+```
+npm i miniflare@3   # or MINIFLARE_PATH=/path/to/node_modules/miniflare
+node study/outline/tests/sync-two-devices.cjs
+```

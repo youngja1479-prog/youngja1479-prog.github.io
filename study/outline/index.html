@@ -823,6 +823,7 @@ let syncPendingPush = false;
 let syncBusy = false;
 let syncLastError = '';
 let syncApplyingRemote = false;
+let syncConflicts = 0;
 
 function bufToB64(buf) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -874,7 +875,7 @@ function runPerfTask(kind, payload, password) {
   if (perfWorkerDisabled || typeof Worker === 'undefined') return Promise.resolve({ unavailable: true });
   if (!perfWorker) {
     try {
-      perfWorker = new Worker(new URL('perf-worker.js?v=20261108-2', document.baseURI));
+      perfWorker = new Worker(new URL('perf-worker.js?v=20261111-sync2', document.baseURI));
       perfWorker.onmessage = ({ data: reply }) => {
         const task = perfTasks.get(reply.id); if (!task) return;
         perfTasks.delete(reply.id);
@@ -901,14 +902,39 @@ async function decryptEnvelope(env, password) {
   const reply = await runPerfTask('decrypt', env, password);
   return reply.unavailable ? decryptEnvelopeFallback(env, password) : reply.result;
 }
+/* v2 sync envelope (2026-11-11): ink coordinates rounded to 0.01 px for transport
+   (only strokes with an id, so legacy signature keys never change) + gzip before
+   AES-GCM. Local notes keep full precision; v1 envelopes are still read. */
+function syncRound(v) {
+  return Math.round(v * 100) / 100;
+}
+function syncReplacer(k, v) {
+  if (k === 'points' && Array.isArray(v) && this && this.id) {
+    return v.map(pt => (pt && typeof pt.x === 'number' && typeof pt.y === 'number')
+      ? Object.assign({}, pt, { x: syncRound(pt.x), y: syncRound(pt.y), p: typeof pt.p === 'number' ? syncRound(pt.p) : pt.p })
+      : pt);
+  }
+  return v;
+}
+function canGzip() {
+  return typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
+}
+async function gzipBytes(u8) {
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+async function gunzipBytes(u8) {
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+}
 async function encryptDataFallback(dataObj, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveAesKey(password, salt);
-  const plain = new TextEncoder().encode(JSON.stringify(dataObj));
+  const gz = canGzip();
+  let plain = new TextEncoder().encode(gz ? JSON.stringify(dataObj, syncReplacer) : JSON.stringify(dataObj));
+  if (gz) plain = await gzipBytes(plain);
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain);
   return {
-    v: 1,
+    v: gz ? 2 : 1,
     salt: bufToB64(salt),
     iv: bufToB64(iv),
     ct: bufToB64(ct),
@@ -920,12 +946,14 @@ async function decryptEnvelopeFallback(env, password) {
   const iv = b64ToBuf(env.iv);
   const ct = b64ToBuf(env.ct);
   const key = await deriveAesKey(password, salt);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  let plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+  if (env.v === 2) plain = await gunzipBytes(plain);
   return JSON.parse(new TextDecoder().decode(plain));
 }
 
 function syncKoreanError(err) {
   const msg = (err && err.message) ? String(err.message) : String(err || '');
+  if (/\b413\b/.test(msg)) return '용량이 너무 커서 못 올렸어요 — 사진을 줄여 주세요';
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(msg)) return '네트워크 오류 — 연결을 확인해 주세요';
   if (/GET 4|PUT 4|GET 5|PUT 5|\b413\b|\b429\b|\b500\b|\b502\b|\b503\b/.test(msg)) return '서버 오류 (' + msg + ')';
   if (/decrypt|OperationError|AES/i.test(msg)) return '비밀번호가 맞지 않아요';
@@ -965,23 +993,40 @@ function syncUrlFor(vaultId) {
   return SYNC_URL.replace(/\/$/, '') + '/v1/' + vaultId;
 }
 
-async function syncFetchGet(vaultId) {
+// Server revision of the copy we last merged ('empty'/'legacy'/id; null = old server).
+async function syncFetchGetRev(vaultId) {
   const res = await fetch(syncUrlFor(vaultId), { method: 'GET', cache: 'no-store' });
   if (!res.ok) throw new Error('GET ' + res.status);
+  const rev = (res.headers && res.headers.get) ? res.headers.get('X-Rev') : null;
   const text = await res.text();
-  if (!text || text === 'null') return null;
+  if (!text || text === 'null') return { env: null, rev };
   const parsed = JSON.parse(text);
   // Stored envelope must have ct; ignore garbage keys
-  if (!parsed || typeof parsed !== 'object' || parsed.ct == null) return null;
-  return parsed;
+  if (!parsed || typeof parsed !== 'object' || parsed.ct == null) return { env: null, rev };
+  return { env: parsed, rev };
 }
-async function syncFetchPut(vaultId, envelope) {
-  const res = await fetch(syncUrlFor(vaultId), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(envelope)
-  });
+async function syncFetchGet(vaultId) {
+  return (await syncFetchGetRev(vaultId)).env;
+}
+// Cheap poll: revision only, no 3–20 MB download. null when unavailable.
+async function syncFetchMeta(vaultId) {
+  try {
+    const res = await fetch(syncUrlFor(vaultId) + '?meta=1', { method: 'GET', cache: 'no-store' });
+    if (!res.ok) return null;
+    const md = JSON.parse(await res.text());
+    return (md && typeof md.rev === 'string' && md.ct == null) ? md : null;
+  } catch (e) { return null; }
+}
+const SYNC_MAX_BYTES = 25 * 1024 * 1024 - 8192;
+async function syncFetchPut(vaultId, envelope, baseRev) {
+  const body = JSON.stringify(envelope);
+  if (body.length > SYNC_MAX_BYTES) throw new Error('PUT 413');
+  const headers = { 'Content-Type': 'application/json' };
+  if (baseRev) headers['X-Base-Rev'] = baseRev;
+  const res = await fetch(syncUrlFor(vaultId), { method: 'PUT', headers, body });
+  if (res.status === 409) { const e = new Error('conflict'); e.conflict = true; throw e; }
   if (!res.ok) throw new Error('PUT ' + res.status);
+  return (res.headers && res.headers.get) ? res.headers.get('X-Rev') : null;
 }
 
 function scheduleSyncPush() {
@@ -1121,8 +1166,11 @@ async function syncPushNow() {
   updateSyncStatusUI('syncing');
   try {
     // v20: never overwrite another device's work — fetch & union before uploading
+    let baseRev = null;
     try {
-      const renv = await syncFetchGet(syncVaultId);
+      const got = await syncFetchGetRev(syncVaultId);
+      const renv = got.env;
+      baseRev = got.rev;
       if (renv) {
         const rd = await decryptEnvelope(renv, syncPassword);
         if (dataHasContent(rd)) {
@@ -1151,7 +1199,23 @@ async function syncPushNow() {
     }
     const pushData = DATA, pushRevision = DATA.updatedAt;
     const env = await encryptData(pushData, syncPassword);
-    await syncFetchPut(syncVaultId, env);
+    // Compare-and-swap: if another device uploaded after our read, re-read and merge
+    // again instead of overwriting its ink. After 3 tries fall back to the union push.
+    let newRev;
+    try {
+      newRev = await syncFetchPut(syncVaultId, env, syncConflicts < 3 ? baseRev : null);
+    } catch (pe) {
+      if (pe && pe.conflict) {
+        syncConflicts++;
+        syncBusy = false; syncPendingPush = true;
+        clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 600 * syncConflicts);
+        updateSyncStatusUI('syncing');
+        return { ok: false, reason: 'conflict' };
+      }
+      throw pe;
+    }
+    syncConflicts = 0;
+    lastQuietPull = newRev ? { env: null, rev: newRev, data: pushData, updatedAt: pushRevision, vault: syncVaultId } : null;
     // Worker encryption uses a snapshot. A stroke committed while it was busy
     // must get another push, not be marked as already uploaded.
     if (DATA !== pushData || DATA.updatedAt !== pushRevision) {
@@ -1230,7 +1294,16 @@ async function syncPullAndMaybeApply(opts) {
     updateSyncStatusUI('syncing');
   }
   try {
-    const env = await syncFetchGet(syncVaultId);
+    if (opts.quiet && lastQuietPull && lastQuietPull.rev && lastQuietPull.rev !== 'legacy' &&
+        lastQuietPull.data === DATA && lastQuietPull.updatedAt === DATA.updatedAt && lastQuietPull.vault === syncVaultId) {
+      const md = await syncFetchMeta(syncVaultId);
+      if (md && md.rev === lastQuietPull.rev) {
+        syncBusy = false; syncLastError = ''; updateSyncStatusUI('synced');
+        return { ok: true, unchanged: true };
+      }
+    }
+    const got = await syncFetchGetRev(syncVaultId);
+    const env = got.env;
     if (!env) {
       syncBusy = false;
       if (!opts.quiet) updateSyncStatusUI('synced');
@@ -1238,7 +1311,7 @@ async function syncPullAndMaybeApply(opts) {
     }
     // Repeated unchanged auto-polls must not decrypt/parse/merge/rebuild the same
     // notebook every five seconds. Manual refresh and any local revision bypass.
-    if (opts.quiet && sameQuietPull(env)) {
+    if (opts.quiet && lastQuietPull && lastQuietPull.env && sameQuietPull(env)) {
       syncBusy = false; syncLastError = ''; updateSyncStatusUI('synced');
       return { ok: true, unchanged: true };
     }
@@ -1284,7 +1357,7 @@ async function syncPullAndMaybeApply(opts) {
     syncBusy = false;
     syncLastError = '';
     updateSyncStatusUI('synced');
-    lastQuietPull = { env, data: DATA, updatedAt: DATA.updatedAt, vault: syncVaultId };
+    lastQuietPull = { env, rev: got.rev, data: DATA, updatedAt: DATA.updatedAt, vault: syncVaultId };
     return { ok: true, remote: env, remoteData, remoteAt };
   } catch (e) {
     syncBusy = false;
@@ -4104,7 +4177,8 @@ window.__gkcSync = {
   syncNowManual,
   startSyncPolling,
   stopSyncPolling,
-  getSyncLastError: () => syncLastError
+  getSyncLastError: () => syncLastError,
+  getSyncState: () => ({ syncBusy, syncPendingPush, syncConflicts, lastRev: lastQuietPull && lastQuietPull.rev })
 };
 window.__gkcZoom = {
   get: () => drawZoom,
