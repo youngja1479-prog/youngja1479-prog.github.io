@@ -27,14 +27,40 @@ async function deriveAesKey(password, saltU8) {
   );
 }
 
+/* v2 sync envelope (2026-11-11): ink coordinates rounded to 0.01 px for transport
+   (only strokes with an id, so legacy signature keys never change) + gzip before
+   AES-GCM. Local notes keep full precision; v1 envelopes are still read. */
+function syncRound(v) {
+  return Math.round(v * 100) / 100;
+}
+function syncReplacer(k, v) {
+  if (k === 'points' && Array.isArray(v) && this && this.id) {
+    return v.map(pt => (pt && typeof pt.x === 'number' && typeof pt.y === 'number')
+      ? Object.assign({}, pt, { x: syncRound(pt.x), y: syncRound(pt.y), p: typeof pt.p === 'number' ? syncRound(pt.p) : pt.p })
+      : pt);
+  }
+  return v;
+}
+function canGzip() {
+  return typeof CompressionStream === 'function' && typeof DecompressionStream === 'function';
+}
+async function gzipBytes(u8) {
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+async function gunzipBytes(u8) {
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+}
+
 async function encryptData(dataObj, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveAesKey(password, salt);
-  const plain = new TextEncoder().encode(JSON.stringify(dataObj));
+  const gz = canGzip();
+  let plain = new TextEncoder().encode(gz ? JSON.stringify(dataObj, syncReplacer) : JSON.stringify(dataObj));
+  if (gz) plain = await gzipBytes(plain);
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain);
   return {
-    v: 1,
+    v: gz ? 2 : 1,
     salt: bufToB64(salt),
     iv: bufToB64(iv),
     ct: bufToB64(ct),
@@ -46,7 +72,8 @@ async function decryptEnvelope(env, password) {
   const iv = b64ToBuf(env.iv);
   const ct = b64ToBuf(env.ct);
   const key = await deriveAesKey(password, salt);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  let plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+  if (env.v === 2) plain = await gunzipBytes(plain);
   return JSON.parse(new TextDecoder().decode(plain));
 }
 

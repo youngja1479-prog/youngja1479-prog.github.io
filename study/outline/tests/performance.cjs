@@ -33,14 +33,14 @@ function makeWorker() {
  const data={version:1,updatedAt:123,notebooks:[{id:'n',mokchas:[{id:'m',sebus:[{id:'s',pages:[{strokes:[{id:'stroke',points:[{x:2,y:3,p:.5}]}],images:[{id:'i',src:'data:image/png;base64,AAAA'}],texts:[{id:'t',text:'한글'}],del:['old']}]}]}]}]};
  const {w,task}=makeWorker();
  try {
-  const env=await task('encrypt',data,'test-only-password');assert.equal(env.v,1);assert.equal(env.updatedAt,123);
+  const env=await task('encrypt',data,'test-only-password');assert.equal(env.v,2);assert.equal(env.updatedAt,123);
   assert.deepEqual(await task('decrypt',env,'test-only-password'),data);
   await assert.rejects(task('decrypt',env,'wrong-password'),{name:'OperationError'});
   const fallback=JSON.parse(await task('fallback',data));assert.equal(fallback.notebooks[0].mokchas[0].sebus[0].pages[0].images[0].src,undefined);
   assert.equal(fallback.notebooks[0].mokchas[0].sebus[0].pages[0].strokes[0].points[0].x,2);
   // Worker format interoperates with old in-page crypto, in BOTH directions.
-  const c=codeCtx({crypto:require('node:crypto').webcrypto,TextEncoder,TextDecoder,Uint8Array,btoa,atob,Date,PBKDF2_ITERS:150000});
-  vm.runInContext(['bufToB64','b64ToBuf','deriveAesKey','encryptDataFallback','decryptEnvelopeFallback'].map(fn).join('\n'),c);
+  const c=codeCtx({CompressionStream,DecompressionStream,Blob,Response,crypto:require('node:crypto').webcrypto,TextEncoder,TextDecoder,Uint8Array,btoa,atob,Date,PBKDF2_ITERS:150000});
+  vm.runInContext(['bufToB64','b64ToBuf','syncRound','syncReplacer','canGzip','gzipBytes','gunzipBytes','deriveAesKey','encryptDataFallback','decryptEnvelopeFallback'].map(fn).join('\n'),c);
   assert.deepEqual(JSON.parse(JSON.stringify(await c.decryptEnvelopeFallback(env,'test-only-password'))),data);
   assert.deepEqual(await task('decrypt',await c.encryptDataFallback(data,'test-only-password'),'test-only-password'),data);
  } finally {await w.terminate();}
@@ -70,7 +70,7 @@ function makeWorker() {
  let finishEncrypt, queued=0;
  const push=codeCtx({state:{drawing:false},DATA:{updatedAt:1},syncPassword:'test',syncVaultId:'v',navigator:{onLine:true},
   syncPendingPush:false,syncLastError:'',syncBusy:false,syncPushTimer:null,clearTimeout(){},setTimeout(){queued++;return 1;},
-  updateSyncStatusUI(){},syncFetchGet:async()=>null,encryptData:()=>new Promise(r=>{finishEncrypt=r;}),syncFetchPut:async()=>{}});
+  updateSyncStatusUI(){},syncConflicts:0,lastQuietPull:null,syncKoreanError:String,syncFetchGetRev:async()=>({env:null,rev:'empty'}),encryptData:()=>new Promise(r=>{finishEncrypt=r;}),syncFetchPut:async()=>{}});
  vm.runInContext(fn('syncPushNow'),push);const pushing=push.syncPushNow();await new Promise(r=>setImmediate(r));
  push.DATA.updatedAt=2;finishEncrypt({updatedAt:1});const pushed=await pushing;
  assert.equal(pushed.pending,true);assert.equal(push.syncPendingPush,true);assert.equal(queued,1);
