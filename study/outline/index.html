@@ -3468,7 +3468,7 @@ function onPointerUp(e) {
 }
 
 /* ========== 올가미 (lasso) selection ========== */
-const lasso = { mode: null, pid: null, path: [], sel: [], box: null, start: null, orig: null, moved: false };
+const lasso = { mode: null, pid: null, path: [], sel: [], box: null, start: null, orig: null, moved: false, vis: null };
 function lassoPushUndo() {
   state.undoStack.push(getStrokes().slice());
   if (state.undoStack.length > 50) state.undoStack.shift();
@@ -3482,13 +3482,82 @@ function pointInPoly(x, y, poly) {
   }
   return inside;
 }
+/* Erased ink stays in data (eraser = destination-out stroke drawn later), so lasso must
+   use what is actually visible: fully erased strokes are not selectable/highlighted and
+   erased parts of a stroke are never outlined. */
+function inkSegDist(px, py, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy;
+  let t = L ? ((px - a.x) * dx + (py - a.y) * dy) / L : 0;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  return Math.hypot(px - (a.x + t * dx), py - (a.y + t * dy));
+}
+function inkBounds(st, pad) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  st.points.forEach(p => { if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y; });
+  return { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad };
+}
+/** Per-point visibility of strokes[i] after later eraser strokes (null = eraser/empty).
+    bc: optional per-call bounds cache; hits: optional Set receiving covering eraser indexes. */
+function inkVisibleMask(strokes, i, bc, hits) {
+  const st = strokes[i];
+  if (!st || !st.points || !st.points.length || st.tool === 'eraser') return null;
+  const bnd = (s2, pad) => {
+    if (!bc) return inkBounds(s2, pad);
+    let v = bc.get(s2); if (!v) { v = inkBounds(s2, 0); bc.set(s2, v); }
+    return { x0: v.x0 - pad, y0: v.y0 - pad, x1: v.x1 + pad, y1: v.y1 + pad };
+  };
+  const pts = st.points, inkR = strokeLineWidth(st) * (st.pr && st.tool === 'pen' ? 1.28 : 1) / 2;
+  const sb = bnd(st, inkR);
+  const ers = [];
+  if (bc && !bc.erasers) { bc.erasers = []; strokes.forEach((e, j) => { if (e && e.tool === 'eraser' && e.points && e.points.length) bc.erasers.push(j); }); }
+  const cand = bc ? bc.erasers : null;
+  for (let q = 0, n = cand ? cand.length : strokes.length; q < n; q++) {
+    const j = cand ? cand[q] : q;
+    if (j <= i) continue;
+    const e = strokes[j];
+    if (!e || e.tool !== 'eraser' || !e.points || !e.points.length) continue;
+    const r = strokeLineWidth(e) / 2, lim = r - inkR + 0.5;
+    if (lim <= 0) continue;
+    const eb = bnd(e, r);
+    if (eb.x1 < sb.x0 || eb.x0 > sb.x1 || eb.y1 < sb.y0 || eb.y0 > sb.y1) continue;
+    ers.push({ j, pts: e.points, lim, b: eb });
+  }
+  if (!ers.length) return pts.map(() => true);
+  const covered = (x, y) => {
+    let any = false;
+    for (const e of ers) {
+      if (x < e.b.x0 || x > e.b.x1 || y < e.b.y0 || y > e.b.y1) continue;
+      const q = e.pts; let c = false;
+      if (q.length === 1) c = Math.hypot(x - q[0].x, y - q[0].y) <= e.lim;
+      else for (let k = 1; k < q.length && !c; k++) {
+        const a = q[k - 1], b = q[k], L = e.lim;
+        if ((x < a.x - L && x < b.x - L) || (x > a.x + L && x > b.x + L) || (y < a.y - L && y < b.y - L) || (y > a.y + L && y > b.y + L)) continue;
+        c = inkSegDist(x, y, a, b) <= L;
+      }
+      if (c) { any = true; if (hits) hits.add(e.j); else return true; }
+    }
+    return any;
+  };
+  const vis = pts.map(p => !covered(p.x, p.y));
+  for (let k = 1; k < pts.length; k++) {
+    const a = pts[k - 1], b = pts[k], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2);
+    if (vis[k - 1] && vis[k]) continue;
+    for (let m = 1; m < n; m++) {
+      const t = m / n;
+      if (!covered(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) { vis[k - 1] = vis[k] = true; break; }
+    }
+  }
+  return vis;
+}
 function lassoBBox() {
   const strokes = getStrokes();
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   lasso.sel.forEach(i => {
     const st = strokes[i]; if (!st || st.tool === 'eraser') return;
+    const vis = lasso.vis && lasso.vis.get(i);
+    if (lasso.vis && !vis) return; // fully erased stroke carried along: no outline
     const pad = (st.width || 2) / 2 + 2;
-    st.points.forEach(p => { x0 = Math.min(x0, p.x - pad); y0 = Math.min(y0, p.y - pad); x1 = Math.max(x1, p.x + pad); y1 = Math.max(y1, p.y + pad); });
+    st.points.forEach((p, k) => { if (vis && !vis[k]) return; x0 = Math.min(x0, p.x - pad); y0 = Math.min(y0, p.y - pad); x1 = Math.max(x1, p.x + pad); y1 = Math.max(y1, p.y + pad); });
   });
   lasso.box = isFinite(x0) ? { x0: x0 - 6, y0: y0 - 6, x1: x1 + 6, y1: y1 + 6 } : null;
 }
@@ -3504,8 +3573,19 @@ function lassoRender() {
     const strokes = getStrokes();
     lasso.sel.forEach(i => {
       const st = strokes[i]; if (!st || !st.points.length || st.tool === 'eraser') return;
-      const pts = st.points.length === 1 ? [st.points[0], st.points[0]] : st.points;
-      h += `<polyline points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="none" stroke="rgba(37,99,235,0.28)" stroke-width="${(st.width || 2) + 6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      const vis = lasso.vis && lasso.vis.get(i);
+      if (lasso.vis && !vis) return;
+      // outline only the visible runs (erased parts are not drawn)
+      const runs = []; let run = null;
+      st.points.forEach((p, k) => {
+        if (vis && !vis[k]) { run = null; return; }
+        if (!run) { run = []; runs.push(run); }
+        run.push(p);
+      });
+      runs.forEach(r => {
+        const pts = r.length === 1 ? [r[0], r[0]] : r;
+        h += `<polyline points="${pts.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="none" stroke="rgba(37,99,235,0.28)" stroke-width="${(st.width || 2) + 6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      });
     });
     const b = lasso.box;
     h += `<rect x="${b.x0}" y="${b.y0}" width="${b.x1 - b.x0}" height="${b.y1 - b.y0}" fill="rgba(37,99,235,0.04)" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>`;
@@ -3516,7 +3596,7 @@ function lassoRender() {
   svg.innerHTML = h;
 }
 function lassoClear() {
-  lasso.mode = null; lasso.pid = null; lasso.path = []; lasso.sel = []; lasso.box = null;
+  lasso.mode = null; lasso.pid = null; lasso.path = []; lasso.sel = []; lasso.box = null; lasso.vis = null;
   lassoRender();
 }
 function lassoDown(e) {
@@ -3533,7 +3613,7 @@ function lassoDown(e) {
     lasso.origBox = Object.assign({}, b);
     lassoBuildBase();
   } else {
-    lasso.sel = []; lasso.box = null;
+    lasso.sel = []; lasso.box = null; lasso.vis = null;
     lasso.mode = 'draw'; lasso.path = [pt];
   }
   lassoRender();
@@ -3572,20 +3652,42 @@ function lassoUp(e) {
   if (lasso.mode === 'draw') {
     const poly = lasso.path;
     lasso.sel = [];
+    lasso.vis = new Map();
     if (poly.length >= 3) {
-      // Inclusive: >=30% of points inside, or bbox center inside. Eraser strokes are
-      // included too so erased bits move with their ink (otherwise erased scribbles
-      // reappear at the new spot and the old eraser cuts holes in nearby writing).
-      getStrokes().forEach((st, i) => {
-        if (!st || !st.points || !st.points.length) return;
+      // Inclusive: >=30% of visible points inside, or visible bbox center inside.
+      // Fully erased ink is ignored (it was invisible yet got selected/outlined).
+      const strokes = getStrokes();
+      const hit = (pts) => {
+        if (!pts.length) return false;
         let n = 0, x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-        st.points.forEach(p => {
+        pts.forEach(p => {
           if (pointInPoly(p.x, p.y, poly)) n++;
           if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y;
         });
-        if (n / st.points.length >= 0.3 || pointInPoly((x0 + x1) / 2, (y0 + y1) / 2, poly)) lasso.sel.push(i);
+        return n / pts.length >= 0.3 || pointInPoly((x0 + x1) / 2, (y0 + y1) / 2, poly);
+      };
+      const hidden = [], bc = new Map(), selHits = new Set();
+      let px0 = Infinity, py0 = Infinity, px1 = -Infinity, py1 = -Infinity;
+      poly.forEach(p => { if (p.x < px0) px0 = p.x; if (p.y < py0) py0 = p.y; if (p.x > px1) px1 = p.x; if (p.y > py1) py1 = p.y; });
+      strokes.forEach((st, i) => {
+        if (!st || !st.points || !st.points.length || st.tool === 'eraser') return;
+        const sb = bc.get(st) || inkBounds(st, 0); bc.set(st, sb);
+        if (sb.x1 < px0 || sb.x0 > px1 || sb.y1 < py0 || sb.y0 > py1) return; // cannot be inside the loop
+        const hits = new Set();
+        const vis = inkVisibleMask(strokes, i, bc, hits);
+        const vpts = st.points.filter((_, k) => vis[k]);
+        if (!vpts.length) { if (hit(st.points)) hidden.push({ i, hits }); return; }
+        if (hit(vpts)) { lasso.sel.push(i); lasso.vis.set(i, vis); hits.forEach(j => selHits.add(j)); }
       });
-      if (!lasso.sel.some(i => getStrokes()[i].tool !== 'eraser')) lasso.sel = [];
+      if (lasso.sel.length) {
+        // Eraser strokes inside the loop move with the ink they erased (so erased bits
+        // don't reappear), but only when they erased part of a selected stroke.
+        const ers = [...selHits].filter(j => hit(strokes[j].points));
+        const erSet = new Set(ers);
+        // invisible (fully erased) ink under a moved eraser must move too, or it reappears
+        hidden.forEach(h => { if ([...h.hits].some(j => erSet.has(j))) lasso.sel.push(h.i); });
+        lasso.sel = lasso.sel.concat(ers).sort((x, y) => x - y);
+      }
     }
     lasso.path = [];
     lassoBBox();
@@ -3646,6 +3748,7 @@ function lassoCopy() {
     const o = strokes[i];
     strokes.push(Object.assign({}, o, { id: uid(), points: o.points.map(p => Object.assign({}, p, { x: p.x + off, y: p.y + off })) }));
   });
+  if (lasso.vis) { const v = new Map(); lasso.sel.forEach((i, k) => { if (lasso.vis.has(i)) v.set(start + k, lasso.vis.get(i)); }); lasso.vis = v; }
   lasso.sel = lasso.sel.map((_, k) => start + k);
   lassoBBox(); lassoRender(); scheduleSave(); updateUndoBtns(); redrawAll();
   toast('복사했습니다');

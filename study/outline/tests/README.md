@@ -154,3 +154,17 @@ fail closed (no upload) until refreshed.
 npm i miniflare@3   # or MINIFLARE_PATH=/path/to/node_modules/miniflare
 node study/outline/tests/sync-two-devices.cjs
 ```
+
+## Lasso picked up erased ink (2026-11-12)
+
+```
+node study/outline/tests/lasso-eraser.cjs
+```
+
+Report: "지우개로 지우면 뭔 이상한게 올가미로 잡히는데?". The eraser is stored as a
+destination-out stroke after the ink, so erased ink still exists in the data. Lasso
+selected and outlined it (blue outline of invisible/erased writing, oversized box).
+Lasso now computes per-point visibility against later eraser strokes: fully erased
+ink is not selectable or outlined, erased parts of a stroke are not outlined or
+counted in the box, and erasers move only with ink they actually cut. Stored
+strokes/sync data are unchanged. The test fails on the previous version.
