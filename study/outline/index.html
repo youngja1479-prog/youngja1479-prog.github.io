@@ -3468,7 +3468,7 @@ function onPointerUp(e) {
 }
 
 /* ========== 올가미 (lasso) selection ========== */
-const lasso = { mode: null, pid: null, path: [], sel: [], box: null, start: null, orig: null, moved: false, vis: null };
+const lasso = { mode: null, pid: null, path: [], sel: [], box: null, start: null, orig: null, moved: false, vis: null, baked: false };
 function lassoPushUndo() {
   state.undoStack.push(getStrokes().slice());
   if (state.undoStack.length > 50) state.undoStack.shift();
@@ -3496,9 +3496,9 @@ function inkBounds(st, pad) {
   st.points.forEach(p => { if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y; });
   return { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad };
 }
-/** Per-point visibility of strokes[i] after later eraser strokes (null = eraser/empty).
-    bc: optional per-call bounds cache; hits: optional Set receiving covering eraser indexes. */
-function inkVisibleMask(strokes, i, bc, hits) {
+/** Tester "is (x,y) of strokes[i] fully erased by a later eraser stroke?" (null = eraser/empty,
+    false = nothing can cut it). bc: optional per-call bounds cache. */
+function inkCoverTester(strokes, i, bc) {
   const st = strokes[i];
   if (!st || !st.points || !st.points.length || st.tool === 'eraser') return null;
   const bnd = (s2, pad) => {
@@ -3506,7 +3506,7 @@ function inkVisibleMask(strokes, i, bc, hits) {
     let v = bc.get(s2); if (!v) { v = inkBounds(s2, 0); bc.set(s2, v); }
     return { x0: v.x0 - pad, y0: v.y0 - pad, x1: v.x1 + pad, y1: v.y1 + pad };
   };
-  const pts = st.points, inkR = strokeLineWidth(st) * (st.pr && st.tool === 'pen' ? 1.28 : 1) / 2;
+  const inkR = strokeLineWidth(st) * (st.pr && st.tool === 'pen' ? 1.28 : 1) / 2;
   const sb = bnd(st, inkR);
   const ers = [];
   if (bc && !bc.erasers) { bc.erasers = []; strokes.forEach((e, j) => { if (e && e.tool === 'eraser' && e.points && e.points.length) bc.erasers.push(j); }); }
@@ -3520,24 +3520,29 @@ function inkVisibleMask(strokes, i, bc, hits) {
     if (lim <= 0) continue;
     const eb = bnd(e, r);
     if (eb.x1 < sb.x0 || eb.x0 > sb.x1 || eb.y1 < sb.y0 || eb.y0 > sb.y1) continue;
-    ers.push({ j, pts: e.points, lim, b: eb });
+    ers.push({ pts: e.points, lim, b: eb });
   }
-  if (!ers.length) return pts.map(() => true);
-  const covered = (x, y) => {
-    let any = false;
+  if (!ers.length) return false;
+  return (x, y) => {
     for (const e of ers) {
       if (x < e.b.x0 || x > e.b.x1 || y < e.b.y0 || y > e.b.y1) continue;
-      const q = e.pts; let c = false;
-      if (q.length === 1) c = Math.hypot(x - q[0].x, y - q[0].y) <= e.lim;
-      else for (let k = 1; k < q.length && !c; k++) {
-        const a = q[k - 1], b = q[k], L = e.lim;
+      const q = e.pts, L = e.lim;
+      if (q.length === 1) { if (Math.hypot(x - q[0].x, y - q[0].y) <= L) return true; continue; }
+      for (let k = 1; k < q.length; k++) {
+        const a = q[k - 1], b = q[k];
         if ((x < a.x - L && x < b.x - L) || (x > a.x + L && x > b.x + L) || (y < a.y - L && y < b.y - L) || (y > a.y + L && y > b.y + L)) continue;
-        c = inkSegDist(x, y, a, b) <= L;
+        if (inkSegDist(x, y, a, b) <= L) return true;
       }
-      if (c) { any = true; if (hits) hits.add(e.j); else return true; }
     }
-    return any;
+    return false;
   };
+}
+/** Per-point visibility of strokes[i] after later eraser strokes (null = eraser/empty). */
+function inkVisibleMask(strokes, i, bc) {
+  const covered = inkCoverTester(strokes, i, bc);
+  if (covered === null) return null;
+  const pts = strokes[i].points;
+  if (!covered) return pts.map(() => true);
   const vis = pts.map(p => !covered(p.x, p.y));
   for (let k = 1; k < pts.length; k++) {
     const a = pts[k - 1], b = pts[k], n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2);
@@ -3548,6 +3553,53 @@ function inkVisibleMask(strokes, i, bc, hits) {
     }
   }
   return vis;
+}
+/** Only the visible pieces of strokes[i] as point lists (erase "baked in", cut at ~1px). */
+function inkVisibleRuns(strokes, i, bc) {
+  const covered = inkCoverTester(strokes, i, bc);
+  if (covered === null) return [];
+  const pts = strokes[i].points;
+  if (!covered) return [pts.map(p => Object.assign({}, p))];
+  const lerp = (a, b, t) => {
+    const o = Object.assign({}, t < 0.5 ? a : b, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    if (typeof a.p === 'number' && typeof b.p === 'number') o.p = a.p + (b.p - a.p) * t;
+    return o;
+  };
+  const runs = []; let run = null;
+  let vis0 = !covered(pts[0].x, pts[0].y);
+  if (vis0) { run = [Object.assign({}, pts[0])]; runs.push(run); }
+  if (pts.length === 1) return runs;
+  for (let k = 1; k < pts.length; k++) {
+    const a = pts[k - 1], b = pts[k], n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y)));
+    for (let m = 1; m <= n; m++) {
+      const t = m / n, v = !covered(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+      if (v && !run) { run = [lerp(a, b, (m - 1) / n)]; runs.push(run); }
+      if (!v && run) { run.push(lerp(a, b, (m - 1) / n)); run = null; }
+    }
+    if (run) run.push(Object.assign({}, b));
+  }
+  // drop specks (shorter than ~1px) left at an eraser edge
+  return runs.filter(r => r.length >= 2 && r.some(p => Math.hypot(p.x - r[0].x, p.y - r[0].y) >= 1));
+}
+/** Before moving/copying: replace selected ink by its visible pieces on top of the z-order,
+    so no eraser (moved or not) can cut it at the destination and erased parts stay gone.
+    Erase strokes stay where they are. Returns false when nothing needed changing. */
+function lassoBakeSelection() {
+  const strokes = getStrokes();
+  const sel = lasso.sel.slice().sort((x, y) => x - y);
+  let lastEr = -1; strokes.forEach((st, j) => { if (st && st.tool === 'eraser') lastEr = j; });
+  if (!sel.some(i => i < lastEr)) return false;
+  const bc = new Map(), out = [], selSet = new Set(sel);
+  sel.forEach(i => {
+    const st = strokes[i];
+    if (!st || st.tool === 'eraser') return;
+    inkVisibleRuns(strokes, i, bc).forEach(r => out.push(Object.assign({}, st, { id: uid(), points: r })));
+  });
+  const next = strokes.filter((_, i) => !selSet.has(i)).concat(out);
+  setStrokes(next); // tombstones the originals for sync, new pieces carry new ids
+  lasso.sel = out.map((_, k) => next.length - out.length + k);
+  lasso.vis = null;
+  return true;
 }
 function lassoBBox() {
   const strokes = getStrokes();
@@ -3607,7 +3659,7 @@ function lassoDown(e) {
   lasso.pid = e.pointerId;
   const b = lasso.box;
   if (lasso.sel.length && b && pt.x >= b.x0 && pt.x <= b.x1 && pt.y >= b.y0 && pt.y <= b.y1) {
-    lasso.mode = 'move'; lasso.start = pt; lasso.moved = false;
+    lasso.mode = 'move'; lasso.start = pt; lasso.moved = false; lasso.baked = false;
     const strokes = getStrokes();
     lasso.orig = lasso.sel.map(i => strokes[i]);
     lasso.origBox = Object.assign({}, b);
@@ -3630,6 +3682,9 @@ function lassoMove(e) {
     if (!lasso.moved && Math.hypot(dx, dy) < 2) { e.preventDefault(); return; }
     if (!lasso.moved) {
       lassoPushUndo(); lasso.moved = true;
+      // Moved ink keeps only its visible pieces and goes on top, so erasers can't eat it.
+      lasso.baked = lassoBakeSelection();
+      if (lasso.baked) { const st0 = getStrokes(); lasso.orig = lasso.sel.map(i => st0[i]); lassoBuildBase(); }
       // legacy strokes (no id): tombstone old signature so other devices drop the unmoved copy
       const pg = ensurePage();
       lasso.orig.forEach(o => { if (o && !o.id) { addTomb(pg, 'del', strokeSig(o)); o.id = uid(); } });
@@ -3666,28 +3721,17 @@ function lassoUp(e) {
         });
         return n / pts.length >= 0.3 || pointInPoly((x0 + x1) / 2, (y0 + y1) / 2, poly);
       };
-      const hidden = [], bc = new Map(), selHits = new Set();
+      const bc = new Map();
       let px0 = Infinity, py0 = Infinity, px1 = -Infinity, py1 = -Infinity;
       poly.forEach(p => { if (p.x < px0) px0 = p.x; if (p.y < py0) py0 = p.y; if (p.x > px1) px1 = p.x; if (p.y > py1) py1 = p.y; });
       strokes.forEach((st, i) => {
         if (!st || !st.points || !st.points.length || st.tool === 'eraser') return;
         const sb = bc.get(st) || inkBounds(st, 0); bc.set(st, sb);
         if (sb.x1 < px0 || sb.x0 > px1 || sb.y1 < py0 || sb.y0 > py1) return; // cannot be inside the loop
-        const hits = new Set();
-        const vis = inkVisibleMask(strokes, i, bc, hits);
+        const vis = inkVisibleMask(strokes, i, bc);
         const vpts = st.points.filter((_, k) => vis[k]);
-        if (!vpts.length) { if (hit(st.points)) hidden.push({ i, hits }); return; }
-        if (hit(vpts)) { lasso.sel.push(i); lasso.vis.set(i, vis); hits.forEach(j => selHits.add(j)); }
+        if (vpts.length && hit(vpts)) { lasso.sel.push(i); lasso.vis.set(i, vis); }
       });
-      if (lasso.sel.length) {
-        // Eraser strokes inside the loop move with the ink they erased (so erased bits
-        // don't reappear), but only when they erased part of a selected stroke.
-        const ers = [...selHits].filter(j => hit(strokes[j].points));
-        const erSet = new Set(ers);
-        // invisible (fully erased) ink under a moved eraser must move too, or it reappears
-        hidden.forEach(h => { if ([...h.hits].some(j => erSet.has(j))) lasso.sel.push(h.i); });
-        lasso.sel = lasso.sel.concat(ers).sort((x, y) => x - y);
-      }
     }
     lasso.path = [];
     lassoBBox();
@@ -3724,6 +3768,15 @@ function lassoDrawMoving() {
 function lassoCancelMove() {
   // Restore original strokes if the gesture was cancelled (pinch / system gesture)
   if (!lasso.moved || !lasso.orig) return;
+  if (lasso.baked) {
+    // whole page snapshot was taken before baking: restore it (sync tombstones are undone too)
+    const prev = state.undoStack.pop();
+    if (prev) setStrokes(prev);
+    lasso.sel = []; lasso.vis = null; lasso.box = null; lasso.baked = false;
+    lasso.moved = false;
+    redrawInk(); updateUndoBtns();
+    return;
+  }
   const strokes = getStrokes();
   lasso.sel.forEach((idx, k) => { strokes[idx] = lasso.orig[k]; });
   lasso.box = lasso.origBox;
@@ -3743,13 +3796,17 @@ function lassoCopy() {
   if (!lasso.sel.length) return;
   lassoPushUndo();
   const strokes = getStrokes();
-  const off = 24, start = strokes.length;
+  const off = 24, start = strokes.length, bc = new Map();
+  // copy only the visible pieces, on top: erased parts don't come back, erasers don't cut the copy
+  const add = [];
   lasso.sel.forEach(i => {
     const o = strokes[i];
-    strokes.push(Object.assign({}, o, { id: uid(), points: o.points.map(p => Object.assign({}, p, { x: p.x + off, y: p.y + off })) }));
+    if (!o || o.tool === 'eraser') return;
+    inkVisibleRuns(strokes, i, bc).forEach(r => add.push(Object.assign({}, o, { id: uid(), points: r.map(p => Object.assign({}, p, { x: p.x + off, y: p.y + off })) })));
   });
-  if (lasso.vis) { const v = new Map(); lasso.sel.forEach((i, k) => { if (lasso.vis.has(i)) v.set(start + k, lasso.vis.get(i)); }); lasso.vis = v; }
-  lasso.sel = lasso.sel.map((_, k) => start + k);
+  add.forEach(o => strokes.push(o));
+  lasso.vis = null;
+  lasso.sel = add.map((_, k) => start + k);
   lassoBBox(); lassoRender(); scheduleSave(); updateUndoBtns(); redrawAll();
   toast('복사했습니다');
 }
