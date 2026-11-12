@@ -168,3 +168,14 @@ Lasso now computes per-point visibility against later eraser strokes: fully eras
 ink is not selectable or outlined, erased parts of a stroke are not outlined or
 counted in the box, and erasers move only with ink they actually cut. Stored
 strokes/sync data are unchanged. The test fails on the previous version.
+
+### Follow-up: moved ink got erased (2026-11-12)
+
+Report: "올가미로 필기 가져오면 지우개 영향 때문에 필기가 삭제됌". Moved ink kept its old
+z-order, so eraser strokes drawn later anywhere (e.g. an old erase at the destination)
+cut it, and erase strokes carried with the selection cut other writing at the
+destination. Now erasers are never selected; on the first move (and on copy) the
+selected ink is replaced by its visible pieces only (new ids, originals tombstoned
+via setStrokes, erasers stay put) placed on top, so it arrives intact and erased
+parts don't come back. Undo/pinch-cancel restore the original page snapshot.
+Data format unchanged. Cases 7–11 of lasso-eraser.cjs fail on the PR19 version.
