@@ -70,8 +70,8 @@ function makeWorker() {
  let finishEncrypt, queued=0;
  const push=codeCtx({state:{drawing:false},DATA:{updatedAt:1},syncPassword:'test',syncVaultId:'v',navigator:{onLine:true},
   syncPendingPush:false,syncLastError:'',syncBusy:false,syncPushTimer:null,clearTimeout(){},setTimeout(){queued++;return 1;},
-  updateSyncStatusUI(){},syncConflicts:0,lastQuietPull:null,syncKoreanError:String,syncFetchGetRev:async()=>({env:null,rev:'empty'}),encryptData:()=>new Promise(r=>{finishEncrypt=r;}),syncFetchPut:async()=>{}});
- vm.runInContext(fn('syncPushNow'),push);const pushing=push.syncPushNow();await new Promise(r=>setImmediate(r));
+  updateSyncStatusUI(){},syncConflicts:0,syncRetryCount:0,syncPullFails:0,syncErrFromPush:false,lastQuietPull:null,syncKoreanError:String,syncFetchGetRev:async()=>({env:null,rev:'empty'}),encryptData:()=>new Promise(r=>{finishEncrypt=r;}),syncFetchPut:async()=>{}});
+ vm.runInContext(['syncPushNow','queueSyncPush','isTransientSyncError','syncBackoffMs'].map(fn).join('\n'),push);const pushing=push.syncPushNow();await new Promise(r=>setImmediate(r));
  push.DATA.updatedAt=2;finishEncrypt({updatedAt:1});const pushed=await pushing;
  assert.equal(pushed.pending,true);assert.equal(push.syncPendingPush,true);assert.equal(queued,1);
  // Optional worker failures must resolve to the original implementation, while
