@@ -139,7 +139,12 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .item-row .item-title { font-size: 15px; font-weight: 600; word-break: break-word; }
 .item-row .item-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
 .item-row .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
-.item-row.dragging { opacity: .5; }
+.item-row .drag-handle { padding: 10px 8px; margin: -10px -4px -10px -8px; -webkit-user-select: none; -webkit-touch-callout: none; }
+.item-row.dragging { opacity: .85; position: relative; z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,.18); transition: none; }
+.item-row .move-btns { display: none; gap: 2px; flex-shrink: 0; }
+.item-row.pick .move-btns { display: flex; }
+.item-row.pick { border-color: var(--accent); }
+.item-row.pick .drag-handle { color: var(--accent); }
 .item-row.drag-over { border-color: var(--accent); background: var(--accent-soft); }
 
 .empty-state {
@@ -1124,6 +1129,24 @@ function mergeSebu(b, o, stat) {
 function mergeKids(bArr, oArr, tomb, fn, stat) {
   return unionList(bArr, oArr, x => x && x.id, tomb, fn ? (a, c) => fn(a, c, stat) : null, stat);
 }
+function reorderByIds(arr, ids) {
+  const pos = new Map(ids.map((id, i) => [id, i]));
+  const before = arr.map(x => x.id).join('\n');
+  const known = arr.filter(x => pos.has(x.id)).sort((a, b) => pos.get(a.id) - pos.get(b.id));
+  let k = 0;
+  const next = arr.map(x => pos.has(x.id) ? known[k++] : x);
+  next.forEach((x, i) => { arr[i] = x; });
+  return arr.map(x => x.id).join('\n') !== before;
+}
+// Item order: the side that reordered last (ordAt) wins, even if the other document is newer.
+function mergeOrder(m, field, b, o, stat) {
+  const ba = b.ordAt || 0, oa = o.ordAt || 0;
+  if (oa > ba && Array.isArray(o[field]) && Array.isArray(m[field])) {
+    // counts as a change taken from the other side, so the merged copy is applied/pushed
+    if (reorderByIds(m[field], o[field].map(x => x && x.id)) && stat) stat.n++;
+    m.ordAt = oa;
+  } else if (ba || oa) m.ordAt = Math.max(ba, oa);
+}
 // base = newer document (its edits win on conflicts); other's unknown items are added, never dropped.
 function mergeData(base, other) {
   const stat = { n: 0 };
@@ -1135,8 +1158,10 @@ function mergeData(base, other) {
     n.mokchas = mergeKids(bn.mokchas, on.mokchas, tomb, (bm, om, st2) => {
       const k = Object.assign({}, bm);
       k.sebus = mergeKids(bm.sebus, om.sebus, tomb, mergeSebu, st2);
+      mergeOrder(k, 'sebus', bm, om, st2);
       return k;
     }, st);
+    mergeOrder(n, 'mokchas', bn, on, st);
     return n;
   }, stat);
   return { data: m, added: stat.n };
@@ -1795,12 +1820,16 @@ function renderMokcha() {
     return;
   }
   list.innerHTML = nb.mokchas.map((m, i) => `
-    <div class="item-row" data-id="${esc(m.id)}" draggable="true">
-      <span class="drag-handle" title="끌어서 순서 변경">⋮⋮</span>
+    <div class="item-row" data-id="${esc(m.id)}">
+      <span class="drag-handle" title="끌어서 순서 변경 (톡 누르면 ▲▼)">⋮⋮</span>
       <span class="item-num">${i + 1}</span>
       <div class="item-body">
         <div class="item-title">${esc(m.title)}</div>
         <div class="item-sub">세부목차 ${m.sebus.length}개</div>
+      </div>
+      <div class="move-btns">
+        <button class="icon-btn" data-act="up" title="위로" style="width:36px;height:36px;font-size:14px">▲</button>
+        <button class="icon-btn" data-act="down" title="아래로" style="width:36px;height:36px;font-size:14px">▼</button>
       </div>
       <div class="item-actions">
         <button class="icon-btn" data-act="edit" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</button>
@@ -1808,7 +1837,7 @@ function renderMokcha() {
       </div>
     </div>`).join('');
 
-  setupListInteractions(list, nb.mokchas, (id) => goSebu(id), () => { scheduleSave(); renderMokcha(); });
+  setupListInteractions(list, nb.mokchas, (id) => goSebu(id), () => { scheduleSave(); renderMokcha(); }, nb);
 }
 
 /* ========== Render: Sebu ========== */
@@ -1834,12 +1863,16 @@ function renderSebu() {
   list.innerHTML = mok.sebus.map((s, i) => {
     const strokeCount = (s.pages || []).reduce((a, p) => a + (p.strokes || []).length, 0);
     return `
-    <div class="item-row" data-id="${esc(s.id)}" draggable="true">
-      <span class="drag-handle" title="끌어서 순서 변경">⋮⋮</span>
+    <div class="item-row" data-id="${esc(s.id)}">
+      <span class="drag-handle" title="끌어서 순서 변경 (톡 누르면 ▲▼)">⋮⋮</span>
       <span class="item-num">${i + 1}</span>
       <div class="item-body">
         <div class="item-title">${esc(s.title)}</div>
         <div class="item-sub">${strokeCount ? '필기 ' + strokeCount + '획' : '빈 페이지'} · 탭하여 필기</div>
+      </div>
+      <div class="move-btns">
+        <button class="icon-btn" data-act="up" title="위로" style="width:36px;height:36px;font-size:14px">▲</button>
+        <button class="icon-btn" data-act="down" title="아래로" style="width:36px;height:36px;font-size:14px">▼</button>
       </div>
       <div class="item-actions">
         <button class="icon-btn" data-act="edit" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</button>
@@ -1848,11 +1881,31 @@ function renderSebu() {
     </div>`;
   }).join('');
 
-  setupListInteractions(list, mok.sebus, (id) => goDraw(id), () => { scheduleSave(); renderSebu(); });
+  setupListInteractions(list, mok.sebus, (id) => goDraw(id), () => { scheduleSave(); renderSebu(); }, mok);
 }
 
-/* ========== Drag reorder ========== */
-function setupListInteractions(list, arr, onOpen, onChange) {
+/* ========== Reorder (pointer events: touch · pen · mouse) ========== */
+// Drag the ⋮⋮ handle up/down, or tap it for ▲▼ buttons. The order is saved with
+// parent.ordAt so a newer reorder wins when two devices merge.
+let listPickId = null;
+function moveItem(arr, fromIdx, toIdx) {
+  if (fromIdx < 0 || toIdx < 0 || fromIdx >= arr.length || toIdx >= arr.length || fromIdx === toIdx) return false;
+  const [item] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx, 0, item);
+  return true;
+}
+function listScroller(el) {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const oy = getComputedStyle(p).overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+function setupListInteractions(list, arr, onOpen, onChange, owner) {
+  const changed = () => { if (owner) owner.ordAt = Date.now(); onChange(); };
+  const rows = () => Array.from(list.querySelectorAll('.item-row'));
+  const renumber = () => rows().forEach((r, i) => { const n = r.querySelector('.item-num'); if (n) n.textContent = i + 1; });
+  if (listPickId) { const r = rows().find(x => x.dataset.id === listPickId); if (r) r.classList.add('pick'); else listPickId = null; }
   list.querySelectorAll('.item-row').forEach(row => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.drag-handle')) return;
@@ -1860,6 +1913,12 @@ function setupListInteractions(list, arr, onOpen, onChange) {
       if (act) {
         e.stopPropagation();
         const id = row.dataset.id;
+        if (act.dataset.act === 'up' || act.dataset.act === 'down') {
+          const i = arr.findIndex(x => x.id === id);
+          listPickId = id;
+          if (moveItem(arr, i, i + (act.dataset.act === 'up' ? -1 : 1))) changed();
+          return;
+        }
         if (act.dataset.act === 'edit') {
           const kind = state.view === 'mokcha' ? 'mok' : 'sebu';
           openItemModal(kind, 'edit', id);
@@ -1870,42 +1929,90 @@ function setupListInteractions(list, arr, onOpen, onChange) {
         }
         return;
       }
+      if (listPickId) { listPickId = null; rows().forEach(r => r.classList.remove('pick')); return; }
       onOpen(row.dataset.id);
     });
 
-    row.addEventListener('dragstart', (e) => {
-      row.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', row.dataset.id);
-    });
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      $$('.drag-over', list).forEach(el => el.classList.remove('drag-over'));
-    });
-    row.addEventListener('dragover', (e) => {
+    const handle = row.querySelector('.drag-handle');
+    if (!handle) return;
+    let drag = null;
+    handle.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (drag) return;
       e.preventDefault();
-      const dragging = list.querySelector('.dragging');
-      if (!dragging || dragging === row) return;
-      row.classList.add('drag-over');
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+      const sc = listScroller(list);
+      drag = { id: e.pointerId, y0: e.clientY, y: e.clientY, s0: sc.scrollTop, sc, moved: false, raf: 0, order0: rows().map(r => r.dataset.id) };
     });
-    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
-    row.addEventListener('drop', (e) => {
+    const place = () => {
+      if (!drag) return;
+      // keep the row under the finger; swap with neighbours past their middle
+      row.style.transform = '';
+      let r = row.getBoundingClientRect();
+      const mid = drag.y - drag.off;
+      let prev = row.previousElementSibling, next = row.nextElementSibling;
+      while (prev && prev.classList.contains('item-row')) {
+        const pr = prev.getBoundingClientRect();
+        if (mid < pr.top + pr.height / 2) { list.insertBefore(prev, row.nextSibling); prev = row.previousElementSibling; next = row.nextElementSibling; } else break; // move the neighbour, never the captured row
+      }
+      while (next && next.classList.contains('item-row')) {
+        const nr = next.getBoundingClientRect();
+        if (mid > nr.top + nr.height / 2) { list.insertBefore(next, row); next = row.nextElementSibling; } else break;
+      }
+      r = row.getBoundingClientRect();
+      row.style.transform = `translateY(${Math.round(mid - (r.top + r.height / 2))}px)`;
+      renumber();
+    };
+    const tick = () => {
+      if (!drag) return;
+      drag.raf = 0;
+      const vh = window.innerHeight || 800, edge = 70;
+      let v = 0;
+      if (drag.y < edge) v = -Math.ceil((edge - drag.y) / 4);
+      else if (drag.y > vh - edge) v = Math.ceil((drag.y - (vh - edge)) / 4);
+      if (v) {
+        const before = drag.sc.scrollTop; drag.sc.scrollTop += v;
+        if (drag.sc.scrollTop !== before) { place(); drag.raf = requestAnimationFrame(tick); }
+      }
+    };
+    handle.addEventListener('pointermove', (e) => {
+      if (!drag || drag.id !== e.pointerId) return;
       e.preventDefault();
-      row.classList.remove('drag-over');
-      const fromId = e.dataTransfer.getData('text/plain');
-      const toId = row.dataset.id;
-      if (!fromId || fromId === toId) return;
-      const fromIdx = arr.findIndex(x => x.id === fromId);
-      const toIdx = arr.findIndex(x => x.id === toId);
-      if (fromIdx < 0 || toIdx < 0) return;
-      const [item] = arr.splice(fromIdx, 1);
-      arr.splice(toIdx, 0, item);
-      onChange();
+      drag.y = e.clientY;
+      if (!drag.moved) {
+        if (Math.abs(drag.y - drag.y0) < 6) return;
+        drag.moved = true;
+        const r = row.getBoundingClientRect();
+        drag.off = drag.y0 - (r.top + r.height / 2);
+        listPickId = null; rows().forEach(x => x.classList.remove('pick'));
+        row.classList.add('dragging');
+      }
+      place();
+      if (!drag.raf) drag.raf = requestAnimationFrame(tick);
     });
+    const end = (e) => {
+      if (!drag || drag.id !== e.pointerId) return;
+      const d = drag; drag = null;
+      if (d.raf) cancelAnimationFrame(d.raf);
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      row.classList.remove('dragging'); row.style.transform = '';
+      if (!d.moved) {
+        if (e.type === 'pointercancel') return;
+        // tap on ⋮⋮ → show ▲▼ for this row (tap again to hide)
+        const on = !row.classList.contains('pick');
+        rows().forEach(x => x.classList.remove('pick'));
+        listPickId = on ? row.dataset.id : null;
+        if (on) row.classList.add('pick');
+        return;
+      }
+      const ids = rows().map(r => r.dataset.id);
+      if (e.type === 'pointercancel' && ids.join() === d.order0.join()) return;
+      if (reorderByIds(arr, ids)) changed(); else renumber();
+    };
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+    handle.addEventListener('contextmenu', (e) => e.preventDefault());
   });
-
-  // Touch-friendly reorder: long-press not needed; HTML5 drag works on desktop.
-  // For mobile, provide up/down via context — keep simple with drag on supported devices.
 }
 
 /* ========== Tree ========== */

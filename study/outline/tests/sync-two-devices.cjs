@@ -157,6 +157,25 @@ const subset = (A, B) => [...A].every(x => B.has(x));
     assert.equal(got.length, 30); got.forEach((o, k) => assert.equal(o.src, pdfPages[k].src));
     assert(subset(pt.ids(), pp.ids()) && pp.ids().size === 50, 'ink over PDF synced');
     assert.equal(pp.getSebu().pageHeight, 1200 * 31);
+    // 10) 목차 reorder on the tablet reaches the phone; a phone edit with the OLD order
+    //     (newer updatedAt) must not undo the tablet's reorder; new items are kept
+    const ot = device('ord-tablet', mf), op = device('ord-phone', mf);
+    ot.DATA = notebook(Date.now() - 5000);
+    ot.DATA.notebooks[0].mokchas = ['A', 'B', 'C', 'D'].map(t => ({ id: 'o' + t, title: t, sebus: [] }));
+    assert.equal(await ot.connectWithPassword(PW + '-ord'), true); await idle(ot);
+    assert.equal(await op.connectWithPassword(PW + '-ord'), true);
+    const order = d => d.DATA.notebooks[0].mokchas.map(m => m.title).join('');
+    assert.equal(order(op), 'ABCD');
+    const tn = ot.DATA.notebooks[0];
+    vm.runInContext('reorderByIds', ot.ctx)(tn.mokchas, ['oC', 'oA', 'oB', 'oD']); tn.ordAt = Date.now(); ot.DATA.updatedAt = Date.now();
+    await ot.syncPushNow(); await idle(ot);
+    await new Promise(r => setTimeout(r, 5));
+    op.DATA.notebooks[0].mokchas.push({ id: 'oE', title: 'E', sebus: [] }); op.DATA.updatedAt = Date.now() + 1000; // phone edits later, stale order
+    await op.syncPushNow(); await idle(op);
+    await op.syncPullAndMaybeApply({}); await ot.syncPullAndMaybeApply({});
+    assert.equal(order(op), 'CABDE', 'phone got tablet order + kept its new item: ' + order(op));
+    assert.equal(order(ot), 'CABDE', 'tablet order survives: ' + order(ot));
+    console.log('PASS: 목차 reorder syncs tablet → phone; newer stale-order edit cannot undo it');
     console.log(`PASS: PDF 30 pages ${(added / 1e6).toFixed(1)} MB images → payload ${(sent / 1e6).toFixed(1)} MB, phone has all pages + ink`);
     console.log(`PASS: tablet→phone ink, poll pickup, meta-only unchanged polls, concurrent writes (409 conflicts: ${counts.conflict}) converge, stale+clock-skewed phone cannot drop tablet ink, empty device cannot wipe, legacy v1 ${(v1Len / 1e6).toFixed(1)} MB → v2 ${(v2Len / 1e6).toFixed(1)} MB, old client cannot read v2`);
   } finally { await mf.dispose(); }
