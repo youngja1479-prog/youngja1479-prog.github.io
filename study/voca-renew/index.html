@@ -10231,6 +10231,33 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     speakWord(quizPool[quizIdx].word);
   }
 
+  // 화면 켜짐 유지: 카드·퀴즈·예문·추가 학습 화면에 있는 동안 화면이 자동으로 꺼지지 않게 함
+  // (밥 먹으면서/자기 전 반복용). 홈·목록으로 나가면 해제. 지원 안 하는 브라우저는 조용히 무시.
+  var KEEP_AWAKE_PANELS = { card: 1, quiz: 1, cloze: 1, examples: 1, calendar: 1, prep: 1 };
+  var wakeLock = null, wakeWanted = false, wakePending = false;
+  function syncWakeLock() {
+    var wl = typeof navigator !== 'undefined' && navigator && navigator.wakeLock;
+    if (!wl || typeof wl.request !== 'function') return;
+    var visible = document.visibilityState !== 'hidden';
+    if (wakeWanted && visible) {
+      if (wakeLock || wakePending) return;
+      wakePending = true;
+      var req;
+      try { req = wl.request('screen'); } catch (e) { wakePending = false; return; }
+      Promise.resolve(req).then(function (lock) {
+        wakePending = false;
+        if (!lock) return;
+        if (!wakeWanted) { try { lock.release().catch(function () {}); } catch (e) {} return; }
+        wakeLock = lock;
+        try { lock.addEventListener('release', function () { if (wakeLock === lock) wakeLock = null; }); } catch (e) {}
+      }, function () { wakePending = false; });
+    } else if (!wakeWanted && wakeLock) {
+      var l = wakeLock; wakeLock = null;
+      try { l.release().catch(function () {}); } catch (e) {}
+    }
+  }
+  try { document.addEventListener('visibilitychange', syncWakeLock); } catch (e) {}
+
   function showPanel(name) {
     document.querySelectorAll('.panel').forEach(function (p) {
       p.classList.toggle('active', p.id === 'panel-' + name);
@@ -10240,6 +10267,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     document.querySelectorAll('.nav button').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
     });
+    wakeWanted = !!KEEP_AWAKE_PANELS[name];
+    syncWakeLock();
   }
 
   function shuffle(arr) {
