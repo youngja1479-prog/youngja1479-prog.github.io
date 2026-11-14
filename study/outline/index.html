@@ -831,6 +831,9 @@ let syncBusy = false;
 let syncLastError = '';
 let syncApplyingRemote = false;
 let syncConflicts = 0;
+let syncRetryCount = 0;      // consecutive transient upload failures (backoff)
+let syncPullFails = 0;       // consecutive transient auto-check failures
+let syncErrFromPush = false; // a real upload error stays visible until an upload works
 
 function bufToB64(buf) {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -962,6 +965,7 @@ function syncKoreanError(err) {
   const msg = (err && err.message) ? String(err.message) : String(err || '');
   if (/\b413\b/.test(msg)) return '용량이 너무 커서 못 올렸어요 — 사진을 줄여 주세요';
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(msg)) return '네트워크 오류 — 연결을 확인해 주세요';
+  if (/timeout/i.test(msg)) return '연결이 너무 느려요 — 잠시 후 다시 시도해요';
   if (/GET 4|PUT 4|GET 5|PUT 5|\b413\b|\b429\b|\b500\b|\b502\b|\b503\b/.test(msg)) return '서버 오류 (' + msg + ')';
   if (/decrypt|OperationError|AES/i.test(msg)) return '비밀번호가 맞지 않아요';
   if (/JSON|parse/i.test(msg)) return '서버 데이터 형식 오류';
@@ -984,16 +988,44 @@ function updateSyncNowButton() {
 function updateSyncStatusUI(mode) {
   updateSyncNowButton();
   if (!syncPassword) { setSyncStatus('', ''); return; }
-  if (mode === 'error' || syncLastError) {
-    if (mode === 'error' || (syncLastError && mode !== 'syncing' && mode !== 'synced')) {
-      setSyncStatus('err', syncLastError);
-      return;
-    }
+  // Real errors (too big, wrong password, server rejects) stay until fixed.
+  if (syncLastError && (mode === 'error' || (mode !== 'syncing' && !syncBusy) || syncErrFromPush)) {
+    setSyncStatus('err', syncLastError);
+    return;
   }
-  if (mode === 'syncing' || syncBusy) setSyncStatus('busy', '동기화 중…');
-  else if (!navigator.onLine) setSyncStatus('warn', '오프라인(나중에 올라감)');
-  else if (mode === 'offline' || syncPendingPush) setSyncStatus('warn', syncPendingPush ? '오프라인(나중에 올라감)' : '동기화 대기');
+  // "오프라인" only when the device itself says it is offline.
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) { setSyncStatus('warn', '오프라인(나중에 올라감)'); return; }
+  // Repeated network failures while online: one steady message, retried with backoff.
+  if (syncRetryCount >= 3 || syncPullFails >= 3) { setSyncStatus('warn', '연결이 불안정해요 · 다시 시도 중'); return; }
+  // Waiting to upload, uploading, checking: one steady "동기화 중…" (no flapping).
+  if (mode === 'syncing' || syncBusy || syncPendingPush) setSyncStatus('busy', '동기화 중…');
   else setSyncStatus('ok', '동기화됨');
+}
+/** Network blips, timeouts, 5xx/429: retry quietly with backoff. Others are real errors. */
+function isTransientSyncError(e) {
+  const msg = (e && e.message) ? String(e.message) : String(e || '');
+  if (/\b413\b|decrypt|OperationError|AES/i.test(msg)) return false;
+  return /timeout|Abort|Failed to fetch|NetworkError|Load failed|network|ERR_|(GET|PUT) (5\d\d|429|408|0)\b/i.test(msg) || !!(e && e.name === 'TypeError');
+}
+function syncBackoffMs(n) { return Math.min(60000, 2000 * Math.pow(2, Math.max(0, n - 1))) + Math.floor(Math.random() * 500); }
+/** One pending upload timer; never runs while another sync is in flight (see syncPushNow). */
+function queueSyncPush(ms) {
+  syncPendingPush = true;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => { syncPushTimer = null; syncPushNow(); }, ms);
+}
+/** fetch + body with a time limit, so a stalled request can't keep sync busy forever. */
+async function syncFetchText(url, init, ms) {
+  const ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const t = ac ? setTimeout(() => ac.abort(), ms) : null;
+  try {
+    const res = await fetch(url, ac ? Object.assign({}, init, { signal: ac.signal }) : init);
+    const text = await res.text();
+    return { res, text };
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('timeout');
+    throw e;
+  } finally { if (t) clearTimeout(t); }
 }
 
 function syncUrlFor(vaultId) {
@@ -1002,10 +1034,9 @@ function syncUrlFor(vaultId) {
 
 // Server revision of the copy we last merged ('empty'/'legacy'/id; null = old server).
 async function syncFetchGetRev(vaultId) {
-  const res = await fetch(syncUrlFor(vaultId), { method: 'GET', cache: 'no-store' });
+  const { res, text } = await syncFetchText(syncUrlFor(vaultId), { method: 'GET', cache: 'no-store' }, 180000);
   if (!res.ok) throw new Error('GET ' + res.status);
   const rev = (res.headers && res.headers.get) ? res.headers.get('X-Rev') : null;
-  const text = await res.text();
   if (text && text !== 'null') syncLastBytes = text.length;
   if (!text || text === 'null') return { env: null, rev };
   const parsed = JSON.parse(text);
@@ -1019,9 +1050,9 @@ async function syncFetchGet(vaultId) {
 // Cheap poll: revision only, no 3–20 MB download. null when unavailable.
 async function syncFetchMeta(vaultId) {
   try {
-    const res = await fetch(syncUrlFor(vaultId) + '?meta=1', { method: 'GET', cache: 'no-store' });
+    const { res, text } = await syncFetchText(syncUrlFor(vaultId) + '?meta=1', { method: 'GET', cache: 'no-store' }, 20000);
     if (!res.ok) return null;
-    const md = JSON.parse(await res.text());
+    const md = JSON.parse(text);
     return (md && typeof md.rev === 'string' && md.ct == null) ? md : null;
   } catch (e) { return null; }
 }
@@ -1033,7 +1064,7 @@ async function syncFetchPut(vaultId, envelope, baseRev) {
   if (body.length > SYNC_MAX_BYTES) throw new Error('PUT 413');
   const headers = { 'Content-Type': 'application/json' };
   if (baseRev) headers['X-Base-Rev'] = baseRev;
-  const res = await fetch(syncUrlFor(vaultId), { method: 'PUT', headers, body });
+  const { res } = await syncFetchText(syncUrlFor(vaultId), { method: 'PUT', headers, body }, 240000);
   if (res.status === 409) { const e = new Error('conflict'); e.conflict = true; throw e; }
   if (!res.ok) throw new Error('PUT ' + res.status);
   return (res.headers && res.headers.get) ? res.headers.get('X-Rev') : null;
@@ -1042,9 +1073,9 @@ async function syncFetchPut(vaultId, envelope, baseRev) {
 function scheduleSyncPush() {
   if (!syncPassword || !syncVaultId) return;
   if (syncApplyingRemote) return; // don't bounce a just-pulled payload
-  syncPendingPush = true;
-  clearTimeout(syncPushTimer);
-  syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+  // keep a running backoff instead of hammering a flaky network on every stroke
+  if (syncRetryCount > 0 && syncPushTimer) { syncPendingPush = true; updateSyncStatusUI(); return; }
+  queueSyncPush(2000);
   updateSyncStatusUI();
 }
 
@@ -1180,11 +1211,12 @@ function mergeLocalRemote(local, remote, remoteAt, localAt) {
 
 async function syncPushNow() {
   if (state.drawing) {
-    syncPendingPush = true; clearTimeout(syncPushTimer);
-    syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+    queueSyncPush(2000);
     return { ok: false, reason: 'busy' };
   }
   if (!syncPassword || !syncVaultId) return { ok: false, reason: 'no-auth' };
+  // single flight: never upload while another check/upload is running
+  if (syncBusy) { queueSyncPush(1500); return { ok: false, reason: 'busy' }; }
   if (!navigator.onLine) {
     syncPendingPush = true;
     syncLastError = '';
@@ -1192,7 +1224,8 @@ async function syncPushNow() {
     return { ok: false, reason: 'offline' };
   }
   syncBusy = true;
-  syncLastError = '';
+  syncLastError = ''; syncErrFromPush = false;
+  clearTimeout(syncPushTimer); syncPushTimer = null;
   updateSyncStatusUI('syncing');
   try {
     // v20: never overwrite another device's work — fetch & union before uploading
@@ -1206,14 +1239,12 @@ async function syncPushNow() {
         if (dataHasContent(rd)) {
           const remoteAt = (renv.updatedAt != null ? renv.updatedAt : rd.updatedAt) || 0;
           if (state.drawing) {
-            syncBusy = false; syncPendingPush = true;
-            clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+            syncBusy = false; queueSyncPush(2000);
             return { ok: false, reason: 'busy' };
           }
           const mr = mergeLocalRemote(DATA, rd, remoteAt, DATA.updatedAt || 0);
           if (mr.fromRemote > 0 && state.drawing) {
-            syncBusy = false; syncPendingPush = true;
-            clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+            syncBusy = false; queueSyncPush(2000);
             return { ok: false, reason: 'busy' };
           }
           if (mr.fromRemote > 0 || mr.base === 'remote') {
@@ -1237,8 +1268,7 @@ async function syncPushNow() {
     } catch (pe) {
       if (pe && pe.conflict) {
         syncConflicts++;
-        syncBusy = false; syncPendingPush = true;
-        clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 600 * syncConflicts);
+        syncBusy = false; queueSyncPush(600 * syncConflicts);
         updateSyncStatusUI('syncing');
         return { ok: false, reason: 'conflict' };
       }
@@ -1249,20 +1279,28 @@ async function syncPushNow() {
     // Worker encryption uses a snapshot. A stroke committed while it was busy
     // must get another push, not be marked as already uploaded.
     if (DATA !== pushData || DATA.updatedAt !== pushRevision) {
-      syncBusy = false; syncPendingPush = true;
-      clearTimeout(syncPushTimer); syncPushTimer = setTimeout(() => { syncPushNow(); }, 2000);
+      syncBusy = false; syncRetryCount = 0; queueSyncPush(2000);
       updateSyncStatusUI();
       return { ok: true, pending: true };
     }
     syncPendingPush = false;
     syncBusy = false;
-    syncLastError = '';
+    syncLastError = ''; syncRetryCount = 0; syncPullFails = 0;
     updateSyncStatusUI('synced');
     return { ok: true };
   } catch (e) {
+    // nothing is lost: local DATA is untouched and stays marked for upload
     syncPendingPush = true;
     syncBusy = false;
-    syncLastError = syncKoreanError(e);
+    if (navigator.onLine === false) { syncLastError = ''; updateSyncStatusUI('offline'); return { ok: false, reason: 'offline', error: e }; }
+    if (isTransientSyncError(e)) {
+      syncRetryCount++;
+      syncLastError = '';
+      queueSyncPush(syncBackoffMs(syncRetryCount));
+      updateSyncStatusUI();
+      return { ok: false, reason: 'retry', error: e };
+    }
+    syncLastError = syncKoreanError(e); syncErrFromPush = true;
     updateSyncStatusUI('error');
     return { ok: false, reason: 'error', error: e };
   }
@@ -1288,7 +1326,7 @@ function reRenderAfterSync() {
 
 async function applyRemoteData(remoteData) {
   syncApplyingRemote = true;
-  clearTimeout(syncPushTimer);
+  clearTimeout(syncPushTimer); syncPushTimer = null;
   clearTimeout(saveTimer);
   DATA = remoteData;
   if (!DATA.version) DATA.version = 1;
@@ -1318,9 +1356,14 @@ async function syncPullAndMaybeApply(opts) {
     return { ok: false, reason: 'offline' };
   }
   if ((syncBusy || state.drawing) && opts.quiet) return { ok: false, reason: 'busy' };
+  // a waiting upload (or its backoff) goes first; the upload merges the cloud copy anyway
+  if (opts.quiet && syncPushTimer) return { ok: false, reason: 'busy' };
+  // single flight: a manual/visible check waits for the running sync instead of overlapping
+  for (let w = 0; syncBusy && w < 600; w++) await new Promise(r => setTimeout(r, 200));
+  if (syncBusy) return { ok: false, reason: 'busy' };
   syncBusy = true;
   if (!opts.quiet) {
-    syncLastError = '';
+    if (!syncErrFromPush) syncLastError = '';
     updateSyncStatusUI('syncing');
   }
   try {
@@ -1328,7 +1371,7 @@ async function syncPullAndMaybeApply(opts) {
         lastQuietPull.data === DATA && lastQuietPull.updatedAt === DATA.updatedAt && lastQuietPull.vault === syncVaultId) {
       const md = await syncFetchMeta(syncVaultId);
       if (md && md.rev === lastQuietPull.rev) {
-        syncBusy = false; syncLastError = ''; updateSyncStatusUI('synced');
+        syncBusy = false; syncPullFails = 0; if (!syncErrFromPush) syncLastError = ''; updateSyncStatusUI('synced');
         return { ok: true, unchanged: true };
       }
     }
@@ -1342,7 +1385,7 @@ async function syncPullAndMaybeApply(opts) {
     // Repeated unchanged auto-polls must not decrypt/parse/merge/rebuild the same
     // notebook every five seconds. Manual refresh and any local revision bypass.
     if (opts.quiet && lastQuietPull && lastQuietPull.env && sameQuietPull(env)) {
-      syncBusy = false; syncLastError = ''; updateSyncStatusUI('synced');
+      syncBusy = false; syncPullFails = 0; if (!syncErrFromPush) syncLastError = ''; updateSyncStatusUI('synced');
       return { ok: true, unchanged: true };
     }
     let remoteData;
@@ -1377,20 +1420,29 @@ async function syncPullAndMaybeApply(opts) {
       if (mr.fromLocal > 0) {
         // remote lacks some of our items: upload the union (never drop them)
         DATA.updatedAt = Math.max(Date.now(), remoteAt + 1);
-        syncPendingPush = true;
-        clearTimeout(syncPushTimer);
-        syncPushTimer = setTimeout(() => { syncPushNow(); }, 500);
-      } else {
+        queueSyncPush(500);
+      } else if ((DATA.updatedAt || 0) > remoteAt) {
+        queueSyncPush(500); // local edits (e.g. deletions) not uploaded yet
+      } else if (!syncPushTimer) {
         syncPendingPush = false;
       }
     }
     syncBusy = false;
-    syncLastError = '';
+    syncPullFails = 0;
+    if (!syncErrFromPush) syncLastError = '';
     updateSyncStatusUI('synced');
     lastQuietPull = { env, rev: got.rev, data: DATA, updatedAt: DATA.updatedAt, vault: syncVaultId };
     return { ok: true, remote: env, remoteData, remoteAt };
   } catch (e) {
     syncBusy = false;
+    if (navigator.onLine === false) { updateSyncStatusUI('offline'); return { ok: false, reason: 'offline', error: e }; }
+    if (isTransientSyncError(e)) {
+      // auto-check blips are retried by the next poll; only a manual check reports them
+      syncPullFails++;
+      if (!opts.quiet) syncLastError = syncKoreanError(e);
+      updateSyncStatusUI(opts.quiet ? undefined : 'error');
+      return { ok: false, reason: 'network', error: e };
+    }
     syncLastError = syncKoreanError(e);
     updateSyncStatusUI('error');
     return { ok: false, reason: 'network', error: e };
@@ -4563,8 +4615,8 @@ function wireEvents() {
   window.addEventListener('pagehide', () => { flushSave(); });
   window.addEventListener('beforeunload', () => { flushSave(); });
   window.addEventListener('online', () => {
-    syncLastError = '';
-    if (syncPendingPush) syncPushNow();
+    syncLastError = ''; syncErrFromPush = false; syncRetryCount = 0; syncPullFails = 0;
+    if (syncPendingPush) queueSyncPush(300);
     else syncPullAndMaybeApply({ showDecryptError: false });
   });
   window.addEventListener('offline', () => {

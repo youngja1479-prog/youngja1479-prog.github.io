@@ -210,3 +210,21 @@ screen edge; tapping ⋮⋮ shows ▲▼ buttons as a fallback. The dragged row 
 moved in the DOM (that drops pointer capture). Reorders set `ordAt` on the parent
 (notebook / 목차); merge applies the side with the newer `ordAt` and counts it as a
 change so it is pushed/applied (sync-two-devices step 10). The test fails on the old version.
+
+## Sync status flapping (2026-11-14)
+
+```
+node study/outline/tests/sync-flap.cjs   # real Worker in Miniflare + injected blips/hangs/413
+```
+
+Report: "동기화 중" and "오프라인 · 나중에 동기화" kept alternating. Cause: any waiting upload
+(every edit, a retry after a dropped request, or a conflict retry) was labelled
+"오프라인(나중에 올라감)" even while online, so writing flipped 오프라인 → 동기화 중 → … .
+Failed requests (Cloudflare analytics: no Worker errors, but clientDisconnected /
+responseStreamDisconnected and up to ~84 s wall time on large payloads) had no retry
+and no time limit, and auto-checks could overlap uploads. Now: pending/uploading is one
+steady "동기화 중…"; "오프라인" only when navigator.onLine is false; network blips,
+timeouts, 5xx/429 retry with backoff (2 s → 60 s) and after 3 failures show one steady
+"연결이 불안정해요 · 다시 시도 중"; real errors (413, wrong password) stay visible without a
+retry loop; requests have time limits; uploads and checks never run concurrently.
+Local data is never dropped (still marked for upload). The test fails on the previous version.
