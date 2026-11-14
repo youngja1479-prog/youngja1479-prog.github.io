@@ -594,6 +594,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)">🖼＋ 이미지</button>
         <button class="tool-btn" data-tool="image" title="이미지 선택 — 이동·크기·삭제">🖼 선택</button>
         <input type="file" id="img-file" accept="image/*" style="display:none">
+        <button class="tool-btn" id="btn-add-pdf" title="PDF 넣기 — 페이지를 종이로 넣고 위에 필기">📄＋ PDF</button>
+        <input type="file" id="pdf-file" accept="application/pdf,.pdf" style="display:none">
       </div>
       <div class="tool-group">
         <button class="thickness-btn active" data-w="1.5" title="얇게"><span style="width:4px;height:4px"></span></button>
@@ -999,6 +1001,7 @@ async function syncFetchGetRev(vaultId) {
   if (!res.ok) throw new Error('GET ' + res.status);
   const rev = (res.headers && res.headers.get) ? res.headers.get('X-Rev') : null;
   const text = await res.text();
+  if (text && text !== 'null') syncLastBytes = text.length;
   if (!text || text === 'null') return { env: null, rev };
   const parsed = JSON.parse(text);
   // Stored envelope must have ct; ignore garbage keys
@@ -1018,8 +1021,10 @@ async function syncFetchMeta(vaultId) {
   } catch (e) { return null; }
 }
 const SYNC_MAX_BYTES = 25 * 1024 * 1024 - 8192;
+let syncLastBytes = 0; // size of the last uploaded/downloaded payload (for the PDF size check)
 async function syncFetchPut(vaultId, envelope, baseRev) {
   const body = JSON.stringify(envelope);
+  syncLastBytes = body.length;
   if (body.length > SYNC_MAX_BYTES) throw new Error('PUT 413');
   const headers = { 'Content-Type': 'application/json' };
   if (baseRev) headers['X-Base-Rev'] = baseRev;
@@ -4018,6 +4023,152 @@ async function insertImageFile(file) {
   toast('이미지 삽입 — 끌어서 이동, 모서리로 크기 조절');
 }
 
+/* ========== PDF 넣기 (pdf.js, 기기에서 변환 — PDF 원본은 어디에도 올리지 않음) ========== */
+// Each chosen PDF page becomes one ordinary image (same as 🖼 photos) on its own sheet,
+// below existing content: ink/eraser/lasso work on top exactly like on photos.
+const PDFJS_DIR = 'vendor/pdfjs-3.11.174/';
+const PDF_MAX_PAGES = 30;            // per insert
+const PDF_RENDER_SCALE = 1.5;        // pixels per page unit (800px page → 1200px image)
+const PDF_JPEG_Q = 0.72;
+const SYNC_WARN_BYTES = 20 * 1024 * 1024;
+let pdfjsPromise = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (pdfjsPromise) return pdfjsPromise;
+  pdfjsPromise = new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = PDFJS_DIR + 'pdf.min.js';
+    sc.onload = () => {
+      const L = window.pdfjsLib;
+      if (!L) { pdfjsPromise = null; reject(new Error('pdfjs')); return; }
+      L.GlobalWorkerOptions.workerSrc = PDFJS_DIR + 'pdf.worker.min.js';
+      resolve(L);
+    };
+    sc.onerror = () => { pdfjsPromise = null; reject(new Error('pdfjs load')); };
+    document.head.appendChild(sc);
+  });
+  return pdfjsPromise;
+}
+/** "1-5, 8" → [1,2,3,4,5,8]; empty/"전체" → all; null when invalid. */
+function parsePdfPages(str, n) {
+  str = String(str == null ? '' : str).trim();
+  if (!str || str === '전체') return Array.from({ length: n }, (_, i) => i + 1);
+  const out = [], seen = new Set();
+  for (const part of str.split(/[,，\s]+/).filter(Boolean)) {
+    const m = part.match(/^(\d+)(?:[-~–](\d+))?$/);
+    if (!m) return null;
+    let a = +m[1], b = m[2] ? +m[2] : a;
+    if (a > b) [a, b] = [b, a];
+    if (a < 1 || b > n) return null;
+    for (let k = a; k <= b; k++) if (!seen.has(k)) { seen.add(k); out.push(k); }
+  }
+  return out.length ? out : null;
+}
+/** Display size of a PDF page on an 800×1200 sheet (fit inside, keep ratio). */
+function pdfPageBox(pw, ph) {
+  let w = PAGE_W, h = PAGE_W * ph / pw;
+  if (h > SHEET_H) { h = SHEET_H; w = SHEET_H * pw / ph; }
+  w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+  return { w, h, x: Math.round((PAGE_W - w) / 2), dy: Math.round((SHEET_H - h) / 2) };
+}
+/** First empty sheet start below everything already on this note. */
+function pdfStartY() {
+  let bottom = 0;
+  getStrokes().forEach(st => { if (st && st.tool !== 'eraser' && st.points) st.points.forEach(p => { if (p.y > bottom) bottom = p.y; }); });
+  getTexts().forEach(t => { const b = (t.y || 0) + (t.h || 0); if (b > bottom) bottom = b; });
+  getImages().forEach(o => { if (o.y + o.h > bottom) bottom = o.y + o.h; });
+  return bottom <= 0 ? 0 : Math.ceil(bottom / SHEET_H) * SHEET_H;
+}
+/** Rough sync payload size now (images dominate; JPEG data barely compresses). */
+function estimateSyncBytes() {
+  if (syncLastBytes) return syncLastBytes;
+  let n = 0;
+  const walk = (v, d) => {
+    if (d > 12 || !v) return;
+    if (typeof v === 'string') { if (v.length > 512 && v.startsWith('data:')) n += v.length; return; }
+    if (typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(x => walk(x, d + 1)); return; }
+    for (const k in v) if (k !== 'points') walk(v[k], d + 1);
+  };
+  try { walk(DATA, 0); } catch (_) {}
+  return n;
+}
+const fmtMB = b => (b / 1048576).toFixed(1);
+async function renderPdfPage(doc, num) {
+  const page = await doc.getPage(num);
+  const vp1 = page.getViewport({ scale: 1 });
+  const box = pdfPageBox(vp1.width, vp1.height);
+  const vp = page.getViewport({ scale: PDF_RENDER_SCALE * box.w / vp1.width });
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(vp.width)); cv.height = Math.max(1, Math.round(vp.height));
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext: cx, viewport: vp }).promise;
+  const src = cv.toDataURL('image/jpeg', PDF_JPEG_Q);
+  freeCanvas(cv);
+  try { page.cleanup(); } catch (_) {}
+  return { src, box };
+}
+async function insertPdfFile(file) {
+  if (!file || !getSebu()) return;
+  if (pdfBusy) { toast('PDF를 넣는 중이에요'); return; }
+  pdfBusy = true;
+  let doc = null;
+  try {
+    toast('PDF 여는 중…');
+    let L;
+    try { L = await loadPdfJs(); } catch (_) { toast('PDF 도구를 불러오지 못했어요 — 인터넷 연결을 확인해 주세요'); return; }
+    try {
+      doc = await L.getDocument({ data: new Uint8Array(await file.arrayBuffer()), cMapUrl: PDFJS_DIR + 'cmaps/', cMapPacked: true,
+        standardFontDataUrl: PDFJS_DIR + 'standard_fonts/', isEvalSupported: false }).promise;
+    } catch (e) {
+      toast(e && e.name === 'PasswordException' ? '암호가 걸린 PDF는 넣을 수 없어요' : 'PDF를 열 수 없어요');
+      return;
+    }
+    const n = doc.numPages;
+    const ans = window.prompt(
+      `PDF ${n}쪽 — 넣을 페이지를 적어 주세요 (예: 1-5, 8)\n` +
+      (n > PDF_MAX_PAGES ? `한 번에 최대 ${PDF_MAX_PAGES}쪽까지 넣을 수 있어요` : '비워 두면 전체'),
+      n > PDF_MAX_PAGES ? `1-${PDF_MAX_PAGES}` : '');
+    if (ans == null) return;
+    const nums = parsePdfPages(ans, n);
+    if (!nums) { toast(`페이지 번호를 다시 확인해 주세요 (1~${n})`); return; }
+    if (nums.length > PDF_MAX_PAGES) { toast(`한 번에 최대 ${PDF_MAX_PAGES}쪽까지 넣을 수 있어요`); return; }
+    const pages = [];
+    let added = 0;
+    for (let k = 0; k < nums.length; k++) {
+      toast(`PDF 변환 중 ${k + 1}/${nums.length}`);
+      const r = await renderPdfPage(doc, nums[k]);
+      pages.push(r); added += r.src.length;
+    }
+    if (syncVaultId) {
+      const est = estimateSyncBytes() + added;
+      if (est > SYNC_MAX_BYTES) {
+        toast(`용량이 너무 커서 넣을 수 없어요 (동기화 약 ${fmtMB(est)}/25 MB) — 페이지 수를 줄여 주세요`);
+        return;
+      }
+      if (est > SYNC_WARN_BYTES &&
+          !window.confirm(`PDF ${pages.length}쪽 (약 ${fmtMB(added)} MB)\n동기화 용량이 거의 찼어요: 약 ${fmtMB(est)}/25 MB\n그래도 넣을까요?`)) return;
+    }
+    const sebu = getSebu(); if (!sebu) return;
+    const y0 = pdfStartY();
+    pushImgUndo();
+    const imgs = getImages();
+    pages.forEach((r, k) => imgs.push({ id: uid(), x: r.box.x, y: y0 + k * SHEET_H + r.box.dy, w: r.box.w, h: r.box.h, src: r.src }));
+    const need = y0 + pages.length * SHEET_H;
+    if ((sebu.pageHeight || 1200) < need) { sebu.pageHeight = need; CSS_H = need; }
+    scheduleSave(); resizeCanvas(); redrawAll(); updateGuideOverlay(); renderTextLayer(); renderImages();
+    try { const wEl = wrap(), stage = $('#page-stage'); wEl.scrollTop = y0 * (stage.getBoundingClientRect().height / CSS_H); } catch (_) {}
+    toast(`PDF ${pages.length}쪽을 넣었어요 (약 ${fmtMB(added)} MB) — 바로 필기하면 돼요`);
+  } catch (e) {
+    toast('PDF를 넣지 못했어요');
+  } finally {
+    pdfBusy = false;
+    if (doc) { try { doc.destroy(); } catch (_) {} }
+  }
+}
+let pdfBusy = false;
+
 /* ========== 종이 추가 / 삭제 ========== */
 const SHEET_H = 1200;
 function addSheet() {
@@ -4206,6 +4357,8 @@ function wireEvents() {
   $('#btn-del-sheet').addEventListener('click', removeSheet);
   $('#btn-add-img').addEventListener('click', () => { const f = $('#img-file'); f.value = ''; f.click(); });
   $('#img-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertImageFile(f); e.target.value = ''; });
+  $('#btn-add-pdf').addEventListener('click', () => { const f = $('#pdf-file'); f.value = ''; f.click(); });
+  $('#pdf-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertPdfFile(f); e.target.value = ''; });
   $('#btn-export-png').addEventListener('click', exportPng);
   $('#btn-print').addEventListener('click', () => window.print());
 
