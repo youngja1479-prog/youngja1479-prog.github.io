@@ -140,6 +140,24 @@ const subset = (A, B) => [...A].every(x => B.has(x));
     await assert.rejects(oldDecrypt(after, PW + '-big'));
     const bigPhone = device('big-phone', mf); assert.equal(await bigPhone.connectWithPassword(PW + '-big'), true);
     assert.equal(bigPhone.ids().size, 5200);
+    // 9) PDF pages (images, incompressible JPEG data) + ink on top sync tablet → phone;
+    //    the page's size estimate (sum of image data) is close to the real upload
+    const pt = device('pdf-tablet', mf), pp = device('pdf-phone', mf);
+    pt.DATA = notebook(Date.now()); pt.draw(50, 'PI');
+    const rnd = n => require('node:crypto').randomBytes(n).toString('base64');
+    const pdfPages = Array.from({ length: 30 }, (_, k) => ({ id: 'pdf' + k, x: 0, y: 1200 * (k + 1) + 34, w: 800, h: 1131, src: 'data:image/jpeg;base64,' + rnd(195000) }));
+    pt.getSebu().pages[0].images = pdfPages; pt.getSebu().pageHeight = 1200 * 31;
+    const added = pdfPages.reduce((a, o) => a + o.src.length, 0);
+    assert.equal(await pt.connectWithPassword(PW + '-pdf'), true); await idle(pt);
+    assert.equal(pt.st().syncLastError, '');
+    const sent = vm.runInContext('syncLastBytes', pt.ctx);
+    assert(sent > added * 0.95 && sent < added * 1.15, `estimate off: payload ${sent} vs images ${added}`);
+    assert.equal(await pp.connectWithPassword(PW + '-pdf'), true);
+    const got = pp.getSebu().pages[0].images || [];
+    assert.equal(got.length, 30); got.forEach((o, k) => assert.equal(o.src, pdfPages[k].src));
+    assert(subset(pt.ids(), pp.ids()) && pp.ids().size === 50, 'ink over PDF synced');
+    assert.equal(pp.getSebu().pageHeight, 1200 * 31);
+    console.log(`PASS: PDF 30 pages ${(added / 1e6).toFixed(1)} MB images → payload ${(sent / 1e6).toFixed(1)} MB, phone has all pages + ink`);
     console.log(`PASS: tablet→phone ink, poll pickup, meta-only unchanged polls, concurrent writes (409 conflicts: ${counts.conflict}) converge, stale+clock-skewed phone cannot drop tablet ink, empty device cannot wipe, legacy v1 ${(v1Len / 1e6).toFixed(1)} MB → v2 ${(v2Len / 1e6).toFixed(1)} MB, old client cannot read v2`);
   } finally { await mf.dispose(); }
 })().catch(e => { console.error('FAIL', e); process.exitCode = 1; });

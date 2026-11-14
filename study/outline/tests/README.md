@@ -179,3 +179,20 @@ selected ink is replaced by its visible pieces only (new ids, originals tombston
 via setStrokes, erasers stay put) placed on top, so it arrives intact and erased
 parts don't come back. Undo/pinch-cancel restore the original page snapshot.
 Data format unchanged. Cases 7–11 of lasso-eraser.cjs fail on the PR19 version.
+
+## PDF 넣기 (2026-11-14)
+
+```
+node study/outline/tests/pdf-insert.cjs            # logic: ranges, placement, size limits
+node study/outline/tests/pdf-insert-browser.cjs    # headless Chrome + vendored pdf.js (needs puppeteer-core, pdf-lib)
+MINIFLARE_PATH=... node study/outline/tests/sync-two-devices.cjs   # step 9: 30 PDF pages + ink sync
+```
+
+"📄＋ PDF" renders chosen pages on the device with vendored pdf.js 3.11.174 (legacy
+build, `vendor/pdfjs-3.11.174/`, loaded only when used; the PDF itself is never
+uploaded). Each page becomes an ordinary image (same data as 🖼 photos: JPEG q0.72,
+1200px wide = 1.5× the 800px page) on its own new sheet below existing content, so
+pen/highlighter/eraser/lasso behave exactly as on photos (eraser cuts ink only).
+Max 30 pages per insert. When sync is on, the upload size is estimated (last
+payload + new image data; verified within ~1% by the sync test): over 20 MB asks
+for confirmation, over the 25 MB limit refuses. Data format unchanged.
