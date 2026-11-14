@@ -609,8 +609,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="thickness-btn" data-w="12" title="아주 굵게"><span style="width:16px;height:16px"></span></button>
       </div>
       <div class="tool-group">
-        <button class="tool-btn" id="btn-undo" title="실행취소">↩</button>
-        <button class="tool-btn" id="btn-redo" title="다시실행">↪</button>
+        <button class="tool-btn" id="btn-undo" title="실행취소 (Ctrl+Z)">↩</button>
+        <button class="tool-btn" id="btn-redo" title="다시실행 (Ctrl+Shift+Z)">↪</button>
         <button class="tool-btn" id="btn-clear" title="전체 지우기">🗑</button>
       </div>
       <div class="tool-group">
@@ -4487,6 +4487,22 @@ function wireEvents() {
   });
   $('#btn-undo').addEventListener('click', doUndo);
   $('#btn-redo').addEventListener('click', doRedo);
+  // Keyboard (tablet keyboard / PC): Ctrl/⌘+Z = 실행취소, Ctrl/⌘+Shift+Z or Ctrl/⌘+Y = 다시실행.
+  // Only on the drawing page; never while typing in a text box/input, with a dialog open, or mid-stroke.
+  document.addEventListener('keydown', (e) => {
+    if (state.view !== 'draw' || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const k = String(e.key || '').toLowerCase(), c = e.code || '';
+    const isZ = c === 'KeyZ' || k === 'z', isY = c === 'KeyY' || k === 'y';
+    const wantUndo = isZ && !e.shiftKey, wantRedo = (isZ && e.shiftKey) || (isY && !e.shiftKey);
+    if (!wantUndo && !wantRedo) return;
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return;
+    const mr = document.getElementById('modal-root');
+    if (mr && mr.children.length) return;
+    if (state.drawing) return;
+    e.preventDefault();
+    if (wantUndo) doUndo(); else doRedo();
+  });
   $('#btn-clear').addEventListener('click', doClear);
   $('#btn-bg-lined').addEventListener('click', () => {
     state.bg = 'lined';
