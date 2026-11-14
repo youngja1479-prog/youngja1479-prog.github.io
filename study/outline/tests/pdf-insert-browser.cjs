@@ -3,7 +3,7 @@
 // Needs: Chrome (CHROME=/usr/bin/google-chrome) and puppeteer-core + pdf-lib
 // (npm i --prefix /tmp/pt puppeteer-core@22 pdf-lib; PT_MODULES=/tmp/pt/node_modules).
 const path = require('node:path'), fs = require('node:fs'), os = require('node:os'), http = require('node:http'), assert = require('node:assert/strict');
-const M = process.env.PT_MODULES || '/tmp/pt/node_modules';
+const M = process.env.PT_MODULES || ['/workspace/test-tools/node_modules', '/tmp/pt/node_modules'].find(p => fs.existsSync(p)) || '/tmp/pt/node_modules';
 let puppeteer, PDFLib;
 try { puppeteer = require(M + '/puppeteer-core'); PDFLib = require(M + '/pdf-lib'); }
 catch (e) { console.log('SKIP: puppeteer-core/pdf-lib not installed'); process.exit(0); }

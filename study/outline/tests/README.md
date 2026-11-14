@@ -196,3 +196,17 @@ pen/highlighter/eraser/lasso behave exactly as on photos (eraser cuts ink only).
 Max 30 pages per insert. When sync is on, the upload size is estimated (last
 payload + new image data; verified within ~1% by the sync test): over 20 MB asks
 for confirmation, over the 25 MB limit refuses. Data format unchanged.
+
+## 목차/세부목차 순서 바꾸기 on touch (2026-11-14)
+
+```
+node study/outline/tests/reorder-browser.cjs   # headless Chrome, real touch events (needs puppeteer-core)
+```
+
+Old reorder used HTML5 drag-and-drop (`draggable`), which Android touch never fires.
+Now the ⋮⋮ handle uses pointer events (touch/pen/mouse, `touch-action:none` so the page
+doesn't scroll), rows swap live and numbers update, the list auto-scrolls at the
+screen edge; tapping ⋮⋮ shows ▲▼ buttons as a fallback. The dragged row is never
+moved in the DOM (that drops pointer capture). Reorders set `ordAt` on the parent
+(notebook / 목차); merge applies the side with the newer `ordAt` and counts it as a
+change so it is pushed/applied (sync-two-devices step 10). The test fails on the old version.
