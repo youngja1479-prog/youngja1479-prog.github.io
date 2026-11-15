@@ -2678,6 +2678,41 @@ function onPinchTouchEnd(e) {
   }
 }
 
+/* Two-finger tap = 실행취소 (touch counterpart of the ↩ button, like common note apps).
+   Only a quick, still tap with exactly two fingers on the drawing page; never while a pen is
+   writing/hovering (palm), in 자판 mode, or when the fingers moved (pinch zoom / scroll). */
+const TWO_TAP_MS = 320, TWO_TAP_MOVE = 14;
+let twoTap = null; /* { t0, start: Map(id → {x,y}), max, bad } */
+function twoTapBlocked() {
+  return state.view !== 'draw' || state.inputMode === 'keyboard' || activePenPointerId != null ||
+    performance.now() < palmBlockUntil || !!document.querySelector('#modal-root > *');
+}
+function onTwoTapTouchStart(e) {
+  const now = performance.now();
+  if (!twoTap) twoTap = { t0: now, start: new Map(), max: 0, bad: false };
+  for (const t of e.changedTouches) twoTap.start.set(t.identifier, { x: t.clientX, y: t.clientY });
+  twoTap.max = Math.max(twoTap.max, e.touches.length);
+  if (twoTap.max > 2 || now - twoTap.t0 > TWO_TAP_MS || twoTapBlocked()) twoTap.bad = true;
+}
+function twoTapCheckMove(e) {
+  if (!twoTap || twoTap.bad) return;
+  for (const t of e.changedTouches) {
+    const s0 = twoTap.start.get(t.identifier);
+    if (!s0 || Math.hypot(t.clientX - s0.x, t.clientY - s0.y) > TWO_TAP_MOVE) { twoTap.bad = true; return; }
+  }
+}
+function onTwoTapTouchEnd(e) {
+  if (!twoTap) return;
+  if (e.type === 'touchcancel') twoTap.bad = true;
+  twoTapCheckMove(e);
+  if (e.touches.length) return;
+  const t = twoTap; twoTap = null;
+  if (t.bad || t.max !== 2 || performance.now() - t.t0 > TWO_TAP_MS || twoTapBlocked()) return;
+  if (!state.undoStack.length) return;
+  doUndo();
+  toast('↩ 실행취소 (두 손가락 탭)');
+}
+
 function ensurePage() {
   const s = getSebu();
   if (!s) return null;
@@ -4583,6 +4618,10 @@ function wireEvents() {
     wrapEl.addEventListener('touchmove', onPinchTouchMove, { passive: false });
     wrapEl.addEventListener('touchend', onPinchTouchEnd, { passive: false });
     wrapEl.addEventListener('touchcancel', onPinchTouchEnd, { passive: false });
+    wrapEl.addEventListener('touchstart', onTwoTapTouchStart, { passive: true });
+    wrapEl.addEventListener('touchmove', twoTapCheckMove, { passive: true });
+    wrapEl.addEventListener('touchend', onTwoTapTouchEnd, { passive: true });
+    wrapEl.addEventListener('touchcancel', onTwoTapTouchEnd, { passive: true });
   }
 
   // Soft keyboard on phones fires resize (height only). Remounting #text-layer
