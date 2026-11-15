@@ -62,6 +62,7 @@ main { flex: 1; padding: 12px 14px; }
   padding: 12px 14px; border-radius: 10px; font-weight: 600; font-size: .9rem;
   background: var(--primary); color: #fff; transition: transform .08s, opacity .15s;
   min-height: 48px; }
+button { touch-action: manipulation; } /* no double-tap zoom on fast taps */
 .btn:active { transform: scale(.97); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
@@ -10966,6 +10967,18 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     }
   }
 
+  /* 빠른 연타(실수로 두 번 탭) 방지: 모르겠음/외움/정답 확인을 누른 직후 짧은 시간 안의
+     두 번째 탭은 무시 → 다음 카드를 보지도 못하고 넘어가거나 바로 정답이 열리는 일 방지. */
+  var STUDY_TAP_GAP_MS = 350, lastStudyTapAt = -Infinity;
+  function studyTap(fn) {
+    return function () {
+      var now = Date.now();
+      if (now - lastStudyTapAt < STUDY_TAP_GAP_MS && now >= lastStudyTapAt) return;
+      lastStudyTapAt = now;
+      fn();
+    };
+  }
+
   function markCard(know) {
     if (cardIdx >= pool.length || cardIdx < 0) return;
     var w = pool[cardIdx];
@@ -11290,9 +11303,9 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     if (exampleSource === 'day') showDayDetail(currentDay);
     else openRange();
   });
-  byId('btnClozeReveal').addEventListener('click', revealCloze);
-  byId('btnClozeWrong').addEventListener('click', function () { markCloze(false); });
-  byId('btnClozeKnown').addEventListener('click', function () { markCloze(true); });
+  byId('btnClozeReveal').addEventListener('click', studyTap(revealCloze));
+  byId('btnClozeWrong').addEventListener('click', studyTap(function () { markCloze(false); }));
+  byId('btnClozeKnown').addEventListener('click', studyTap(function () { markCloze(true); }));
   byId('btnClozeSpeak').addEventListener('click', function () {
     if (clozeRevealed && clozeIdx < clozeDeck.length) speakWord(clozeDeck[clozeIdx].word.word);
   });
@@ -11514,8 +11527,8 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     });
   })();
 
-  byId('btnKnow').addEventListener('click', function () { markCard(true); });
-  byId('btnDontKnow').addEventListener('click', function () { markCard(false); });
+  byId('btnKnow').addEventListener('click', studyTap(function () { markCard(true); }));
+  byId('btnDontKnow').addEventListener('click', studyTap(function () { markCard(false); }));
   byId('btnCardUndo').addEventListener('click', undoLastMark);
 
   byId('quizChoices').addEventListener('click', function (e) {
