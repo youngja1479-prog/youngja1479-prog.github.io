@@ -228,3 +228,20 @@ timeouts, 5xx/429 retry with backoff (2 s → 60 s) and after 3 failures show on
 "연결이 불안정해요 · 다시 시도 중"; real errors (413, wrong password) stay visible without a
 retry loop; requests have time limits; uploads and checks never run concurrently.
 Local data is never dropped (still marked for upload). The test fails on the previous version.
+
+## 포스트잇 (sticky notes)
+
+```
+node study/outline/tests/sticky-browser.cjs        # headless Chrome, touch emulation
+node study/outline/tests/sync-two-devices.cjs      # step 11: notes across devices
+```
+
+Toolbar "🗒 포스트잇" puts a note in the middle of the visible sheet. Tap it to type; drag the
+top bar to move (touch or pen); drag the bottom-right corner to resize; 🎨 cycles 5 colours;
+➖ folds it into a small icon (tap the icon to open, drag it to move); ✕ deletes (asks first
+if it has text). Notes live on `page.notes = [{id,x,y,w,h,c,t,f,u}]` in sheet coordinates,
+on their own layer above ink and below the lasso, so pen/eraser/lasso/PDF pages are not
+changed; a pen stroke started on a note does not draw. Undo covers add/move/delete.
+Sync: notes are merged per id, the most recently edited copy (`u`) wins, deletions are
+`page.delN` tombstones so a deleted note does not come back. Older app versions keep the
+`notes` field when they merge and save (checked against the PR #22 version).
