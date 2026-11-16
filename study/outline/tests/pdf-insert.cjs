@@ -9,7 +9,7 @@ function setup({ lastBytes = 0, vault = 'v', answer = '', confirmOk = true, page
   const sebu = { pageHeight: 1200, pages: [{ strokes: [{ tool: 'pen', points: [{ x: 1, y: 300 }] }, { tool: 'eraser', points: [{ x: 1, y: 5000 }] }], texts: [], images: [] }] };
   const c = { toasts: [], confirms: [], prompts: [], saves: 0, Math, Array, Set, String, Uint8Array, Promise, Object, Number,
     PAGE_W: 800, SHEET_H: 1200, SYNC_MAX_BYTES: 25 * 1024 * 1024 - 8192, syncLastBytes: lastBytes, syncVaultId: vault, CSS_H: 1200, DATA: {},
-    getSebu: () => sebu, getStrokes: () => sebu.pages[0].strokes, getTexts: () => sebu.pages[0].texts, getImages: () => sebu.pages[0].images,
+    getSebu: () => sebu, getStrokes: () => sebu.pages[0].strokes, getTexts: () => sebu.pages[0].texts, getImages: () => sebu.pages[0].images, getNotes: () => sebu.pages[0].notes || [],
     uid: (() => { let i = 0; return () => 'u' + (++i); })(), toast(t) { c.toasts.push(t); }, pushImgUndo() { c.undo = true; },
     scheduleSave() { c.saves++; }, resizeCanvas() {}, redrawAll() {}, updateGuideOverlay() {}, renderTextLayer() {}, renderImages() {},
     wrap: () => ({}), $: () => ({ getBoundingClientRect: () => ({ height: 1 }) }), freeCanvas() {},
@@ -40,6 +40,9 @@ const file = { arrayBuffer: async () => new ArrayBuffer(8) };
   let im = c.sebu.pages[0].images;
   assert.equal(im.length, 5); assert.equal(im[0].y, 1200 + 34); assert.equal(im[4].y, 1200 * 5 + 34); assert.equal(c.sebu.pageHeight, 7200);
   assert(c.undo && c.saves === 1); assert.match(c.toasts.pop(), /PDF 5쪽을 넣었어요/);
+  // a 포스트잇 lower on the sheet counts as content: PDF starts on the next sheet below it
+  c = setup(); c.sebu.pages[0].notes = [{ id: 'n', x: 10, y: 2000, w: 200, h: 150 }]; await c.insertPdfFile(file);
+  assert.equal(c.sebu.pages[0].images[0].y, 2400 + 34);
   // >30 pages: prompt proposes 1-30 and refuses more
   c = setup({ numPages: 40, answer: '1-40' }); await c.insertPdfFile(file);
   assert.equal(c.prompts[0][1], '1-30'); assert.match(c.toasts.pop(), /최대 30쪽/); assert.equal(c.sebu.pages[0].images.length, 0);

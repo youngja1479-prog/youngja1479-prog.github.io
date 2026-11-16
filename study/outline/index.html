@@ -291,6 +291,23 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 #bgCanvas { z-index: 0; pointer-events: none; }
 #img-layer { position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; pointer-events:none; }
 #img-layer.active { z-index:4; }
+#note-layer { position:absolute; left:0; top:0; width:100%; height:100%; z-index:3; pointer-events:none; }
+.sticky { position:absolute; pointer-events:auto; display:flex; flex-direction:column; border-radius:6px;
+  box-shadow:0 3px 10px rgba(0,0,0,.18); background:#fff59d; min-width:90px; min-height:70px; user-select:none; -webkit-user-select:none; }
+.sticky .st-bar { display:flex; align-items:center; gap:2px; height:30px; padding:0 2px 0 4px; flex-shrink:0;
+  background:rgba(0,0,0,.06); border-radius:6px 6px 0 0; touch-action:none; cursor:move; }
+.sticky .st-grip { flex:1; height:100%; display:flex; align-items:center; color:rgba(0,0,0,.35); font-size:14px; letter-spacing:-2px; }
+.sticky .st-bar button { border:0; background:transparent; width:30px; height:30px; padding:0; font-size:14px; border-radius:6px; cursor:pointer; touch-action:manipulation; }
+.sticky .st-bar button:active { background:rgba(0,0,0,.12); }
+.sticky textarea { flex:1; width:100%; border:0; outline:0; resize:none; background:transparent; padding:6px 8px; font:15px/1.4 inherit;
+  font-family:inherit; color:#222; user-select:text; -webkit-user-select:text; box-sizing:border-box; }
+.sticky .st-rs { position:absolute; right:-6px; bottom:-6px; width:26px; height:26px; touch-action:none; cursor:nwse-resize;
+  background:linear-gradient(135deg, transparent 50%, rgba(0,0,0,.28) 50%); border-radius:0 0 6px 0; }
+.sticky.folded { min-width:0; min-height:0; width:40px !important; height:40px !important; border-radius:8px; align-items:center; justify-content:center;
+  font-size:20px; touch-action:none; cursor:pointer; }
+.sticky.folded > :not(.st-icon) { display:none !important; }
+.sticky .st-icon { display:none; }
+.sticky.folded .st-icon { display:block; pointer-events:none; }
 #img-layer.active .img-item { pointer-events:auto; cursor:move; touch-action:none; }
 .img-item { position:absolute; user-select:none; -webkit-user-select:none; }
 .img-item img { width:100%; height:100%; display:block; pointer-events:none; -webkit-user-drag:none; }
@@ -601,6 +618,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <input type="file" id="img-file" accept="image/*" style="display:none">
         <button class="tool-btn" id="btn-add-pdf" title="PDF 넣기 — 페이지를 종이로 넣고 위에 필기">📄＋ PDF</button>
         <input type="file" id="pdf-file" accept="application/pdf,.pdf" style="display:none">
+        <button class="tool-btn" id="btn-add-note" title="포스트잇 붙이기 — 글쓰기·이동·크기·색·접기">🗒 포스트잇</button>
       </div>
       <div class="tool-group">
         <button class="thickness-btn active" data-w="1.5" title="얇게"><span style="width:4px;height:4px"></span></button>
@@ -639,6 +657,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
           <canvas id="bgCanvas" aria-hidden="true"></canvas>
           <div id="img-layer"></div>
           <canvas id="drawCanvas"></canvas>
+          <div id="note-layer"></div>
           <div class="guide-overlay hidden" id="guide-overlay"></div>
           <div id="lasso-layer"><svg id="lasso-svg" preserveAspectRatio="none"></svg><div id="lasso-menu"><button type="button" data-act="copy">복사</button><button type="button" data-act="del">삭제</button></div></div>
           <div id="text-layer"></div>
@@ -1138,12 +1157,17 @@ function unionList(base, other, keyFn, tomb, pick, stat) {
 function mergePage(bp, op, stat) {
   bp = bp || { strokes: [], texts: [] }; op = op || { strokes: [], texts: [] };
   const m = Object.assign({}, bp);
-  ['del', 'delT', 'delI'].forEach(f => {
+  ['del', 'delT', 'delI', 'delN'].forEach(f => {
     const u = Array.from(new Set([].concat(bp[f] || [], op[f] || [])));
     if (u.length) m[f] = u.slice(-TOMB_MAX);
   });
   m.strokes = unionList(bp.strokes, op.strokes, strokeKey, new Set(m.del || []), null, stat);
   m.texts = unionList(bp.texts, op.texts, o => o && o.id, new Set(m.delT || []), null, stat);
+  if (bp.notes || op.notes) {
+    // 포스트잇: union by id, the most recently edited copy wins
+    m.notes = unionList(bp.notes, op.notes, o => o && o.id, new Set(m.delN || []),
+      (a, b) => { if (((b && b.u) || 0) > ((a && a.u) || 0)) { stat.n++; return b; } return a; }, stat);
+  }
   if (bp.images || op.images) {
     m.images = unionList(bp.images, op.images, o => o && o.id, new Set(m.delI || []),
       (a, b) => (a && a.src) ? a : (b && b.src ? Object.assign({}, a, { src: b.src }) : a), stat);
@@ -3057,6 +3081,7 @@ function initDrawPage() {
       }
     });
     (pg && pg.images || []).forEach(im => { if (im.y + im.h > maxY) maxY = im.y + im.h; });
+    (pg && pg.notes || []).forEach(o => { const b = o.y + (o.f ? 40 : (o.h || 150)); if (b > maxY) maxY = b; });
     if (maxY > CSS_H) CSS_H = Math.ceil((maxY + 20) / 1200) * 1200;
   }
   {
@@ -4024,11 +4049,11 @@ function updateUndoBtns() {
   $('#btn-redo').disabled = state.redoStack.length === 0;
 }
 
-function snapEntry() { return { s: getStrokes().slice(), im: getImages().map(o => Object.assign({}, o)) }; }
+function snapEntry() { return { s: getStrokes().slice(), im: getImages().map(o => Object.assign({}, o)), n: getNotes().map(o => Object.assign({}, o)) }; }
 function applyEntry(en) {
   // Array = legacy strokes-only snapshot; object = strokes + images
   if (Array.isArray(en)) { const cur = getStrokes().slice(); setStrokes(en); return cur; }
-  const cur = snapEntry(); setStrokes(en.s); setImagesArr(en.im); imgSel = null; renderImages(); return cur;
+  const cur = snapEntry(); setStrokes(en.s); setImagesArr(en.im); if (en.n) setNotesArr(en.n); imgSel = null; renderImages(); return cur;
 }
 function doUndo() {
   if (!state.undoStack.length) return;
@@ -4106,6 +4131,7 @@ function renderImages() {
     el.classList.toggle('sel', imgSel === o.id);
   });
   have.forEach(el => el.remove());
+  renderNotes();
 }
 function pushImgUndo() {
   state.undoStack.push(snapEntry());
@@ -4271,6 +4297,7 @@ function pdfStartY() {
   getStrokes().forEach(st => { if (st && st.tool !== 'eraser' && st.points) st.points.forEach(p => { if (p.y > bottom) bottom = p.y; }); });
   getTexts().forEach(t => { const b = (t.y || 0) + (t.h || 0); if (b > bottom) bottom = b; });
   getImages().forEach(o => { if (o.y + o.h > bottom) bottom = o.y + o.h; });
+  getNotes().forEach(o => { const b = o.y + (o.f ? 40 : (o.h || 150)); if (b > bottom) bottom = b; });
   return bottom <= 0 ? 0 : Math.ceil(bottom / SHEET_H) * SHEET_H;
 }
 /** Rough sync payload size now (images dominate; JPEG data barely compresses). */
@@ -4363,6 +4390,159 @@ async function insertPdfFile(file) {
 }
 let pdfBusy = false;
 
+/* ========== 포스트잇 (sticky notes) ========== */
+// page.notes = [{ id, x, y, w, h, c: color, t: text, f: folded, u: last edit time }]
+// (old app versions keep the field untouched; deletions → page.delN tombstones)
+const NOTE_COLORS = ['#fff59d', '#ffcdd2', '#c8e6c9', '#bbdefb', '#e1bee7'];
+function getNotes() {
+  const p = ensurePage(); if (!p) return [];
+  if (!Array.isArray(p.notes)) p.notes = [];
+  return p.notes;
+}
+function setNotesArr(arr) {
+  const p = ensurePage(); if (!p) return;
+  if (p.notes !== arr) diffTombs(p, 'delN', p.notes || [], arr, o => o && o.id);
+  p.notes = arr;
+}
+function findNote(id) { return getNotes().find(o => o.id === id); }
+function touchNote(o) { o.u = Date.now(); scheduleSave(); }
+function renderNotes() {
+  const layer = $('#note-layer'); if (!layer) return;
+  const notes = getSebu() ? getNotes() : [];
+  const have = new Map(); layer.querySelectorAll('.sticky').forEach(el => have.set(el.dataset.id, el));
+  notes.forEach(o => {
+    let el = have.get(o.id);
+    if (!el) {
+      el = document.createElement('div'); el.className = 'sticky'; el.dataset.id = o.id;
+      el.innerHTML = '<div class="st-bar"><span class="st-grip">⋮⋮</span>' +
+        '<button type="button" data-st="color" title="색 바꾸기">🎨</button>' +
+        '<button type="button" data-st="fold" title="접기">➖</button>' +
+        '<button type="button" data-st="del" title="삭제">✕</button></div>' +
+        '<textarea placeholder="메모" spellcheck="false"></textarea><div class="st-rs"></div><span class="st-icon">🗒</span>';
+      bindNote(el);
+      layer.appendChild(el);
+    }
+    have.delete(o.id);
+    el.style.left = o.x + 'px'; el.style.top = o.y + 'px';
+    el.style.width = (o.w || 200) + 'px'; el.style.height = (o.h || 150) + 'px';
+    el.style.background = o.c || NOTE_COLORS[0];
+    el.classList.toggle('folded', !!o.f);
+    const ta = el.querySelector('textarea');
+    if (document.activeElement !== ta && ta.value !== (o.t || '')) ta.value = o.t || '';
+  });
+  have.forEach(el => { if (!el.contains(document.activeElement)) el.remove(); });
+}
+function addNote() {
+  if (!getSebu()) return;
+  const wEl = wrap(), sr = stageRect(), wr = wEl.getBoundingClientRect();
+  const k = CSS_W / Math.max(1, sr.width);
+  const w = 200, h = 150;
+  let x = (wr.left + wr.width / 2 - sr.left) * k - w / 2, y = (wr.top + wr.height / 2 - sr.top) * k - h / 2;
+  x = Math.round(Math.max(0, Math.min(CSS_W - w, x))); y = Math.round(Math.max(0, Math.min(Math.max(0, CSS_H - h), y)));
+  pushImgUndo();
+  const o = { id: uid(), x, y, w, h, c: NOTE_COLORS[0], t: '', f: false, u: Date.now() };
+  getNotes().push(o);
+  scheduleSave(); renderNotes();
+  toast('포스트잇 — 눌러서 글쓰기, 위 막대를 끌어서 이동');
+}
+function bindNote(el) {
+  const id = el.dataset.id, ta = el.querySelector('textarea');
+  const scale = () => CSS_W / Math.max(1, stageRect().width);
+  // palm / second finger while the pen is writing must not grab notes
+  const blocked = (e) => e.pointerType === 'touch' && typeof activePenPointerId !== 'undefined' && activePenPointerId != null;
+  let drag = null;
+  const start = (e, mode) => {
+    if (blocked(e)) return;
+    const o = findNote(id); if (!o) return;
+    e.preventDefault(); e.stopPropagation();
+    drag = { id: e.pointerId, mode, cx: e.clientX, cy: e.clientY, x: o.x, y: o.y, w: o.w || 200, h: o.h || 150, k: scale(), moved: false };
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+  };
+  el.querySelector('.st-bar').addEventListener('pointerdown', (e) => { if (!e.target.closest('button')) start(e, 'move'); });
+  el.querySelector('.st-rs').addEventListener('pointerdown', (e) => start(e, 'size'));
+  el.addEventListener('pointerdown', (e) => {
+    if (el.classList.contains('folded')) start(e, 'move');   // folded icon: drag = move, tap = open
+    else e.stopPropagation();
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    e.preventDefault();
+    const dx = (e.clientX - drag.cx) * drag.k, dy = (e.clientY - drag.cy) * drag.k;
+    if (!drag.moved && Math.hypot(dx, dy) < 4 / drag.k) return;
+    const o = findNote(id); if (!o) return;
+    if (!drag.moved) { pushImgUndo(); drag.moved = true; }
+    if (drag.mode === 'size') {
+      o.w = Math.round(Math.max(110, Math.min(CSS_W, drag.w + dx)));
+      o.h = Math.round(Math.max(80, Math.min(1200, drag.h + dy)));
+      el.style.width = o.w + 'px'; el.style.height = o.h + 'px';
+    } else {
+      const vw = o.f ? 40 : o.w, vh = o.f ? 40 : o.h;
+      o.x = Math.round(Math.max(0, Math.min(CSS_W - Math.min(vw, CSS_W), drag.x + dx)));
+      o.y = Math.round(Math.max(0, Math.min(Math.max(0, CSS_H - vh), drag.y + dy)));
+      el.style.left = o.x + 'px'; el.style.top = o.y + 'px';
+    }
+  });
+  const end = (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const d = drag; drag = null;
+    try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+    const o = findNote(id); if (!o) return;
+    if (d.moved) { touchNote(o); return; }
+    if (e.type === 'pointerup' && o.f && d.mode === 'move') { o.f = false; touchNote(o); renderNotes(); } // tap folded icon → open
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  // Buttons act on pointerup (touch "click" can be swallowed by the page's touch handlers)
+  let pressed = null;
+  el.querySelector('.st-bar').addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('button[data-st]');
+    if (!b || blocked(e)) return;
+    e.stopPropagation(); e.preventDefault(); pressed = { b, id: e.pointerId };
+  });
+  el.querySelector('.st-bar').addEventListener('pointerup', (e) => {
+    const b = e.target.closest('button[data-st]');
+    const pr = pressed; pressed = null;
+    if (!b || !pr || pr.b !== b || pr.id !== e.pointerId) return;
+    e.stopPropagation();
+    const o = findNote(id); if (!o) return;
+    if (b.dataset.st === 'color') {
+      const i = NOTE_COLORS.indexOf(o.c);
+      o.c = NOTE_COLORS[(i + 1) % NOTE_COLORS.length]; touchNote(o); renderNotes();
+    } else if (b.dataset.st === 'fold') {
+      ta.blur(); o.f = true; touchNote(o); renderNotes();
+    } else if (b.dataset.st === 'del') {
+      if ((o.t || '').trim() && !confirm('이 포스트잇을 지울까요?')) return;
+      pushImgUndo(); ta.blur();
+      setNotesArr(getNotes().filter(q => q.id !== id));
+      scheduleSave(); renderNotes(); toast('포스트잇을 지웠습니다');
+    }
+  });
+  ta.addEventListener('input', () => {
+    const o = findNote(id); if (!o) return;
+    o.t = ta.value.slice(0, 5000); touchNote(o);
+  });
+  ta.addEventListener('blur', () => { setTimeout(renderNotes, 0); });
+}
+function drawNotesOnCtx(ctx) {
+  getNotes().forEach(o => {
+    ctx.save();
+    ctx.fillStyle = o.c || NOTE_COLORS[0];
+    if (o.f) { ctx.fillRect(o.x, o.y, 40, 40); ctx.restore(); return; }
+    ctx.fillRect(o.x, o.y, o.w || 200, o.h || 150);
+    ctx.fillStyle = '#222'; ctx.font = '15px sans-serif'; ctx.textBaseline = 'top';
+    const maxW = (o.w || 200) - 16; let y = o.y + 36;
+    String(o.t || '').split('\n').forEach(par => {
+      let line = '';
+      for (const ch of par) {
+        if (ctx.measureText(line + ch).width > maxW && line) { if (y < o.y + (o.h || 150) - 18) ctx.fillText(line, o.x + 8, y); y += 21; line = ch; }
+        else line += ch;
+      }
+      if (y < o.y + (o.h || 150) - 18) ctx.fillText(line, o.x + 8, y); y += 21;
+    });
+    ctx.restore();
+  });
+}
+
 /* ========== 종이 추가 / 삭제 ========== */
 const SHEET_H = 1200;
 function addSheet() {
@@ -4380,7 +4560,8 @@ function removeSheet() {
   const cut = h - SHEET_H;
   const used = getStrokes().some(st => st.tool !== 'eraser' && st.points.some(p => p.y > cut)) ||
     getTexts().some(t => (t.y || 0) + (t.h || 0) > cut) ||
-    getImages().some(o => o.y + o.h > cut);
+    getImages().some(o => o.y + o.h > cut) ||
+    getNotes().some(o => o.y + (o.f ? 40 : (o.h || 150)) > cut);
   if (used) { toast('마지막 종이가 비어 있지 않아 지울 수 없습니다'); return; }
   sebu.pageHeight = cut; CSS_H = cut;
   scheduleSave(); resizeCanvas(); redrawAll(); updateGuideOverlay(); renderTextLayer(); renderImages();
@@ -4420,6 +4601,7 @@ function exportPng() {
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(ink, 0, 0); ctx.setTransform(sc, 0, 0, sc, 0, 0);
     freeCanvas(ink);
     drawTextsOnCtx(ctx);
+    drawNotesOnCtx(ctx);
     const sebu = getSebu();
     out.toBlob((blob) => {
       freeCanvas(out);
@@ -4567,6 +4749,7 @@ function wireEvents() {
   $('#btn-del-sheet').addEventListener('click', removeSheet);
   $('#btn-add-img').addEventListener('click', () => { const f = $('#img-file'); f.value = ''; f.click(); });
   $('#img-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertImageFile(f); e.target.value = ''; });
+  $('#btn-add-note').addEventListener('click', addNote);
   $('#btn-add-pdf').addEventListener('click', () => { const f = $('#pdf-file'); f.value = ''; f.click(); });
   $('#pdf-file').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) insertPdfFile(f); e.target.value = ''; });
   $('#btn-export-png').addEventListener('click', exportPng);

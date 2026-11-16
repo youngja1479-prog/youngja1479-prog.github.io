@@ -175,6 +175,36 @@ const subset = (A, B) => [...A].every(x => B.has(x));
     await op.syncPullAndMaybeApply({}); await ot.syncPullAndMaybeApply({});
     assert.equal(order(op), 'CABDE', 'phone got tablet order + kept its new item: ' + order(op));
     assert.equal(order(ot), 'CABDE', 'tablet order survives: ' + order(ot));
+    // 11) 포스트잇: add on tablet → phone; phone edits text while tablet moves another note →
+    //     both kept (newest edit per note wins); a delete propagates and does not come back
+    const nt = device('note-tablet', mf), nphone = device('note-phone', mf);
+    nt.DATA = notebook(Date.now() - 5000);
+    const t0 = Date.now();
+    nt.getSebu().pages[0].notes = [{ id: 'n1', x: 100, y: 100, w: 200, h: 150, c: '#fff59d', t: '외울 것', f: false, u: t0 }, { id: 'n2', x: 400, y: 600, w: 200, h: 150, c: '#bbdefb', t: '', f: false, u: t0 }];
+    assert.equal(await nt.connectWithPassword(PW + '-note'), true); await idle(nt);
+    assert.equal(await nphone.connectWithPassword(PW + '-note'), true);
+    const notesOf = d => (d.getSebu().pages[0].notes || []).map(n => n.id + ':' + n.x + ':' + n.t).sort().join('|');
+    assert.equal(notesOf(nphone), notesOf(nt));
+    const pn = nphone.getSebu().pages[0].notes.find(n => n.id === 'n1'); pn.t = '외울 것 + 폰에서 추가'; pn.u = Date.now() + 10; nphone.DATA.updatedAt = Date.now() + 10;
+    const tn2 = nt.getSebu().pages[0].notes.find(n => n.id === 'n2'); tn2.x = 50; tn2.u = Date.now() + 5; nt.DATA.updatedAt = Date.now() + 5;
+    await Promise.all([nt.syncPushNow(), nphone.syncPushNow()]); await Promise.all([idle(nt), idle(nphone)]);
+    await nt.syncPullAndMaybeApply({}); await nphone.syncPullAndMaybeApply({}); await Promise.all([idle(nt), idle(nphone)]);
+    await nt.syncPullAndMaybeApply({}); await nphone.syncPullAndMaybeApply({});
+    assert.equal(notesOf(nt), 'n1:100:외울 것 + 폰에서 추가|n2:50:', 'tablet: ' + notesOf(nt));
+    assert.equal(notesOf(nphone), notesOf(nt));
+    vm.runInContext('(p => { diffTombs(p, "delN", p.notes, p.notes.filter(n => n.id !== "n2"), o => o && o.id); p.notes = p.notes.filter(n => n.id !== "n2"); })', nt.ctx)(nt.getSebu().pages[0]);
+    nt.DATA.updatedAt = Date.now() + 20; await nt.syncPushNow(); await idle(nt);
+    await nphone.syncPullAndMaybeApply({}); await idle(nphone);
+    nphone.DATA.updatedAt = Date.now() + 30; await nphone.syncPushNow(); await idle(nphone); await nt.syncPullAndMaybeApply({});
+    assert.equal(notesOf(nphone), 'n1:100:외울 것 + 폰에서 추가'); assert.equal(notesOf(nt), notesOf(nphone), 'deleted note stays deleted');
+    // an older app version (no notes support) keeps notes it has when it merges/saves
+    const oldScript = require('node:child_process').execSync('git show 7565e83:study/outline/index.html', { cwd: path.join(__dirname, '..'), maxBuffer: 64e6 }).toString().match(/<script>([\s\S]*?)<\/script>/)[1];
+    const oc = { Set, Array, Object, Math }; vm.createContext(oc);
+    vm.runInContext(oldScript.slice(oldScript.indexOf('const TOMB_MAX'), oldScript.indexOf('async function syncPushNow')), oc);
+    const withNotes = JSON.parse(JSON.stringify(nt.DATA)), without = JSON.parse(JSON.stringify(nt.DATA)); delete without.notebooks[0].mokchas[0].sebus[0].pages[0].notes;
+    const om = vm.runInContext('mergeData', oc)(withNotes, without).data;
+    assert.equal(om.notebooks[0].mokchas[0].sebus[0].pages[0].notes.length, 1, 'old client keeps notes on merge');
+    console.log('PASS: 포스트잇 sync tablet ↔ phone (per-note newest edit wins, concurrent edits kept, delete sticks); old app version keeps notes');
     console.log('PASS: 목차 reorder syncs tablet → phone; newer stale-order edit cannot undo it');
     console.log(`PASS: PDF 30 pages ${(added / 1e6).toFixed(1)} MB images → payload ${(sent / 1e6).toFixed(1)} MB, phone has all pages + ink`);
     console.log(`PASS: tablet→phone ink, poll pickup, meta-only unchanged polls, concurrent writes (409 conflicts: ${counts.conflict}) converge, stale+clock-skewed phone cannot drop tablet ink, empty device cannot wipe, legacy v1 ${(v1Len / 1e6).toFixed(1)} MB → v2 ${(v2Len / 1e6).toFixed(1)} MB, old client cannot read v2`);
