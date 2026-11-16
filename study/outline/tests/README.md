@@ -245,3 +245,20 @@ changed; a pen stroke started on a note does not draw. Undo covers add/move/dele
 Sync: notes are merged per id, the most recently edited copy (`u`) wins, deletions are
 `page.delN` tombstones so a deleted note does not come back. Older app versions keep the
 `notes` field when they merge and save (checked against the PR #22 version).
+
+## 포스트잇 필기 (ink on sticky notes)
+
+```
+node study/outline/tests/note-ink-browser.cjs      # headless Chrome, real stylus events via CDP + touch
+node study/outline/tests/sync-two-devices.cjs      # step 12: note ink across devices
+```
+
+With 펜 / 형광펜 / 지우개 selected, a stylus on a note writes on the note itself. A finger tap
+types (keyboard opens), a finger drag scrolls the sheet; in 손가락: 쓰기 the finger draws too, and
+⌨️ 자판 mode always types. Note ink is stored on the note, `note.k` (same stroke shape as sheet
+ink, coordinates relative to the note below its bar), so it moves, folds and is deleted with the
+note; resizing keeps the ink in place and the note edge clips it. The note eraser only erases
+note ink (its own canvas). Undo/redo work per stroke. Sync: ink is unioned per stroke id from both
+devices (concurrent writing on the same note is kept), strokes removed by undo become `note.dk`
+tombstones; position/size/colour/text still follow the newest edit. Older app versions keep `k`
+(checked against the PR #28 version). PNG export draws note ink.

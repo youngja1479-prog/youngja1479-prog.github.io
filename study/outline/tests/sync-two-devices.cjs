@@ -205,6 +205,40 @@ const subset = (A, B) => [...A].every(x => B.has(x));
     const om = vm.runInContext('mergeData', oc)(withNotes, without).data;
     assert.equal(om.notebooks[0].mokchas[0].sebus[0].pages[0].notes.length, 1, 'old client keeps notes on merge');
     console.log('PASS: 포스트잇 sync tablet ↔ phone (per-note newest edit wins, concurrent edits kept, delete sticks); old app version keeps notes');
+    // 12) 포스트잇 필기: both devices write on the same note at once → both inks kept (even though
+    //     one device's note edit is newer); an undone stroke (dk tombstone) stays gone; old versions keep ink
+    const inkOf = d => (d.getSebu().pages[0].notes.find(n => n.id === 'n1').k || []).map(st => st.id).sort().join(',');
+    const stroke = id => ({ id, tool: 'pen', color: '#111', width: 1.5, points: [{ x: 10, y: 10 }, { x: 60, y: 20 }] });
+    const tn1 = nt.getSebu().pages[0].notes.find(n => n.id === 'n1'), pn1 = nphone.getSebu().pages[0].notes.find(n => n.id === 'n1');
+    tn1.k = (tn1.k || []).concat([stroke('ink-tab')]); tn1.u = Date.now() + 40; nt.DATA.updatedAt = Date.now() + 40;
+    pn1.k = (pn1.k || []).concat([stroke('ink-phone')]); pn1.t = '폰 필기'; pn1.u = Date.now() + 50; nphone.DATA.updatedAt = Date.now() + 50;
+    await Promise.all([nt.syncPushNow(), nphone.syncPushNow()]); await Promise.all([idle(nt), idle(nphone)]);
+    for (let i = 0; i < 2; i++) { await nt.syncPullAndMaybeApply({}); await nphone.syncPullAndMaybeApply({}); await Promise.all([idle(nt), idle(nphone)]); }
+    assert.equal(inkOf(nt), 'ink-phone,ink-tab', 'tablet ink: ' + inkOf(nt)); assert.equal(inkOf(nphone), inkOf(nt));
+    assert.equal(nt.getSebu().pages[0].notes.find(n => n.id === 'n1').t, '폰 필기', 'newest text wins');
+    // tablet undoes its stroke (setNotesArr records dk) → phone loses it too, and it does not come back
+    const tp = nt.getSebu().pages[0];
+    {   // run the app's own setNotesArr (as undo does) on the tablet's page
+      const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+      const fnSrc = n => { const a = html.indexOf('function ' + n + '('); return html.slice(a, html.indexOf('\n}', a) + 2); };
+      const uc = { Set, Map, Array, Object, Math, Date, JSON, TOMB_MAX: 20000, ensurePage: () => tp }; vm.createContext(uc);
+      vm.runInContext(['addTomb', 'diffTombs', 'noteSig', 'setNotesArr'].map(fnSrc).join('\n'), uc);
+      uc.setNotesArr(tp.notes.map(n => n.id === 'n1' ? Object.assign({}, n, { k: n.k.filter(st => st.id !== 'ink-tab') }) : n));
+    }
+    assert.ok(tp.notes.find(n => n.id === 'n1').dk.includes('ink-tab'));
+    nt.DATA.updatedAt = Date.now() + 60; await nt.syncPushNow(); await idle(nt);
+    await nphone.syncPullAndMaybeApply({}); await idle(nphone);
+    nphone.DATA.updatedAt = Date.now() + 70; await nphone.syncPushNow(); await idle(nphone); await nt.syncPullAndMaybeApply({});
+    assert.equal(inkOf(nphone), 'ink-phone'); assert.equal(inkOf(nt), 'ink-phone', 'undone ink stays gone');
+    // PR #28 app version (notes without ink support) keeps the ink when it merges/saves
+    const v28 = require('node:child_process').execSync('git show 91d896d:study/outline/index.html', { cwd: path.join(__dirname, '..'), maxBuffer: 64e6 }).toString().match(/<script>([\s\S]*?)<\/script>/)[1];
+    const c28 = { Set, Array, Object, Math }; vm.createContext(c28);
+    vm.runInContext(v28.slice(v28.indexOf('const TOMB_MAX'), v28.indexOf('async function syncPushNow')), c28);
+    const mine = JSON.parse(JSON.stringify(nt.DATA)), theirs = JSON.parse(JSON.stringify(nt.DATA));
+    theirs.notebooks[0].mokchas[0].sebus[0].pages[0].notes[0].t = 'old app edit';
+    const m28 = vm.runInContext('mergeData', c28)(mine, theirs).data.notebooks[0].mokchas[0].sebus[0].pages[0].notes.find(n => n.id === 'n1');
+    assert.deepEqual(m28.k.map(st => st.id), ['ink-phone'], 'PR #28 version keeps note ink');
+    console.log('PASS: 포스트잇 필기 sync — concurrent ink on one note kept on both devices, newest text wins, undone ink stays gone; previous app version keeps ink');
     console.log('PASS: 목차 reorder syncs tablet → phone; newer stale-order edit cannot undo it');
     console.log(`PASS: PDF 30 pages ${(added / 1e6).toFixed(1)} MB images → payload ${(sent / 1e6).toFixed(1)} MB, phone has all pages + ink`);
     console.log(`PASS: tablet→phone ink, poll pickup, meta-only unchanged polls, concurrent writes (409 conflicts: ${counts.conflict}) converge, stale+clock-skewed phone cannot drop tablet ink, empty device cannot wipe, legacy v1 ${(v1Len / 1e6).toFixed(1)} MB → v2 ${(v2Len / 1e6).toFixed(1)} MB, old client cannot read v2`);
