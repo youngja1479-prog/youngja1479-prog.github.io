@@ -84,7 +84,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await drawMouse('pen', [at(100, 100), at(200, 120), at(300, 110)]);
     p = await pg(); assert.equal(p.strokes.length, st0 + 1, 'pen draws outside note');
     await drawMouse('pen', [{ x: nr.x + nr.w / 2, y: nr.y + nr.h / 2 }, { x: nr.x + nr.w / 2 + 30, y: nr.y + nr.h / 2 + 10 }]);
-    p = await pg(); assert.equal(p.strokes.length, st0 + 1, 'pen on note must not draw');
+    p = await pg(); assert.equal(p.strokes.length, st0 + 1, 'pen on note must not draw on the sheet'); assert.equal((p.notes[0].k || []).length, 1, 'it writes on the note instead');
     await drawMouse('eraser', [at(150, 100), at(150, 130)]);
     p = await pg(); assert.equal(p.strokes.filter(x => x.tool === 'eraser').length, 1);
     await drawMouse('lasso', [at(60, 60), at(340, 60), at(340, 160), at(60, 160), at(60, 62)]);
@@ -103,6 +103,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     p = await pg(); assert.equal(p.notes.length, 0); assert.ok((p.delN || []).includes(before.id));
     assert.equal(await page.$$eval('#note-layer .sticky', a => a.length), 0);
     assert.deepEqual(errors, [], errors.join('; '));
-    console.log('PASS: 🗒 포스트잇 add, type, touch-move, resize, color, fold/unfold, pen/eraser/lasso unaffected (pen on note does not draw), PDF image untouched, persists after reload, delete with tombstone');
+    console.log('PASS: 🗒 포스트잇 add, type, touch-move, resize, color, fold/unfold, pen/eraser/lasso unaffected (pen on note writes on the note, not the sheet), PDF image untouched, persists after reload, delete with tombstone');
   } finally { await browser.close(); srv.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
 })().catch(e => { console.error('FAIL', e); process.exitCode = 1; });

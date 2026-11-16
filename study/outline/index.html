@@ -306,6 +306,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .sticky.folded { min-width:0; min-height:0; width:40px !important; height:40px !important; border-radius:8px; align-items:center; justify-content:center;
   font-size:20px; touch-action:none; cursor:pointer; }
 .sticky.folded > :not(.st-icon) { display:none !important; }
+.sticky .st-ink { position:absolute; left:0; top:30px; width:100%; height:calc(100% - 30px); z-index:1; touch-action:none; cursor:crosshair; border-radius:0 0 6px 6px; }
+.sticky.typing .st-ink { pointer-events:none; }
+.sticky .st-rs { z-index:2; }
 .sticky .st-icon { display:none; }
 .sticky.folded .st-icon { display:block; pointer-events:none; }
 #img-layer.active .img-item { pointer-events:auto; cursor:move; touch-action:none; }
@@ -1166,12 +1169,27 @@ function mergePage(bp, op, stat) {
   if (bp.notes || op.notes) {
     // 포스트잇: union by id, the most recently edited copy wins
     m.notes = unionList(bp.notes, op.notes, o => o && o.id, new Set(m.delN || []),
-      (a, b) => { if (((b && b.u) || 0) > ((a && a.u) || 0)) { stat.n++; return b; } return a; }, stat);
+      (a, b) => mergeNote(a, b, stat), stat);
   }
   if (bp.images || op.images) {
     m.images = unionList(bp.images, op.images, o => o && o.id, new Set(m.delI || []),
       (a, b) => (a && a.src) ? a : (b && b.src ? Object.assign({}, a, { src: b.src }) : a), stat);
   }
+  return m;
+}
+// 포스트잇: newest edit (u) wins for position/size/colour/text; note ink (k) is unioned per
+// stroke id on both sides, minus the note's ink tombstones (dk) — concurrent ink is never dropped
+function mergeNote(a, b, stat) {
+  const bn = ((b && b.u) || 0) > ((a && a.u) || 0);
+  if (bn) stat.n++;
+  if (!a || !b || !(a.k || a.dk || b.k || b.dk)) return bn ? b : a;
+  const w = bn ? b : a, l = bn ? a : b;
+  const dk = Array.from(new Set([].concat(a.dk || [], b.dk || []))).slice(-TOMB_MAX);
+  const s2 = { n: 0 };
+  const k = unionList(w.k, l.k, st => st && st.id, new Set(dk), null, s2);
+  if (!bn && (s2.n || dk.length > (a.dk || []).length)) stat.n++;
+  const m = Object.assign({}, w, { k });
+  if (dk.length) m.dk = dk;
   return m;
 }
 function mergeSebu(b, o, stat) {
@@ -4391,7 +4409,9 @@ async function insertPdfFile(file) {
 let pdfBusy = false;
 
 /* ========== 포스트잇 (sticky notes) ========== */
-// page.notes = [{ id, x, y, w, h, c: color, t: text, f: folded, u: last edit time }]
+// page.notes = [{ id, x, y, w, h, c: color, t: text, f: folded, u: last edit time,
+//                 k: note ink [{ id, tool, color, width, points:[{x,y}] }] in note coords (origin = below the bar),
+//                 dk: erased-by-undo ink ids }]
 // (old app versions keep the field untouched; deletions → page.delN tombstones)
 const NOTE_COLORS = ['#fff59d', '#ffcdd2', '#c8e6c9', '#bbdefb', '#e1bee7'];
 function getNotes() {
@@ -4401,8 +4421,37 @@ function getNotes() {
 }
 function setNotesArr(arr) {
   const p = ensurePage(); if (!p) return;
-  if (p.notes !== arr) diffTombs(p, 'delN', p.notes || [], arr, o => o && o.id);
+  const old = p.notes || [];
+  if (p.notes !== arr) {
+    diffTombs(p, 'delN', old, arr, o => o && o.id);
+    // undo/redo of a note: keep ink tombstones, record removed ink, and mark it as a fresh edit
+    const om = new Map(old.map(o => [o && o.id, o]));
+    arr.forEach(n => {
+      const o = n && om.get(n.id); if (!o || o === n) return;
+      if (o.dk || n.dk) n.dk = Array.from(new Set([].concat(o.dk || [], n.dk || [])));
+      if (o.k || n.k) diffTombs(n, 'dk', o.k, n.k, st => st && st.id);
+      if (noteSig(o) !== noteSig(n)) n.u = Math.max(Date.now(), (o.u || 0) + 1);
+    });
+  }
   p.notes = arr;
+}
+function noteSig(o) { return JSON.stringify([o.x, o.y, o.w, o.h, o.c, o.t, !!o.f, (o.k || []).map(st => st && st.id)]); }
+const NOTE_INK_TOOLS = { pen: 1, highlighter: 1, eraser: 1 };
+function noteInkRatio() {
+  const sr = stageRect();
+  return Math.max(1, Math.min(3, (window.devicePixelRatio || 1) * (sr.width || CSS_W) / CSS_W));
+}
+function drawNoteInk(el, o, live) {
+  const cv = el.querySelector('.st-ink'); if (!cv || o.f) return;
+  const w = o.w || 200, h = Math.max(1, (o.h || 150) - 30), r = noteInkRatio();
+  const pw = Math.round(w * r), ph = Math.round(h * r);
+  if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, pw, ph);
+  ctx.setTransform(pw / w, 0, 0, ph / h, 0, 0);
+  (o.k || []).forEach(st => drawStroke(ctx, st));
+  if (live) drawStroke(ctx, live);
+  el._inkSig = [pw, ph, (o.k || []).length, ((o.k || [])[(o.k || []).length - 1] || {}).id].join('|');
 }
 function findNote(id) { return getNotes().find(o => o.id === id); }
 function touchNote(o) { o.u = Date.now(); scheduleSave(); }
@@ -4418,7 +4467,7 @@ function renderNotes() {
         '<button type="button" data-st="color" title="색 바꾸기">🎨</button>' +
         '<button type="button" data-st="fold" title="접기">➖</button>' +
         '<button type="button" data-st="del" title="삭제">✕</button></div>' +
-        '<textarea placeholder="메모" spellcheck="false"></textarea><div class="st-rs"></div><span class="st-icon">🗒</span>';
+        '<textarea placeholder="메모" spellcheck="false"></textarea><canvas class="st-ink"></canvas><div class="st-rs"></div><span class="st-icon">🗒</span>';
       bindNote(el);
       layer.appendChild(el);
     }
@@ -4429,6 +4478,10 @@ function renderNotes() {
     el.classList.toggle('folded', !!o.f);
     const ta = el.querySelector('textarea');
     if (document.activeElement !== ta && ta.value !== (o.t || '')) ta.value = o.t || '';
+    if (!o.f && !el._inkLive) {
+      const r = noteInkRatio(), k = o.k || [];
+      if (el._inkSig !== [Math.round((o.w || 200) * r), Math.round(Math.max(1, (o.h || 150) - 30) * r), k.length, (k[k.length - 1] || {}).id].join('|')) drawNoteInk(el, o);
+    }
   });
   have.forEach(el => { if (!el.contains(document.activeElement)) el.remove(); });
 }
@@ -4443,7 +4496,7 @@ function addNote() {
   const o = { id: uid(), x, y, w, h, c: NOTE_COLORS[0], t: '', f: false, u: Date.now() };
   getNotes().push(o);
   scheduleSave(); renderNotes();
-  toast('포스트잇 — 눌러서 글쓰기, 위 막대를 끌어서 이동');
+  toast('포스트잇 — 손가락으로 눌러 글쓰기, 펜으로 필기, 위 막대를 끌어서 이동');
 }
 function bindNote(el) {
   const id = el.dataset.id, ta = el.querySelector('textarea');
@@ -4475,6 +4528,7 @@ function bindNote(el) {
       o.w = Math.round(Math.max(110, Math.min(CSS_W, drag.w + dx)));
       o.h = Math.round(Math.max(80, Math.min(1200, drag.h + dy)));
       el.style.width = o.w + 'px'; el.style.height = o.h + 'px';
+      drawNoteInk(el, o);
     } else {
       const vw = o.f ? 40 : o.w, vh = o.f ? 40 : o.h;
       o.x = Math.round(Math.max(0, Math.min(CSS_W - Math.min(vw, CSS_W), drag.x + dx)));
@@ -4511,12 +4565,95 @@ function bindNote(el) {
     } else if (b.dataset.st === 'fold') {
       ta.blur(); o.f = true; touchNote(o); renderNotes();
     } else if (b.dataset.st === 'del') {
-      if ((o.t || '').trim() && !confirm('이 포스트잇을 지울까요?')) return;
+      if (((o.t || '').trim() || (o.k || []).length) && !confirm('이 포스트잇을 지울까요?')) return;
       pushImgUndo(); ta.blur();
       setNotesArr(getNotes().filter(q => q.id !== id));
       scheduleSave(); renderNotes(); toast('포스트잇을 지웠습니다');
     }
   });
+  // ── Ink on the note: stylus (or mouse) with 펜/형광펜/지우개 draws; a finger tap types,
+  //    a finger drag scrolls the sheet (손가락: 쓰기 → finger draws too; ⌨️ 자판 → always types)
+  const cv = el.querySelector('.st-ink');
+  let ink = null, fpan = null, inkRaf = 0;
+  const inkWanted = (e) => state.inputMode !== 'keyboard' && NOTE_INK_TOOLS[state.tool] &&
+    (e.pointerType === 'pen' || e.pointerType === 'mouse' || (e.pointerType === 'touch' && touchShouldDraw()));
+  const inkPt = (e) => {
+    const o = findNote(id), r = cv.getBoundingClientRect(), k = ((o && o.w) || 200) / Math.max(1, r.width);
+    const p = { x: Math.round((e.clientX - r.left) * k * 10) / 10, y: Math.round((e.clientY - r.top) * k * 10) / 10 };
+    if (ink && ink.st.pr) p.p = Math.round((e.pressure || 0.5) * 100) / 100;
+    return p;
+  };
+  const focusText = () => {
+    try { ta.focus({ preventScroll: true }); } catch (_) { ta.focus(); }
+    const n = ta.value.length; try { ta.setSelectionRange(n, n); } catch (_) {}
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (el.classList.contains('folded') || blocked(e) || pinchState) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const onInk = e.target === cv, onTa = e.target === ta;
+    if (!onInk && !onTa) return;
+    const o = findNote(id); if (!o) return;
+    if (inkWanted(e)) {
+      e.preventDefault();
+      if (document.activeElement === ta) ta.blur();
+      if (e.pointerType === 'pen') activePenPointerId = e.pointerId;
+      ink = { id: e.pointerId, st: { id: uid(), tool: state.tool, color: state.color, width: state.width, points: [] } };
+      if (e.pointerType === 'pen' && state.tool === 'pen') ink.st.pr = 1;
+      ink.st.points.push(inkPt(e));
+      el._inkLive = true;
+      try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+      drawNoteInk(el, o, ink.st);
+      return;
+    }
+    if (onInk) {      // finger (이동 mode), or a non-ink tool: tap → type, drag → scroll the sheet
+      e.preventDefault();
+      const wEl = wrap();
+      fpan = { id: e.pointerId, x: e.clientX, y: e.clientY, sl: wEl ? wEl.scrollLeft : 0, st: wEl ? wEl.scrollTop : 0, moved: false };
+      try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (ink && ink.id === e.pointerId) {
+      e.preventDefault();
+      const evs = (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+      const pts = ink.st.points;
+      evs.forEach(ev => { const p = inkPt(ev), q = pts[pts.length - 1]; if (!q || Math.hypot(p.x - q.x, p.y - q.y) >= 0.4) pts.push(p); });
+      if (!inkRaf) inkRaf = requestAnimationFrame(() => { inkRaf = 0; const o = findNote(id); if (o && ink) drawNoteInk(el, o, ink.st); });
+      return;
+    }
+    if (fpan && fpan.id === e.pointerId) {
+      if (pinchState) { fpan = null; return; }
+      const dx = e.clientX - fpan.x, dy = e.clientY - fpan.y;
+      if (!fpan.moved && Math.hypot(dx, dy) < 8) return;
+      fpan.moved = true;
+      const wEl = wrap(); if (wEl) { wEl.scrollLeft = fpan.sl - dx; wEl.scrollTop = fpan.st - dy; }
+    }
+  });
+  const inkEnd = (e) => {
+    if (ink && ink.id === e.pointerId) {
+      const st = ink.st; ink = null; el._inkLive = false;
+      if (inkRaf) { cancelAnimationFrame(inkRaf); inkRaf = 0; }
+      if (e.pointerType === 'pen') { activePenPointerId = null; palmBlockUntil = performance.now() + 180; }
+      try { cv.releasePointerCapture(e.pointerId); } catch (_) {}
+      const o = findNote(id); if (!o) return;
+      if (e.type === 'pointerup' && st.points.length) {
+        pushImgUndo();
+        o.k = (o.k || []).concat([st]);   // new array: undo snapshots keep the old one
+        touchNote(o);
+      }
+      drawNoteInk(el, o);
+      return;
+    }
+    if (fpan && fpan.id === e.pointerId) {
+      const f = fpan; fpan = null;
+      try { cv.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (e.type === 'pointerup' && !f.moved) focusText();
+    }
+  };
+  cv.addEventListener('pointerup', inkEnd);
+  cv.addEventListener('pointercancel', inkEnd);
+  ta.addEventListener('focus', () => el.classList.add('typing'));
+  ta.addEventListener('blur', () => el.classList.remove('typing'));
   ta.addEventListener('input', () => {
     const o = findNote(id); if (!o) return;
     o.t = ta.value.slice(0, 5000); touchNote(o);
@@ -4539,6 +4676,14 @@ function drawNotesOnCtx(ctx) {
       }
       if (y < o.y + (o.h || 150) - 18) ctx.fillText(line, o.x + 8, y); y += 21;
     });
+    if ((o.k || []).length) {   // note ink on its own canvas so its eraser strokes only erase note ink
+      const w = o.w || 200, h = Math.max(1, (o.h || 150) - 30), off = document.createElement('canvas');
+      off.width = w * 2; off.height = h * 2;
+      const oc = off.getContext('2d'); oc.scale(2, 2);
+      o.k.forEach(st => drawStroke(oc, st));
+      ctx.drawImage(off, o.x, o.y + 30, w, h);
+      if (typeof freeCanvas === 'function') freeCanvas(off);
+    }
     ctx.restore();
   });
 }
