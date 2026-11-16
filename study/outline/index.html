@@ -201,6 +201,14 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .swatch.blue { background: #2563eb; }
 .swatch.red { background: #dc2626; }
 .swatch.hl { background: #fef08a; border: 1px solid #eab308 !important; }
+/* 글자 붙은 도구 버튼: 아이콘 위·이름 아래로 (36px 칸에서 글자가 줄바꿈되어 잘리던 문제) */
+.tool-btn.lbl {
+  width: auto; min-width: 36px; padding: 0 3px; flex-direction: column; gap: 1px;
+  font-size: 14px; line-height: 1; white-space: nowrap;
+}
+.tool-btn.lbl .tl { font-size: 10px; font-weight: 600; line-height: 1; }
+/* 실행취소 등을 빠르게 연달아 눌러도 두 번 탭 확대가 끼어들지 않게 (가로 스크롤은 그대로) */
+.draw-toolbar button { touch-action: manipulation; }
 .thickness-btn {
   width: 36px; height: 36px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
@@ -524,6 +532,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   .topbar { height: 44px; }
   .draw-toolbar { padding: 4px 6px; }
   .tool-btn, .thickness-btn { width: 32px; height: 32px; }
+  .tool-btn.lbl { width: auto; }
 }
 </style>
 </head>
@@ -614,14 +623,14 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" data-tool="pen" data-color="#2563eb" title="파란 펜"><span class="swatch blue"></span></button>
         <button class="tool-btn" data-tool="pen" data-color="#dc2626" title="빨간 펜"><span class="swatch red"></span></button>
         <button class="tool-btn" data-tool="highlighter" data-color="#fef08a" title="형광펜"><span class="swatch hl"></span></button>
-        <button class="tool-btn" data-tool="eraser" title="지우개">🧽 지우개</button>
-        <button class="tool-btn" data-tool="lasso" title="올가미 선택 (둘러싸서 이동·삭제·복사)">➰ 올가미</button>
-        <button class="tool-btn" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)">🖼＋ 이미지</button>
-        <button class="tool-btn" data-tool="image" title="이미지 선택 — 이동·크기·삭제">🖼 선택</button>
+        <button class="tool-btn lbl" data-tool="eraser" title="지우개">🧽<span class="tl">지우개</span></button>
+        <button class="tool-btn lbl" data-tool="lasso" title="올가미 선택 (둘러싸서 이동·삭제·복사)">➰<span class="tl">올가미</span></button>
+        <button class="tool-btn lbl" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)">🖼＋<span class="tl">이미지</span></button>
+        <button class="tool-btn lbl" data-tool="image" title="이미지 선택 — 이동·크기·삭제">🖼<span class="tl">선택</span></button>
         <input type="file" id="img-file" accept="image/*" style="display:none">
-        <button class="tool-btn" id="btn-add-pdf" title="PDF 넣기 — 페이지를 종이로 넣고 위에 필기">📄＋ PDF</button>
+        <button class="tool-btn lbl" id="btn-add-pdf" title="PDF 넣기 — 페이지를 종이로 넣고 위에 필기">📄＋<span class="tl">PDF</span></button>
         <input type="file" id="pdf-file" accept="application/pdf,.pdf" style="display:none">
-        <button class="tool-btn" id="btn-add-note" title="포스트잇 붙이기 — 글쓰기·이동·크기·색·접기">🗒 포스트잇</button>
+        <button class="tool-btn lbl" id="btn-add-note" title="포스트잇 붙이기 — 글쓰기·이동·크기·색·접기">🗒<span class="tl">포스트잇</span></button>
       </div>
       <div class="tool-group">
         <button class="thickness-btn active" data-w="1.5" title="얇게"><span style="width:4px;height:4px"></span></button>
@@ -642,7 +651,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div class="tool-group">
         <button type="button" class="tool-btn finger-mode-btn" id="btn-finger-mode" title="손가락으로 화면 이동 (탭하면 쓰기로 전환)">✋ 손가락: 이동</button>
         <button class="tool-btn" id="btn-extend" title="페이지 늘리기">⬇</button>
-        <button class="tool-btn" id="btn-add-sheet" title="종이 한 장 추가 (아래에)">📄＋ 종이</button>
+        <button class="tool-btn lbl" id="btn-add-sheet" title="종이 한 장 추가 (아래에)">📄＋<span class="tl">종이</span></button>
         <button class="tool-btn" id="btn-del-sheet" title="마지막 종이 삭제 (비어 있을 때만)">📄－</button>
       </div>
       <div class="tool-group zoom-group" title="확대/축소">

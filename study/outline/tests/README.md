@@ -262,3 +262,15 @@ note ink (its own canvas). Undo/redo work per stroke. Sync: ink is unioned per s
 devices (concurrent writing on the same note is kept), strokes removed by undo become `note.dk`
 tombstones; position/size/colour/text still follow the newest edit. Older app versions keep `k`
 (checked against the PR #28 version). PNG export draws note ink.
+
+## 도구줄 글자 (toolbar labels)
+
+```
+node study/outline/tests/toolbar-labels-browser.cjs   # headless Chrome: phone / tablet / landscape
+```
+
+Labelled toolbar buttons (지우개·올가미·이미지·선택·PDF·포스트잇·종이) used a fixed 36px box, so their text
+wrapped onto two lines and the icon/text were clipped. They now show the icon above a one-line name
+(`.tool-btn.lbl`), width grows to fit. Draw-toolbar buttons get `touch-action: manipulation` so fast
+repeated taps (e.g. ↩) are not eaten by double-tap zoom; the toolbar still scrolls sideways. No data,
+sync, tool behaviour or storage change.
