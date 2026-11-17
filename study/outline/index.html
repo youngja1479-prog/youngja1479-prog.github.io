@@ -1779,7 +1779,44 @@ function getMok() { const nb = getNb(); return nb && nb.mokchas.find(m => m.id =
 function getSebu() { const m = getMok(); return m && m.sebus.find(s => s.id === state.sebuId); }
 
 /* ========== Navigation ========== */
+/* 세부목차 필기를 다시 열면 마지막으로 보던 위치(세로)로 — 이 기기에만 저장(별도 키),
+   노트·동기화 데이터는 건드리지 않음. 처음 여는 노트는 맨 위에서 시작. */
+const VIEWPOS_KEY = 'gkc-outline-viewpos-v1', VIEWPOS_MAX = 300;
+let viewPosMap = null, viewPosPending = null, viewPosTimer = 0;
+function viewPosLoad() {
+  if (viewPosMap) return viewPosMap;
+  try { viewPosMap = JSON.parse(localStorage.getItem(VIEWPOS_KEY) || '{}'); } catch (e) { viewPosMap = null; }
+  if (!viewPosMap || typeof viewPosMap !== 'object' || Array.isArray(viewPosMap)) viewPosMap = {};
+  return viewPosMap;
+}
+function viewPosFlush() {
+  clearTimeout(viewPosTimer); viewPosTimer = 0;
+  const p = viewPosPending; viewPosPending = null;
+  if (!p) return;
+  const m = viewPosLoad();
+  delete m[p.id]; // re-insert → most recent last (oldest trimmed first)
+  if (p.y > 0) m[p.id] = p.y;
+  const keys = Object.keys(m);
+  for (let i = 0; i < keys.length - VIEWPOS_MAX; i++) delete m[keys[i]];
+  try { localStorage.setItem(VIEWPOS_KEY, JSON.stringify(m)); } catch (e) {}
+}
+function viewPosOnScroll() {
+  if (state.view !== 'draw' || !state.sebuId) return;
+  const w = wrap();
+  if (!w || !(drawZoom > 0)) return;
+  viewPosPending = { id: state.sebuId, y: Math.max(0, Math.round(w.scrollTop / drawZoom)) };
+  clearTimeout(viewPosTimer);
+  viewPosTimer = setTimeout(viewPosFlush, 400);
+}
+function viewPosRestore(sebuId) {
+  const w = wrap();
+  if (!w) return;
+  const y = viewPosLoad()[sebuId];
+  w.scrollTop = (typeof y === 'number' && y > 0) ? y * drawZoom : 0;
+}
+
 function showView(name) {
+  if (state.view === 'draw' && name !== 'draw') viewPosFlush();
   $$('.view').forEach(v => v.classList.add('hidden'));
   const el = $('#view-' + name);
   if (el) el.classList.remove('hidden');
@@ -1815,9 +1852,11 @@ function goTree() {
 }
 
 function goDraw(sebuId) {
+  viewPosFlush();
   state.sebuId = sebuId;
   showView('draw');
   initDrawPage();
+  if (state.view === 'draw' && state.sebuId === sebuId) viewPosRestore(sebuId);
 }
 
 /* ========== Templates by type ========== */
@@ -4950,7 +4989,7 @@ function wireEvents() {
   // Two-finger pinch zoom on the scroll wrap (does not affect pen / single-finger draw)
   const wrapEl = wrap();
   if (wrapEl) {
-    wrapEl.addEventListener('scroll', () => scheduleViewportCheck(), { passive: true });
+    wrapEl.addEventListener('scroll', () => { scheduleViewportCheck(); viewPosOnScroll(); }, { passive: true });
     wrapEl.addEventListener('touchstart', onPinchTouchStart, { passive: false });
     wrapEl.addEventListener('touchmove', onPinchTouchMove, { passive: false });
     wrapEl.addEventListener('touchend', onPinchTouchEnd, { passive: false });
@@ -4996,7 +5035,7 @@ function wireEvents() {
 
   // Autosave on visibility change + sync pull when visible
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flushSave();
+    if (document.visibilityState === 'hidden') { flushSave(); viewPosFlush(); }
     if (document.visibilityState === 'visible') {
       syncPullAndMaybeApply({ showDecryptError: false });
       startSyncPolling();
@@ -5004,7 +5043,7 @@ function wireEvents() {
       stopSyncPolling();
     }
   });
-  window.addEventListener('pagehide', () => { flushSave(); });
+  window.addEventListener('pagehide', () => { flushSave(); viewPosFlush(); });
   window.addEventListener('beforeunload', () => { flushSave(); });
   window.addEventListener('online', () => {
     syncLastError = ''; syncErrFromPush = false; syncRetryCount = 0; syncPullFails = 0;

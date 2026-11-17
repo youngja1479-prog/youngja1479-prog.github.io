@@ -274,3 +274,16 @@ wrapped onto two lines and the icon/text were clipped. They now show the icon ab
 (`.tool-btn.lbl`), width grows to fit. Draw-toolbar buttons get `touch-action: manipulation` so fast
 repeated taps (e.g. ↩) are not eaten by double-tap zoom; the toolbar still scrolls sideways. No data,
 sync, tool behaviour or storage change.
+
+## Reopen a note at the last viewed position (2026-11-17)
+
+```
+node study/outline/tests/view-position-browser.cjs
+```
+
+Opening a 세부목차 used to keep the scroll offset of the previously open note (so note B
+opened somewhere in the middle after reading the end of note A) and always forgot where you
+were after an app restart. The vertical position (page coordinates, zoom-independent) is now
+kept per note in a separate device-local key `gkc-outline-viewpos-v1` (max 300 notes, oldest
+trimmed); notes never opened before start at the top. Notebook data, IndexedDB/localStorage
+notebook storage and sync payloads are untouched; a sync re-render does not move the view.
