@@ -9990,10 +9990,14 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     try { localStorage.setItem(LS_BUNDLE, JSON.stringify(bundleScores)); } catch (e) {}
   }
 
+  /* 외움/모르겠음을 누를 때마다 보이지 않는 오답·외움 목록(수백 줄)을 다시 그리던 것이
+     폰에서 탭 지연의 원인 → 오답 화면이 열려 있을 때만 바로 그리고, 아니면 다음에 열 때 그림. */
+  var wrongListDirty = false;
   function saveState() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
     refreshStats();
-    renderWrongList();
+    if (activePanel === 'wrong') renderWrongList();
+    else wrongListDirty = true;
     updateCumulativeProg();
   }
 
@@ -10273,6 +10277,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     });
     wakeWanted = !!KEEP_AWAKE_PANELS[name];
     syncWakeLock();
+    if (name === 'wrong' && wrongListDirty) renderWrongList();
   }
 
   function shuffle(arr) {
@@ -11061,6 +11066,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
   }
 
   function renderWrongList() {
+    wrongListDirty = false;
     var ids = Object.keys(state.wrong).sort();
     var ul = byId('wrongList');
     var empty = byId('wrongEmpty');
@@ -11488,9 +11494,26 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     function isSpeakTarget(t) {
       return !!(t && t.closest && t.closest('.speak-btn, #ttsBtn, #quizTtsBtn, details, summary'));
     }
+    /* 카드 위에 손가락을 대고 화면을 위아래로 스크롤하면(긴 뜻·예문, 아래 버튼으로 이동) 손을 뗄 때
+       카드가 뒤집히던 문제 → 10px 넘게 움직였거나 두 손가락(확대)이면 탭이 아니므로 뒤집지 않음. */
+    var FLIP_MOVE_PX = 10, flipStartX = 0, flipStartY = 0, flipMoved = false;
+    el.addEventListener('touchstart', function (e) {
+      var t = e.touches && e.touches[0];
+      flipMoved = !t || e.touches.length > 1;
+      if (t) { flipStartX = t.clientX; flipStartY = t.clientY; }
+    }, { passive: true });
+    el.addEventListener('touchmove', function (e) {
+      var t = e.touches && e.touches[0];
+      if (!t || e.touches.length > 1 || Math.abs(t.clientX - flipStartX) > FLIP_MOVE_PX || Math.abs(t.clientY - flipStartY) > FLIP_MOVE_PX) flipMoved = true;
+    }, { passive: true });
     function onFlip(e) {
       if (isSpeakTarget(e.target)) return;
       if (e.type === 'touchend') {
+        if (flipMoved) {
+          // 스크롤/확대였음: 뒤집지 않고, 혹시 뒤따르는 click도 무시
+          lastFlipTouchAt = Date.now();
+          return;
+        }
         // prevent the synthetic click that follows on many mobiles
         e.preventDefault();
         lastFlipTouchAt = Date.now();
