@@ -511,6 +511,18 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .sync-status.busy { color: var(--accent); }
 .sync-status.warn { color: #c45c00; }
 .sync-status.err { color: var(--danger); }
+.link-box { border-top: 1px solid var(--border, #e5e5e5); margin-top: 14px; padding-top: 12px; }
+.link-box h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.link-code-input { width: 100%; font-size: 22px !important; letter-spacing: 3px; text-align: center; text-transform: uppercase;
+  font-family: ui-monospace, Menlo, monospace; padding: 12px !important; border: 1.5px solid var(--border, #ddd); border-radius: 10px; }
+.link-row { display: flex; gap: 8px; margin-top: 10px; }
+.link-row .btn { flex: 1; min-height: 46px; font-size: 15px; }
+.link-qr { display: flex; justify-content: center; margin: 4px 0 10px; }
+.link-qr canvas { width: 220px; height: 220px; image-rendering: pixelated; background: #fff; border-radius: 8px; }
+.link-code { text-align: center; font: 700 30px/1.2 ui-monospace, Menlo, monospace; letter-spacing: 3px; margin: 4px 0; user-select: all; -webkit-user-select: all; }
+.link-meta { text-align: center; font-size: 13px; color: var(--text2); min-height: 20px; }
+.link-meta.ok { color: var(--ok); font-weight: 700; }
+.link-video { width: 100%; max-height: 50vh; border-radius: 10px; background: #000; object-fit: cover; }
 .sync-warn {
   font-size: 12px; color: var(--text2); line-height: 1.45;
   background: #fff8e6; border: 1px solid #f5e0a0; border-radius: 10px;
@@ -1682,7 +1694,18 @@ function openSyncModal() {
       ${connected ? '<button class="btn" id="m-show-pw">🔑 비번 확인</button>' : ''}
       ${connected ? '<button class="btn danger" id="m-disconnect">연결 끊기</button>' : ''}
       <button class="btn primary" id="m-connect">연결</button>
-    </div>`);
+    </div>
+    ${connected ? `<div class="link-box">
+      <h4>📱 다른 기기 연결</h4>
+      <p style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:8px">비밀번호를 치지 않고, 이 기기에 뜨는 QR/코드로 다른 폰·태블릿을 연결해요.</p>
+      <div class="link-row"><button class="btn primary" id="m-link-show">QR·코드 보여주기</button></div>
+    </div>` : `<div class="link-box">
+      <h4>🔗 연결 코드로 연결</h4>
+      <p style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:8px">이미 연결된 기기에서 <b>동기화 → QR·코드 보여주기</b>를 누른 뒤, QR을 찍거나 코드를 입력하세요.</p>
+      <input type="text" class="link-code-input" id="link-code" placeholder="ABCDE-FGH23" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go">
+      <div class="link-row"><button class="btn" id="m-link-scan">📷 QR 찍기</button><button class="btn primary" id="m-link-claim">코드로 연결</button></div>
+    </div>`}`);
+  wireLinkUI();
   $('#m-cancel').onclick = closeModal;
   const pwInput = $('#sync-pw');
   if (connected && syncPassword) pwInput.value = syncPassword;
@@ -1737,6 +1760,156 @@ function openSyncModal() {
   }
 }
 
+/* ---- 기기 연결 UI (inside the 동기화 window only) ---- */
+let linkScanStream = null;
+function linkStopScan() {
+  if (linkScanStream) { try { linkScanStream.getTracks().forEach(t => t.stop()); } catch (_) {} }
+  linkScanStream = null;
+}
+function linkLoadScript(src, globalName) {
+  if (window[globalName]) return Promise.resolve(window[globalName]);
+  return new Promise((resolve, reject) => {
+    const sc = document.createElement('script'); sc.src = src;
+    sc.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error(globalName));
+    sc.onerror = () => reject(new Error(globalName)); document.head.appendChild(sc);
+  });
+}
+async function linkDrawQr(canvas, text) {
+  const qrcode = await linkLoadScript('vendor/qr/qrcode.js?v=1', 'qrcode');
+  const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+  const n = qr.getModuleCount(), q = 4, scale = 6, size = (n + q * 2) * scale;
+  canvas.width = size; canvas.height = size;
+  const g = canvas.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, size, size); g.fillStyle = '#000';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) g.fillRect((c + q) * scale, (r + q) * scale, scale, scale);
+}
+function wireLinkUI() {
+  const show = $('#m-link-show');
+  if (show) show.onclick = () => openLinkShow();
+  const inp = $('#link-code'), claim = $('#m-link-claim'), scan = $('#m-link-scan');
+  if (!inp) return;
+  inp.addEventListener('input', () => {   // auto-format XXXXX-XXXXX while typing
+    const raw = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, LINK_LEN);
+    const v = raw.length > 5 ? raw.slice(0, 5) + '-' + raw.slice(5) : raw;
+    if (v !== inp.value) inp.value = v;
+  });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') claim.click(); });
+  claim.onclick = async () => {
+    if (claim.disabled) return;
+    claim.disabled = true; const old = claim.textContent; claim.textContent = '연결 중…';
+    let r;
+    try { r = await linkClaim(inp.value); } catch (e) { r = { ok: false, error: '연결하지 못했어요' }; }
+    claim.disabled = false; claim.textContent = old;
+    if (r.ok) { closeModal(); toast('이 기기가 연결됐어요 ✓'); }
+    else toast(r.error);
+  };
+  scan.onclick = () => openLinkScan();
+  if (pendingLinkCode) { inp.value = linkFormat(pendingLinkCode); pendingLinkCode = null; }
+}
+async function openLinkShow() {
+  openModal(`
+    <h3>📱 다른 기기 연결</h3>
+    <p style="font-size:13px;color:var(--text2);line-height:1.45;margin-bottom:8px">다른 기기에서 <b>동기화 → 📷 QR 찍기</b>로 찍거나, 아래 코드를 입력하세요. 10분 동안 한 번만 쓸 수 있어요.</p>
+    <div class="link-qr"><canvas id="link-qr" width="10" height="10" aria-label="연결 QR"></canvas></div>
+    <div class="link-code" id="link-code-show">만드는 중…</div>
+    <div class="link-meta" id="link-meta"></div>
+    <div class="modal-actions"><button class="btn" id="m-link-new">새 코드</button><button class="btn primary" id="m-link-close">닫기</button></div>`);
+  let cur = null, timer = 0, gen = 0;
+  const stop = () => { clearInterval(timer); timer = 0; };
+  const finish = () => { stop(); if (cur && cur.state === 'waiting') linkCancel(cur.slot); cur = null; };
+  const make = async () => {
+    finish(); const my = ++gen;
+    const meta = $('#link-meta'), codeEl = $('#link-code-show');
+    if (!meta) return;
+    meta.className = 'link-meta'; meta.textContent = ''; codeEl.textContent = '만드는 중…';
+    let o;
+    try { o = await linkOffer(); } catch (e) { if ($('#link-meta')) { codeEl.textContent = '—'; meta.textContent = e.message; } return; }
+    if (my !== gen || !$('#link-meta')) { linkCancel(o.slot); return; }
+    cur = Object.assign(o, { state: 'waiting' });
+    codeEl.textContent = linkFormat(o.code);
+    try { await linkDrawQr($('#link-qr'), linkUrl(o.code)); } catch (_) { meta.textContent = 'QR을 그릴 수 없어요 — 코드를 입력하세요'; }
+    let n = 0;
+    timer = setInterval(async () => {
+      const m = $('#link-meta');
+      if (!m || my !== gen) { if (my === gen) finish(); return; }   // window closed
+      const left = Math.max(0, Math.round((o.exp - Date.now()) / 1000));
+      if (cur.state === 'waiting') m.textContent = '남은 시간 ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+      if (left <= 0) { stop(); cur.state = 'gone'; m.textContent = '시간이 지났어요 — 새 코드를 누르세요'; $('#link-code-show').textContent = '—'; return; }
+      if (++n % 2) return;                          // ask the server every 2 s
+      const st = await linkStatus(o.slot);
+      if (my !== gen || !$('#link-meta')) return;
+      if (st === 'used') {
+        stop(); cur.state = 'used';
+        m.className = 'link-meta ok'; m.textContent = '✅ 다른 기기가 연결됐어요';
+        $('#link-code-show').textContent = '—';
+      }
+    }, 1000);
+  };
+  $('#m-link-new').onclick = make;
+  $('#m-link-close').onclick = () => { finish(); closeModal(); };
+  make();
+}
+async function openLinkScan() {
+  openModal(`
+    <h3>📷 QR 찍기</h3>
+    <video id="link-video" class="link-video" playsinline muted autoplay></video>
+    <div class="link-meta" id="link-scan-meta">카메라를 연결된 기기의 QR에 비춰 주세요</div>
+    <div class="modal-actions"><button class="btn" id="m-scan-type">코드 입력</button><button class="btn" id="m-scan-close">닫기</button></div>`);
+  const back = (code) => { linkStopScan(); pendingLinkCode = code || null; openSyncModal(); };
+  $('#m-scan-close').onclick = () => { linkStopScan(); closeModal(); };
+  $('#m-scan-type').onclick = () => back(null);
+  const meta = $('#link-scan-meta'), video = $('#link-video');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { meta.textContent = '이 브라우저는 카메라를 쓸 수 없어요 — 코드를 입력하세요'; return; }
+  try {
+    linkScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  } catch (e) { meta.textContent = '카메라를 쓸 수 없어요 (권한 확인) — 코드를 입력하세요'; return; }
+  if (!$('#link-video')) { linkStopScan(); return; }
+  video.srcObject = linkScanStream;
+  try { await video.play(); } catch (_) {}
+  let detector = null;
+  try { if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('qr_code')) detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (_) {}
+  let jsQR = null;
+  if (!detector) { try { jsQR = await linkLoadScript('vendor/qr/jsQR.js?v=1', 'jsQR'); } catch (_) { meta.textContent = 'QR 읽기를 불러오지 못했어요 — 코드를 입력하세요'; return; } }
+  const cv = document.createElement('canvas'), g = cv.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!linkScanStream || !$('#link-video')) { linkStopScan(); return; }
+    let text = null;
+    try {
+      if (video.readyState >= 2 && video.videoWidth) {
+        if (detector) { const r = await detector.detect(video); if (r && r[0]) text = r[0].rawValue; }
+        else {
+          const w = Math.min(640, video.videoWidth), h = Math.round(video.videoHeight * w / video.videoWidth);
+          cv.width = w; cv.height = h; g.drawImage(video, 0, 0, w, h);
+          const r = jsQR(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+          if (r) text = r.data;
+        }
+      }
+    } catch (_) {}
+    const code = text && linkNormalize(text);
+    if (code) {
+      linkStopScan();
+      meta.textContent = '연결 중…';
+      const r = await linkClaim(code);
+      if (r.ok) { closeModal(); toast('이 기기가 연결됐어요 ✓'); }
+      else { toast(r.error); back(null); }
+      return;
+    }
+    if (text && meta) meta.textContent = '연결 QR이 아니에요';
+    setTimeout(tick, 200);
+  };
+  tick();
+}
+let pendingLinkCode = null;
+// QR opened with the phone camera app: #link=CODE → open 동기화 with the code filled in
+function checkLinkHash() {
+  let code = null;
+  try { code = linkNormalize(location.hash); } catch (_) {}
+  if (!code) return;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
+  if (syncPassword) { toast('이 기기는 이미 동기화에 연결돼 있어요'); return; }
+  pendingLinkCode = code;
+  openSyncModal();
+}
+
 async function tryAutoReconnect() {
   let pw = null;
   try { pw = localStorage.getItem(SYNC_PW_KEY); } catch (e) {}
@@ -1753,6 +1926,82 @@ async function tryAutoReconnect() {
     await syncPushNow();
   }
   startSyncPolling();
+}
+
+/* ========== 기기 연결 (device linking, no password typing) ==========
+   A connected device shows a 10-character code (50 bits) + QR. PBKDF2(code) gives a slot id
+   and an AES-GCM key; the device uploads only the encrypted sync secret under that slot.
+   The new device derives the same slot/key from the code, claims the slot once (Worker
+   deletes the ciphertext), decrypts locally and connects like the password path.
+   The Worker never sees the code, the key or the password; slots expire after 10 min. */
+const LINK_ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O/1/I
+const LINK_LEN = 10, LINK_ITERS = 200000;
+const LINK_PAGE = 'https://youngja1479-prog.github.io/study/outline/';
+function linkNewCode() {
+  const b = crypto.getRandomValues(new Uint8Array(LINK_LEN));
+  return Array.from(b, x => LINK_ALPHA[x & 31]).join('');
+}
+function linkNormalize(input) {
+  let s = String(input || '').trim();
+  const m = s.match(/[#&?]link=([A-Za-z0-9-]+)/); if (m) s = m[1];
+  s = s.toUpperCase().replace(/[\s-]/g, '');
+  if (s.length !== LINK_LEN) return null;
+  for (const ch of s) if (LINK_ALPHA.indexOf(ch) < 0) return null;
+  return s;
+}
+function linkFormat(code) { return code.slice(0, 5) + '-' + code.slice(5); }
+function linkUrl(code) {
+  let base = LINK_PAGE;
+  try { if (location && /^https:/.test(location.protocol) && /github\.io$/.test(location.hostname)) base = location.origin + location.pathname; } catch (_) {}
+  return base + '#link=' + code;
+}
+async function linkKeys(code) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode('gkc-link-v1:' + code), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode('gkc-study-link-v1'), iterations: LINK_ITERS, hash: 'SHA-256' }, base, 512));
+  const key = await crypto.subtle.importKey('raw', bits.slice(32), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  return { slot: bufToHex(bits.slice(0, 32)), key };
+}
+function linkApi(slot, sub) { return SYNC_URL.replace(/\/$/, '') + '/link/' + slot + (sub || ''); }
+async function linkCall(slot, sub, method, body) {
+  const { res, text } = await syncFetchText(linkApi(slot, sub), { method, cache: 'no-store', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body || undefined }, 20000);
+  let j = null; try { j = JSON.parse(text); } catch (_) {}
+  return { status: res.status, ok: res.ok, j: j || {} };
+}
+// connected device: returns { code, slot, exp } (code shown on screen, never sent anywhere)
+async function linkOffer() {
+  if (!syncPassword) throw new Error('먼저 이 기기를 동기화에 연결하세요');
+  const code = linkNewCode(), { slot, key } = await linkKeys(code);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify({ v: 1, pw: syncPassword })));
+  const r = await linkCall(slot, '', 'POST', JSON.stringify({ iv: bufToB64(iv), ct: bufToB64(new Uint8Array(ct)) }));
+  if (r.status === 429) throw new Error('코드를 너무 많이 만들었어요. 잠시 후 다시 해 주세요');
+  if (!r.ok) throw new Error('연결 코드를 만들 수 없어요 (' + r.status + ')');
+  return { code, slot, exp: r.j.exp || (Date.now() + 600000) };
+}
+async function linkStatus(slot) {
+  try { const r = await linkCall(slot, '/status', 'GET'); return r.ok ? r.j.state : 'error'; } catch (_) { return 'error'; }
+}
+async function linkCancel(slot) { try { await linkCall(slot, '', 'DELETE'); } catch (_) {} }
+// new device: code (or scanned QR text) → connect to the same vault. { ok, error }
+async function linkClaim(input) {
+  const code = linkNormalize(input);
+  if (!code) return { ok: false, error: '코드는 10자리예요 (예: ABCDE-FGH23)' };
+  const { slot, key } = await linkKeys(code);
+  let r;
+  try { r = await linkCall(slot, '/claim', 'POST'); }
+  catch (e) { return { ok: false, error: '서버에 연결할 수 없어요' }; }
+  if (r.status === 404) return { ok: false, error: '코드가 맞지 않거나 시간이 지났어요' };
+  if (r.status === 410) return { ok: false, error: '이미 사용한 코드예요. 새 코드를 만들어 주세요' };
+  if (r.status === 429) return { ok: false, error: '너무 많이 시도했어요. ' + Math.max(1, Math.ceil((r.j.retryAfter || 600) / 60)) + '분 뒤에 다시 해 주세요' };
+  if (!r.ok) return { ok: false, error: '연결하지 못했어요 (' + r.status + ')' };
+  let secret;
+  try {
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBuf(r.j.iv) }, key, b64ToBuf(r.j.ct));
+    secret = JSON.parse(new TextDecoder().decode(pt));
+  } catch (_) { return { ok: false, error: '코드가 맞지 않아요' }; }
+  if (!secret || typeof secret.pw !== 'string' || secret.pw.length < 4) return { ok: false, error: '연결 정보가 올바르지 않아요' };
+  const ok = await connectWithPassword(secret.pw);
+  return ok ? { ok: true } : { ok: false, error: syncLastError || '연결하지 못했어요' };
 }
 
 /* ========== State ========== */
@@ -5063,6 +5312,7 @@ async function boot() {
   wireEvents();
   goHome();
   tryAutoReconnect();
+  checkLinkHash();
 }
 
 boot();
