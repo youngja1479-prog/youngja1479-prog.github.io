@@ -201,6 +201,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .swatch.blue { background: #2563eb; }
 .swatch.red { background: #dc2626; }
 .swatch.hl { background: #fef08a; border: 1px solid #eab308 !important; }
+.swatch.hl-pink { background: #f472b6; border: 1px solid #db2777 !important; }
 /* 글자 붙은 도구 버튼: 아이콘 위·이름 아래로 (36px 칸에서 글자가 줄바꿈되어 잘리던 문제) */
 .tool-btn.lbl {
   width: auto; min-width: 36px; padding: 0 3px; flex-direction: column; gap: 1px;
@@ -623,6 +624,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <button class="tool-btn" data-tool="pen" data-color="#2563eb" title="파란 펜"><span class="swatch blue"></span></button>
         <button class="tool-btn" data-tool="pen" data-color="#dc2626" title="빨간 펜"><span class="swatch red"></span></button>
         <button class="tool-btn" data-tool="highlighter" data-color="#fef08a" title="형광펜"><span class="swatch hl"></span></button>
+        <button class="tool-btn" data-tool="highlighter" data-color="#f472b6" title="분홍 형광펜"><span class="swatch hl-pink"></span></button>
         <button class="tool-btn lbl" data-tool="eraser" title="지우개">🧽<span class="tl">지우개</span></button>
         <button class="tool-btn lbl" data-tool="lasso" title="올가미 선택 (둘러싸서 이동·삭제·복사)">➰<span class="tl">올가미</span></button>
         <button class="tool-btn lbl" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)">🖼＋<span class="tl">이미지</span></button>
@@ -3124,7 +3126,7 @@ function initDrawPage() {
     const btn = $(`.tool-btn[data-tool="pen"][data-color="${state.color}"]`);
     if (btn) btn.classList.add('active');
   } else {
-    const btn = $(`.tool-btn[data-tool="${state.tool}"]`);
+    const btn = (state.tool === 'highlighter' && $(`.tool-btn[data-tool="highlighter"][data-color="${state.color}"]`)) || $(`.tool-btn[data-tool="${state.tool}"]`);
     if (btn) btn.classList.add('active');
   }
   $$('.thickness-btn').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.w) === state.width));

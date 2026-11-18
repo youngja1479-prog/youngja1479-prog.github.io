@@ -238,7 +238,15 @@ const subset = (A, B) => [...A].every(x => B.has(x));
     theirs.notebooks[0].mokchas[0].sebus[0].pages[0].notes[0].t = 'old app edit';
     const m28 = vm.runInContext('mergeData', c28)(mine, theirs).data.notebooks[0].mokchas[0].sebus[0].pages[0].notes.find(n => n.id === 'n1');
     assert.deepEqual(m28.k.map(st => st.id), ['ink-phone'], 'PR #28 version keeps note ink');
-    console.log('PASS: 포스트잇 필기 sync — concurrent ink on one note kept on both devices, newest text wins, undone ink stays gone; previous app version keeps ink');
+    // 13) 분홍 형광펜: a pink highlighter stroke on the sheet and on a note reaches the other device unchanged
+    const pinkSt = { id: 'hl-pink', tool: 'highlighter', color: '#f472b6', width: 3, points: [{ x: 50, y: 700 }, { x: 400, y: 700 }] };
+    nt.getSebu().pages[0].strokes.push(pinkSt);
+    const tnp = nt.getSebu().pages[0].notes.find(n => n.id === 'n1'); tnp.k = tnp.k.concat([Object.assign({}, pinkSt, { id: 'hl-pink-note' })]); tnp.u = Date.now() + 80;
+    nt.DATA.updatedAt = Date.now() + 80; await nt.syncPushNow(); await idle(nt);
+    await nphone.syncPullAndMaybeApply({}); await idle(nphone);
+    assert.deepEqual(nphone.getSebu().pages[0].strokes.find(st => st.id === 'hl-pink'), pinkSt);
+    assert.equal(nphone.getSebu().pages[0].notes.find(n => n.id === 'n1').k.find(st => st.id === 'hl-pink-note').color, '#f472b6');
+    console.log('PASS: 포스트잇 필기 sync — concurrent ink on one note kept on both devices, newest text wins, undone ink stays gone; previous app version keeps ink; pink highlighter syncs');
     console.log('PASS: 목차 reorder syncs tablet → phone; newer stale-order edit cannot undo it');
     console.log(`PASS: PDF 30 pages ${(added / 1e6).toFixed(1)} MB images → payload ${(sent / 1e6).toFixed(1)} MB, phone has all pages + ink`);
     console.log(`PASS: tablet→phone ink, poll pickup, meta-only unchanged polls, concurrent writes (409 conflicts: ${counts.conflict}) converge, stale+clock-skewed phone cannot drop tablet ink, empty device cannot wipe, legacy v1 ${(v1Len / 1e6).toFixed(1)} MB → v2 ${(v2Len / 1e6).toFixed(1)} MB, old client cannot read v2`);

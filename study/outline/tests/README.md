@@ -287,3 +287,14 @@ were after an app restart. The vertical position (page coordinates, zoom-indepen
 kept per note in a separate device-local key `gkc-outline-viewpos-v1` (max 300 notes, oldest
 trimmed); notes never opened before start at the top. Notebook data, IndexedDB/localStorage
 notebook storage and sync payloads are untouched; a sync re-render does not move the view.
+
+## 분홍 형광펜 (pink highlighter)
+
+```
+node study/outline/tests/pink-highlighter-browser.cjs   # headless Chrome, touch pick + stylus strokes
+```
+
+A second highlighter button (`data-color="#f472b6"`, 분홍 형광펜) right after the yellow one. It is the
+same `highlighter` tool with another colour, so it has the same 40% translucency and works on paper
+and on sticky notes, with undo/redo and sync (sync-two-devices step 13). The toolbar now
+highlights the highlighter button that matches the current colour. No data format change.
