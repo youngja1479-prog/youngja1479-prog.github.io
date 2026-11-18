@@ -10619,6 +10619,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
       html += '<button type="button" data-choice="' + esc(opt) + '">' + esc(opt) + '</button>';
     });
     byId('quizChoices').innerHTML = html;
+    quizShownAt = Date.now();
     if (settings.autoSpeak && !silent) speakWord(w.word);
   }
 
@@ -10697,6 +10698,14 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
     saveState();
   }
 
+  /* 퀴즈 연타 방지: 보기를 누르고 0.55초 뒤 다음 문제 보기가 같은 자리에 나타남. 그 직후(0.3초 안)의
+     탭은 앞 문제를 누르던 손가락이 늦게 닿은 것일 가능성이 커서 무시 → 다음 문제를 보지도 못하고
+     답이 골라지는 일 방지. 시계가 거꾸로 가면(기기 시간 변경) 막지 않음. */
+  var QUIZ_NEW_TAP_GAP_MS = 300, quizShownAt = -Infinity;
+  function quizTapTooSoon() {
+    var sinceShown = Date.now() - quizShownAt;
+    return sinceShown >= 0 && sinceShown < QUIZ_NEW_TAP_GAP_MS;
+  }
   function answerQuiz(choice) {
     if (quizAnswered || quizIdx >= quizPool.length) return;
     quizAnswered = true;
@@ -11566,7 +11575,7 @@ const LS_BUNDLE = LS_PREFIX + 'bundle-scores-v2'; // 범위별 키로 묶음 점
 
   byId('quizChoices').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-choice]');
-    if (!btn || btn.disabled) return;
+    if (!btn || btn.disabled || quizTapTooSoon()) return;
     answerQuiz(btn.getAttribute('data-choice'));
   });
   byId('btnQuizSkip').addEventListener('click', skipQuizToToday);
