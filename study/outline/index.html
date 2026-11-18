@@ -3161,6 +3161,8 @@ function renderTextLayer() {
 
     del.addEventListener('click', (e) => {
       e.stopPropagation();
+      // 글자가 들어 있는 텍스트 상자는 ✕를 잘못 눌러도 바로 사라지지 않게 한 번 확인 (실행취소로 되돌릴 수 없음)
+      if ((ta.value || '').trim() && !confirm('이 텍스트를 지울까요?')) return;
       setTexts(getTexts().filter(x => x.id !== id));
       if (state.selectedTextId === id) state.selectedTextId = null;
       scheduleSave();
