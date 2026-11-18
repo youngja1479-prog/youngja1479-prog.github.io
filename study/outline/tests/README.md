@@ -298,3 +298,22 @@ A second highlighter button (`data-color="#f472b6"`, 분홍 형광펜) right aft
 same `highlighter` tool with another colour, so it has the same 40% translucency and works on paper
 and on sticky notes, with undo/redo and sync (sync-two-devices step 13). The toolbar now
 highlights the highlighter button that matches the current colour. No data format change.
+
+## 기기 연결 (device linking — QR / code instead of typing the password)
+
+```
+node study/outline/tests/device-link.cjs     # real Worker (Durable Object LinkRoom) in Miniflare, VM devices
+node study/outline/tests/link-browser.cjs    # headless Chrome ×3, fake camera plays the QR, touch only
+```
+
+동기화 → (connected device) **QR·코드 보여주기** shows a 10-character code (alphabet without 0/O/1/I,
+50 bits) and a QR of `…/study/outline/#link=CODE`. On the new device: 동기화 → **📷 QR 찍기**
+(BarcodeDetector, or the vendored jsQR on iOS Safari) or type the code → **코드로 연결**; opening the QR
+with the phone's camera app fills the code too. PBKDF2-SHA256(code, 200k) → 32-byte slot id + AES-GCM
+key. The connected device uploads only `{iv, ct}` (its sync secret encrypted with that key) to
+`POST /link/<slot>`; the new device claims it once (`POST /link/<slot>/claim`, the Worker drops the
+ciphertext), decrypts locally and runs the normal password connect (same merge rules/prompts). The
+Worker never sees the code, key or password; guessing the code from the slot id needs 2^50 PBKDF2 runs.
+Codes expire after 10 minutes, are single-use (atomic in one Durable Object), closing the window
+cancels the code, and per IP: 20 codes/hour, 12 failed claims/10 min. The password path and the vault
+format/KV keys are unchanged; QR libs (vendor/qr) load only on the linking screens.
