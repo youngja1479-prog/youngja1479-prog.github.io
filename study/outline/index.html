@@ -2462,7 +2462,7 @@ function renderSebu() {
     return;
   }
   list.innerHTML = mok.sebus.map((s, i) => {
-    const strokeCount = (s.pages || []).reduce((a, p) => a + (p.strokes || []).length, 0);
+    const strokeCount = (s.pages || []).reduce((a, p) => a + inkVisibleCount(p.strokes), 0);
     return `
     <div class="item-row" data-id="${esc(s.id)}">
       <span class="drag-handle" title="끌어서 순서 변경 (톡 누르면 ▲▼)">⋮⋮</span>
@@ -4211,6 +4211,18 @@ function onPointerUp(e) {
     if (!state.currentStroke.id) state.currentStroke.id = uid();
     strokes.push(state.currentStroke);
     setStrokes(strokes);
+    if (cs.tool === 'eraser') {
+      // Don't keep invisible junk: drop ink this pass erased completely, and the pass itself
+      // when it no longer touches any visible ink. Removals go through setStrokes → 'del' tombstones.
+      const kept = eraserCleanup(strokes, strokes.length - 1);
+      if (kept) {
+        const dropE = kept[kept.length - 1] !== cs;
+        if (dropE) strokes.pop(); // never saved → no tombstone needed
+        if (kept.length < strokes.length) setStrokes(kept);
+        else if (dropE) state.undoStack.pop(); // pass changed nothing: no undo step
+        redrawInk();
+      }
+    }
     scheduleSave();
     updateUndoBtns();
   }
@@ -4287,6 +4299,81 @@ function inkCoverTester(strokes, i, bc) {
     }
     return false;
   };
+}
+/** 필기 획수: ink strokes still visible. Eraser passes and fully erased ink don't count;
+    a partly erased stroke counts once. Cached per strokes array (they only grow/shrink). */
+const inkCountCache = new WeakMap();
+function inkVisibleCount(strokes) {
+  if (!Array.isArray(strokes) || !strokes.length) return 0;
+  const last = strokes[strokes.length - 1], c = inkCountCache.get(strokes);
+  if (c && c.n === strokes.length && c.last === last) return c.v;
+  const bc = new Map();
+  let v = 0;
+  for (let i = 0; i < strokes.length; i++) {
+    const st = strokes[i];
+    if (!st || st.tool === 'eraser' || !Array.isArray(st.points) || !st.points.length) continue;
+    const m = inkVisibleMask(strokes, i, bc);
+    if (m && m.some(Boolean)) v++;
+  }
+  inkCountCache.set(strokes, { n: strokes.length, last, v });
+  return v;
+}
+/** After eraser pass strokes[ei]: new array without (a) ink this pass left fully erased,
+    (b) eraser passes that only covered that ink and now touch no ink at all, and (c) this pass
+    itself if it touches no visible ink. null = keep everything. Only ink/erasers around what this
+    pass touched are looked at; other older data is never rewritten. */
+function eraserCleanup(strokes, ei) {
+  const e = strokes[ei];
+  if (!e || e.tool !== 'eraser' || !Array.isArray(e.points) || !e.points.length) return null;
+  const isInk = st => st && st.tool !== 'eraser' && Array.isArray(st.points) && st.points.length;
+  const isEr = st => st && st.tool === 'eraser' && Array.isArray(st.points) && st.points.length;
+  const inkR = st => strokeLineWidth(st) * (st.pr && st.tool === 'pen' ? 1.28 : 1) / 2;
+  const hits = (b1, b2) => !(b1.x1 < b2.x0 || b1.x0 > b2.x1 || b1.y1 < b2.y0 || b1.y0 > b2.y1);
+  const bcache = new Map(), bnd = st => { let v = bcache.get(st); if (!v) { v = inkBounds(st, st.tool === 'eraser' ? strokeLineWidth(st) / 2 : inkR(st)); bcache.set(st, v); } return v; };
+  // eraser er touches ink st where (x,y) on st's path passes the test `ok`
+  const touch = (er, st, ok) => {
+    if (!hits(bnd(er), bnd(st))) return false;
+    const q = er.points, lim = strokeLineWidth(er) / 2 + inkR(st) + 0.5;
+    const near = (x, y) => {
+      if (q.length === 1) return Math.hypot(x - q[0].x, y - q[0].y) <= lim;
+      for (let k = 1; k < q.length; k++) if (inkSegDist(x, y, q[k - 1], q[k]) <= lim) return true;
+      return false;
+    };
+    const hit = (x, y) => near(x, y) && (!ok || ok(x, y));
+    const pts = st.points;
+    if (hit(pts[0].x, pts[0].y)) return true;
+    for (let k = 1; k < pts.length; k++) {
+      const a = pts[k - 1], b = pts[k], n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y)));
+      for (let m = 1; m <= n; m++) { const t = m / n; if (hit(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)) return true; }
+    }
+    return false;
+  };
+  const touched = [];
+  for (let i = 0; i < ei; i++) if (isInk(strokes[i]) && hits(bnd(e), bnd(strokes[i]))) touched.push(i);
+  const vc = new Map(), gone = new Set();
+  touched.forEach(i => { const m = inkVisibleMask(strokes, i, vc); if (m && !m.some(Boolean)) gone.add(i); });
+  const drop = new Set(gone);
+  // (b) older passes around the removed ink that no longer touch any ink before them
+  if (gone.size) {
+    for (let j = 0; j < ei; j++) {
+      const er = strokes[j];
+      if (!isEr(er) || !Array.from(gone).some(i => i < j && hits(bnd(er), bnd(strokes[i])))) continue;
+      let any = false;
+      for (let i = 0; i < j && !any; i++) if (!drop.has(i) && isInk(strokes[i]) && touch(er, strokes[i])) any = true;
+      if (!any) drop.add(j);
+    }
+  }
+  // (c) this pass is useful if it reaches a part of remaining ink that other erasers left visible
+  const without = strokes.filter((o, j) => j !== ei);
+  let useful = false;
+  for (const i of touched) {
+    if (drop.has(i)) continue;
+    const cov = inkCoverTester(without, i);
+    if (touch(e, strokes[i], cov ? (x, y) => !cov(x, y) : null)) { useful = true; break; }
+  }
+  if (!useful) drop.add(ei);
+  if (!drop.size) return null;
+  return strokes.filter((o, j) => !drop.has(j));
 }
 /** Per-point visibility of strokes[i] after later eraser strokes (null = eraser/empty). */
 function inkVisibleMask(strokes, i, bc) {

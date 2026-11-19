@@ -350,3 +350,18 @@ restored from the PR #38 merge (1967308). This test fails if index.html is not t
 that the current app starts without errors on a phone that already has notes saved by PR #37 (ffad710)
 and PR #38 (1967308, incl. 연결 전 백업): notes load unchanged, sticky note + ink render, IndexedDB
 copy is not reset.
+
+## 지우개 and 필기 획수 (2026-11-19)
+
+```
+node study/outline/tests/eraser-count-browser.cjs
+```
+
+The eraser is stored as its own stroke (drawn with destination-out), and the list counted every stored
+stroke, so each eraser pass added 1 to "필기 N획". Now the count is the number of ink strokes that are
+still visible (eraser passes and fully erased ink don't count; a partly erased stroke counts once).
+New eraser passes also stop leaving invisible junk: ink they erase completely is removed (with a `del`
+tombstone, same format as before, so other devices and old versions drop it too), older passes that
+then touch no ink are removed, and a pass over empty paper is not stored. Old data is not rewritten
+just by opening it. The test draws, erases fully/partly/over nothing, checks the label and stored
+strokes, undo/redo, and that PR38 (1967308) still opens the data.

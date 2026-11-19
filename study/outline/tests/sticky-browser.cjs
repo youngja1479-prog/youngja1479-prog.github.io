@@ -85,7 +85,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     p = await pg(); assert.equal(p.strokes.length, st0 + 1, 'pen draws outside note');
     await drawMouse('pen', [{ x: nr.x + nr.w / 2, y: nr.y + nr.h / 2 }, { x: nr.x + nr.w / 2 + 30, y: nr.y + nr.h / 2 + 10 }]);
     p = await pg(); assert.equal(p.strokes.length, st0 + 1, 'pen on note must not draw on the sheet'); assert.equal((p.notes[0].k || []).length, 1, 'it writes on the note instead');
-    await drawMouse('eraser', [at(150, 100), at(150, 130)]);
+    // (passes that touch no ink are not stored any more, so the pass grazes the pen dot at 300,110)
+    await drawMouse('eraser', [at(296, 113), at(304, 113)]);
     p = await pg(); assert.equal(p.strokes.filter(x => x.tool === 'eraser').length, 1);
     await drawMouse('lasso', [at(60, 60), at(340, 60), at(340, 160), at(60, 160), at(60, 62)]);
     assert.ok(await page.$$eval('#lasso-svg polyline', a => a.length) >= 1, 'lasso works');
