@@ -64,7 +64,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         assert.ok(await page.$('#btn-sync'), 'UI rendered');
         const loaded = await page.evaluate(() => __gkcSync.getData());
         assert.deepEqual(loaded.notebooks, saved.notebooks, label + ': notes load unchanged');
-        assert.match(await page.evaluate(() => document.body.innerText), /국어/, 'notebook visible on home');
+        // home lists 과목 now: old categories sit under 미분류 › 미분류 (since 과목/수준, PR41)
+        assert.match(await page.evaluate(() => document.body.innerText), /미분류/, '미분류 on home');
+        await page.evaluate(() => __gkcNav.goCats('subj-default', 'lvl-default')); await sleep(100);
+        assert.match(await page.evaluate(() => document.getElementById('nb-grid').innerText), /국어/, 'notebook visible under 미분류');
         // open the page: ink, highlighter, sticky note (with its ink) render without errors
         await page.evaluate(() => { __gkcNav.goMokcha('nb1'); __gkcNav.goSebu('m1'); __gkcNav.goDraw('s1'); }); await sleep(300);
         assert.equal(await page.$eval('#note-layer .sticky textarea', t => t.value), '포스트잇');
@@ -76,8 +79,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           return { app: await get('app'), bk: await get('link-backups') };
         });
         assert.deepEqual(stored.app.notebooks, saved.notebooks, label + ': IndexedDB notes kept');
+        const mig = (stored.bk || []).find(b => b.kind === 'migrate');
+        assert.ok(mig, label + ': automatic backup before the 과목/수준 migration');
+        assert.deepEqual(mig.data.notebooks, saved.notebooks, label + ': backup holds the notes as they were');
         if (label.startsWith('PR38')) {
-          assert.equal(stored.bk.length, 1, 'PR38 backups kept');
+          assert.ok(stored.bk.some(b => b.id === 'bk1'), 'PR38 backups kept');
           await page.evaluate(() => { __gkcNav.goHome && __gkcNav.goHome(); });
           await page.evaluate(() => document.getElementById('btn-sync').click());
           await page.waitForSelector('#m-link-backups', { timeout: 5000 });
