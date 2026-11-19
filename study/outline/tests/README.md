@@ -336,3 +336,17 @@ as a local backup (IndexedDB `link-backups`, last 5); if that fails nothing is c
 which only adds back items that are missing now (fresh ids, so deletion markers cannot hide them
 again) and backs up the current notes first. An empty new device links without a question, as
 before. Server, encryption, Worker and data format are unchanged; the password path is unchanged.
+
+## App starts with existing notes (2026-11-19 outage guard)
+
+```
+node study/outline/tests/startup-existing-data-browser.cjs
+```
+
+On 2026-11-19 20:29 KST three direct commits on main (not PR #38) replaced `study/outline/index.html`
+with a one-line placeholder (`$(cat /tmp/outline-patched.html)` → `<!-- pen recognition improved -->`),
+so the app had no code and did not start; no script ran, so stored notes were not touched. The file was
+restored from the PR #38 merge (1967308). This test fails if index.html is not the whole app, and checks
+that the current app starts without errors on a phone that already has notes saved by PR #37 (ffad710)
+and PR #38 (1967308, incl. 연결 전 백업): notes load unchanged, sticky note + ink render, IndexedDB
+copy is not reset.
