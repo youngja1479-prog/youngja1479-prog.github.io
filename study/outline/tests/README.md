@@ -317,3 +317,22 @@ Worker never sees the code, key or password; guessing the code from the slot id 
 Codes expire after 10 minutes, are single-use (atomic in one Durable Object), closing the window
 cancels the code, and per IP: 20 codes/hour, 12 failed claims/10 min. The password path and the vault
 format/KV keys are unchanged; QR libs (vendor/qr) load only on the linking screens.
+
+## 기준 기기 (which notes win when linking a device that already has notes)
+
+```
+node study/outline/tests/device-link.cjs     # step 12: merge / remote / local, cancel, backup failure, 되살리기
+node study/outline/tests/link-browser.cjs    # 3-way choice by touch, confirm, backup list, restore
+```
+
+After the code/QR is accepted, a new device that already has its own (different) notes asks:
+**🔀 둘 다 합치기** (recommended, union — nothing deleted), **☁️ 연결된 기기 노트로 맞추기** (this
+device takes the cloud notes) or **📱 이 기기 노트로 맞추기** (every device ends with this device's
+notes: items only the cloud has get the normal deletion markers). The two replacing choices show a
+confirm saying what will be replaced; declining returns to the choice, 취소 changes nothing. Before
+anything changes, the device's own notes — and for "이 기기 노트로" also the cloud copy — are saved
+as a local backup (IndexedDB `link-backups`, last 5); if that fails nothing is changed. 동기화 →
+**🗂 연결 전 백업** lists them with ⬇ 파일 저장 (JSON, same as the normal backup file) and **되살리기**,
+which only adds back items that are missing now (fresh ids, so deletion markers cannot hide them
+again) and backs up the current notes first. An empty new device links without a question, as
+before. Server, encryption, Worker and data format are unchanged; the password path is unchanged.
