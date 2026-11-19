@@ -2,24 +2,212 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>펜 인식 장치</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>펜 인식 장치 — GKC 학습노트용</title>
+<style>
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --text: #1a1d23;
+  --text2: #5c6370;
+  --accent: #3b6cf0;
+  --ok: #2a9d6a;
+  --warn: #e5484d;
+  --border: #e2e5ea;
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; font-family: var(--font); background: var(--bg); color: var(--text); }
+#app { display: flex; flex-direction: column; height: 100dvh; }
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+header h1 { font-size: 16px; font-weight: 700; }
+header .status { font-size: 13px; color: var(--text2); margin-left: auto; }
+#info-panel { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 14px; font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; }
+#info-panel .item { display: flex; align-items: center; gap: 6px; }
+#info-panel .label { color: var(--text2); }
+#info-panel .value { font-weight: 600; }
+#info-panel .pen { color: var(--ok); }
+#info-panel .touch { color: var(--warn); }
+#canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #e8e4dc; touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; }
+#toolbar { background: var(--surface); border-top: 1px solid var(--border); padding: 8px 12px; display: flex; gap: 8px; align-items: center; }
+button { font-family: inherit; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#log { position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(255,255,255,0.92); border-radius: 8px; padding: 6px 10px; font-size: 11px; max-height: 80px; overflow: auto; pointer-events: none; font-family: ui-monospace, monospace; }
+</style>
 </head>
 <body>
-<h1>펜 인식 장치</h1>
-<p>펜을 바꿔도 인식되도록 개선된 테스트 페이지입니다.</p>
-<p><a href="../outline/">학습노트로 돌아가기</a></p>
+<div id="app">
+  <header>
+    <h1>🖊 펜 인식 장치</h1>
+    <div class="status" id="status">대기 중 — 펜으로 캔버스를 눌러보세요</div>
+  </header>
+  <div id="info-panel">
+    <div class="item"><span class="label">pointerType</span><span class="value" id="v-type">—</span></div>
+    <div class="item"><span class="label">pressure</span><span class="value" id="v-pressure">—</span></div>
+    <div class="item"><span class="label">pointerId</span><span class="value" id="v-id">—</span></div>
+    <div class="item"><span class="label">tilt</span><span class="value" id="v-tilt">—</span></div>
+    <div class="item"><span class="label">인식</span><span class="value" id="v-recog">—</span></div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div id="log"></div>
+  </div>
+  <div id="toolbar">
+    <button id="btn-clear">지우기</button>
+    <a href="../outline/" style="margin-left:auto;font-size:13px;color:#3b6cf0;text-decoration:none;">← 학습노트로 돌아가기</a>
+  </div>
+</div>
 <script>
-// Improved pen detection logic
-function isLikelyPen(e) {
-  if (e.pointerType === 'pen') return true;
-  if (e.pointerType === 'touch') {
-    const p = e.pressure;
-    if (typeof p === 'number' && p > 0 && p !== 0.5) return true;
-    if (Math.abs(e.tiltX || 0) > 8 || Math.abs(e.tiltY || 0) > 8) return true;
+(function () {
+  'use strict';
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const vType = document.getElementById('v-type');
+  const vPressure = document.getElementById('v-pressure');
+  const vId = document.getElementById('v-id');
+  const vTilt = document.getElementById('v-tilt');
+  const vRecog = document.getElementById('v-recog');
+  let dpr = window.devicePixelRatio || 1;
+  let drawing = false;
+  let currentStroke = null;
+  let strokes = [];
+  let activePenId = null;
+  let palmBlockUntil = 0;
+  let lastLog = '';
+  function resize() {
+    const wrap = document.getElementById('canvas-wrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redraw();
   }
-  return false;
-}
-console.log('Pen recognition helper loaded');
+  function redraw() {
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    for (const s of strokes) drawStroke(s);
+    if (currentStroke) drawStroke(currentStroke);
+  }
+  function drawStroke(stroke) {
+    if (!stroke || !stroke.points || stroke.points.length < 1) return;
+    const pts = stroke.points;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = stroke.color || '#1a1d23';
+    if (stroke.pr) {
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const pr = (typeof b.p === 'number' ? b.p : 0.5);
+        ctx.lineWidth = 1.2 + pr * 4.5;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    } else {
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function posFromEvent(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top, p: (typeof e.pressure === 'number' && e.pressure > 0) ? e.pressure : 0.5 };
+  }
+  function isLikelyPen(e) {
+    if (e.pointerType === 'pen') return true;
+    if (e.pointerType === 'touch') {
+      const p = e.pressure;
+      if (typeof p === 'number' && p > 0 && p !== 0.5) return true;
+      if (Math.abs(e.tiltX || 0) > 8 || Math.abs(e.tiltY || 0) > 8) return true;
+    }
+    return false;
+  }
+  function isPalmRejected(e) {
+    if (e.pointerType !== 'touch') return false;
+    if (activePenId != null) return true;
+    if (performance.now() < palmBlockUntil) return true;
+    return false;
+  }
+  function classify(e) {
+    const type = e.pointerType || 'unknown';
+    const pressure = e.pressure || 0;
+    const tiltX = e.tiltX || 0, tiltY = e.tiltY || 0;
+    let recog = '알 수 없음', cls = '';
+    if (type === 'pen' || isLikelyPen(e)) { recog = '펜 (stylus)'; cls = 'pen'; }
+    else if (type === 'touch') { recog = '손가락 / 터치'; cls = 'touch'; }
+    else if (type === 'mouse') { recog = '마우스'; cls = 'mouse'; }
+    return { type, pressure, tiltX, tiltY, recog, cls, id: e.pointerId };
+  }
+  function updateInfo(info) {
+    vType.textContent = info.type;
+    vType.className = 'value ' + info.cls;
+    vPressure.textContent = info.pressure.toFixed(2);
+    vId.textContent = info.id;
+    vTilt.textContent = info.tiltX.toFixed(0) + '° / ' + info.tiltY.toFixed(0) + '°';
+    vRecog.textContent = info.recog;
+    vRecog.className = 'value ' + info.cls;
+  }
+  function log(msg) {
+    const line = new Date().toLocaleTimeString('ko-KR', { hour12: false }) + '  ' + msg;
+    lastLog = line + '\n' + lastLog;
+    logEl.textContent = lastLog.split('\n').slice(0, 6).join('\n');
+  }
+  function onPointerDown(e) {
+    if (isPalmRejected(e)) { e.preventDefault(); return; }
+    const info = classify(e);
+    updateInfo(info);
+    statusEl.textContent = info.recog + ' 인식됨';
+    if (info.cls === 'pen') activePenId = e.pointerId;
+    drawing = true;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    const p = posFromEvent(e);
+    currentStroke = { tool: 'pen', color: info.cls === 'pen' ? '#1a1d23' : '#3b6cf0', points: [p], pr: info.cls === 'pen' ? 1 : 0 };
+    log('down  type=' + info.type + ' id=' + info.id + ' p=' + info.pressure.toFixed(2) + '  → ' + info.recog);
+    e.preventDefault();
+  }
+  function onPointerMove(e) {
+    if (!drawing || !currentStroke) return;
+    if (isPalmRejected(e) && e.pointerId !== activePenId) return;
+    const info = classify(e);
+    updateInfo(info);
+    currentStroke.points.push(posFromEvent(e));
+    redraw();
+  }
+  function onPointerUp(e) {
+    if (e.pointerId === activePenId) { activePenId = null; palmBlockUntil = performance.now() + 200; }
+    if (!drawing || !currentStroke) return;
+    try {
+      const coalesced = e.getCoalescedEvents && e.getCoalescedEvents();
+      if (coalesced && coalesced.length) {
+        for (const ce of coalesced) currentStroke.points.push(posFromEvent(ce));
+      }
+    } catch (_) {}
+    strokes.push(currentStroke);
+    currentStroke = null;
+    drawing = false;
+    redraw();
+    log('up    type=' + e.pointerType + ' id=' + e.pointerId);
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+  document.getElementById('btn-clear').onclick = function() { strokes = []; currentStroke = null; redraw(); log('캔버스 지움'); };
+  window.addEventListener('resize', resize);
+  resize();
+  log('펜 인식 장치 준비됨. 펜을 바꿔가며 테스트하세요.');
+  statusEl.textContent = '준비됨 — 펜으로 그려보세요';
+})();
 </script>
 </body>
 </html>
