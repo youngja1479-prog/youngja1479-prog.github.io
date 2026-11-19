@@ -134,7 +134,37 @@ const jsQR = jctx.module.exports;
     await pageD.goto(base + '#link=' + code3.replace('-', ''), { waitUntil: 'networkidle0' });
     await pageD.waitForSelector('#m-link-claim'); await pageD.tap('#m-link-claim'); await sleep(1500);
     assert.equal(await pageD.evaluate(() => __gkcSync.getSyncPassword()), null, 'closed code is cancelled');
+    // ---- 기준 기기: a device that already has its own notes gets the choice (touch), backup + restore ----
+    await A.tap('#btn-sync'); await A.waitForSelector('#m-link-show'); await A.tap('#m-link-show');
+    await A.waitForFunction(old => { const t = (document.getElementById('link-code-show') || {}).textContent || ''; return /^[2-9A-HJ-NP-Z]{5}-[2-9A-HJ-NP-Z]{5}$/.test(t) && t !== old; }, { timeout: 15000 }, code3);
+    const code4 = await A.$eval('#link-code-show', e => e.textContent);
+    const ctxE = await bB.createBrowserContext(); const E = await ctxE.newPage(); await preparePage(E, '198.51.100.34');
+    await E.goto(base, { waitUntil: 'networkidle0' });
+    await E.evaluate(() => { __gkcSync.setData({ version: 1, updatedAt: Date.now(), notebooks: [{ id: 'e1', title: '내 폰 노트', type: 'thought', mokchas: [{ id: 'e1m', title: 'm', sebus: [{ id: 'e1s', title: 's', pageHeight: 1200, pages: [{ strokes: [{ id: 'e-ink', tool: 'pen', color: '#111', width: 1.5, points: [{ x: 1, y: 1 }, { x: 9, y: 9 }] }], texts: [] }] }] }] }] }); });
+    await E.goto(base + '#link=' + code4.replace('-', ''), { waitUntil: 'networkidle0' });   // camera-app link
+    await E.waitForSelector('#m-link-claim'); await E.tap('#m-link-claim');
+    await E.waitForSelector('.link-choice', { timeout: 20000 });
+    const choices = await E.$$eval('.link-choice', bs => bs.map(b => { const r = b.getBoundingClientRect(); return { c: b.dataset.c, h: r.height, t: b.textContent }; }));
+    assert.deepEqual(choices.map(c => c.c), ['merge', 'remote', 'local']); assert.ok(choices.every(c => c.h >= 50), 'big touch targets');
+    assert.match(await E.$eval('.modal', m => m.textContent), /이 기기: 노트 1개.*연결된 기기: 노트 1개/s);
+    const dialogs = []; E.on('dialog', d => dialogs.push(d.message()));
+    await E.tap('.link-choice[data-c="remote"]');
+    await E.waitForFunction(() => !!__gkcSync.getSyncPassword(), { timeout: 20000 });
+    assert.ok(dialogs.some(m => /이 기기의 노트.*연결된 기기의 노트.*로 바뀌어요/s.test(m) && /자동 백업/.test(m)), 'confirm says what is replaced');
+    assert.deepEqual(await E.evaluate(() => __gkcSync.getData().notebooks.map(n => n.id)), ['nb1'], 'now the connected device notes');
+    // backup button in 동기화 → list → 되살리기
+    await sleep(300);
+    await E.tap('#btn-sync'); await E.waitForSelector('#m-link-backups', { timeout: 5000 });
+    assert.match(await E.$eval('#m-link-backups', b => b.textContent), /연결 전 백업 \(1\)/);
+    await E.tap('#m-link-backups'); await E.waitForSelector('.link-bk');
+    assert.match(await E.$eval('.link-bk', e => e.textContent), /연결 전 이 기기 노트.*노트 1개/s);
+    assert.ok(await E.$('.link-bk [data-a="file"]'), 'download button');
+    await E.tap('.link-bk [data-a="restore"]');
+    await E.waitForFunction(() => __gkcSync.getData().notebooks.some(n => n.title === '내 폰 노트'), { timeout: 10000 });
+    assert.equal(await E.evaluate(() => __gkcSync.getData().notebooks.length), 2, 'restored next to the synced notes, nothing deleted');
+    // A still has its notes (cloud untouched by "연결된 기기 노트로 맞추기")
+    assert.ok(await A.evaluate(() => __gkcSync.getData().notebooks.some(n => n.id === 'nb1')));
     assert.deepEqual(errors, [], errors.join('; '));
-    console.log('PASS: 기기 연결 (browser) — QR+code on the connected device, fake-camera QR scan links the new phone (notes arrive, no password typed), A sees "연결됐어요", reused code refused, #link= camera-app link fills the code, typed code with auto-format, wrong code refused, sync both ways after linking, closing cancels the code');
+    console.log('PASS: 기기 연결 (browser) — QR+code on the connected device, fake-camera QR scan links the new phone (notes arrive, no password typed), A sees "연결됐어요", reused code refused, #link= camera-app link fills the code, typed code with auto-format, wrong code refused, sync both ways after linking, closing cancels the code; device with own notes gets the 3-way choice, confirm + backup, 되살리기 from 동기화');
   } finally { for (const b of browsers) await b.close(); srv.close(); await mf.dispose(); fs.rmSync(tmp, { recursive: true, force: true }); }
 })().catch(e => { console.error('FAIL', e); process.exitCode = 1; });

@@ -522,6 +522,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .link-code { text-align: center; font: 700 30px/1.2 ui-monospace, Menlo, monospace; letter-spacing: 3px; margin: 4px 0; user-select: all; -webkit-user-select: all; }
 .link-meta { text-align: center; font-size: 13px; color: var(--text2); min-height: 20px; }
 .link-meta.ok { color: var(--ok); font-weight: 700; }
+.link-choices { display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+.link-choice { min-height: 58px; font-size: 16px; text-align: left; padding: 10px 14px !important; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; }
+.link-choice small { font-size: 12px; font-weight: 500; opacity: .8; }
+.link-bk { border: 1px solid var(--border, #e5e5e5); border-radius: 10px; padding: 10px; margin-bottom: 10px; font-size: 13px; }
+.link-bk span { color: var(--text3); font-size: 12px; }
 .link-video { width: 100%; max-height: 50vh; border-radius: 10px; background: #000; object-fit: cover; }
 .sync-warn {
   font-size: 12px; color: var(--text2); line-height: 1.45;
@@ -1706,6 +1711,11 @@ function openSyncModal() {
       <div class="link-row"><button class="btn" id="m-link-scan">📷 QR 찍기</button><button class="btn primary" id="m-link-claim">코드로 연결</button></div>
     </div>`}`);
   wireLinkUI();
+  linkBackups().then(list => {
+    const root = $('.link-box'); if (!list.length || !root || $('#m-link-backups')) return;
+    const b = document.createElement('button'); b.className = 'btn'; b.id = 'm-link-backups'; b.textContent = '🗂 연결 전 백업 (' + list.length + ')';
+    b.style.cssText = 'width:100%;margin-top:10px;min-height:44px'; b.onclick = openLinkBackups; root.appendChild(b);
+  });
   $('#m-cancel').onclick = closeModal;
   const pwInput = $('#sync-pw');
   if (connected && syncPassword) pwInput.value = syncPassword;
@@ -1797,10 +1807,10 @@ function wireLinkUI() {
     if (claim.disabled) return;
     claim.disabled = true; const old = claim.textContent; claim.textContent = '연결 중…';
     let r;
-    try { r = await linkClaim(inp.value); } catch (e) { r = { ok: false, error: '연결하지 못했어요' }; }
+    try { r = await linkClaim(inp.value, openLinkChoice); } catch (e) { r = { ok: false, error: '연결하지 못했어요' }; }
     claim.disabled = false; claim.textContent = old;
-    if (r.ok) { closeModal(); toast('이 기기가 연결됐어요 ✓'); }
-    else toast(r.error);
+    if (r.ok) { closeModal(); if (r.choice === 'auto') toast('이 기기가 연결됐어요 ✓'); }
+    else { toast(r.error); if (r.cancelled) closeModal(); }
   };
   scan.onclick = () => openLinkScan();
   if (pendingLinkCode) { inp.value = linkFormat(pendingLinkCode); pendingLinkCode = null; }
@@ -1888,15 +1898,64 @@ async function openLinkScan() {
     if (code) {
       linkStopScan();
       meta.textContent = '연결 중…';
-      const r = await linkClaim(code);
-      if (r.ok) { closeModal(); toast('이 기기가 연결됐어요 ✓'); }
-      else { toast(r.error); back(null); }
+      const r = await linkClaim(code, openLinkChoice);
+      if (r.ok) { closeModal(); if (r.choice === 'auto') toast('이 기기가 연결됐어요 ✓'); }
+      else { toast(r.error); if (r.cancelled) closeModal(); else back(null); }
       return;
     }
     if (text && meta) meta.textContent = '연결 QR이 아니에요';
     setTimeout(tick, 200);
   };
   tick();
+}
+function openLinkChoice(info) {
+  return new Promise((resolve) => {
+    openModal(`
+      <h3>🔗 어느 노트로 맞출까요?</h3>
+      <p style="font-size:13px;color:var(--text2);line-height:1.45;margin-bottom:10px">
+        이 기기: <b>${linkCountText(info.local)}</b><br>연결된 기기: <b>${linkCountText(info.remote)}</b><br>
+        어떤 걸 골라도 바뀌기 전 노트는 이 기기에 자동 백업돼요.</p>
+      <div class="link-choices">
+        <button class="btn primary link-choice" data-c="merge">🔀 둘 다 합치기 <small>추천 · 아무것도 안 지워져요</small></button>
+        <button class="btn link-choice" data-c="remote">☁️ 연결된 기기 노트로 맞추기 <small>이 기기 노트가 바뀌어요</small></button>
+        <button class="btn link-choice" data-c="local">📱 이 기기 노트로 맞추기 <small>다른 기기 노트가 바뀌어요</small></button>
+      </div>
+      <div class="modal-actions"><button class="btn ghost" id="m-choice-cancel">취소</button></div>`);
+    let done = false;
+    const fin = (v) => { if (done) return; done = true; resolve(v); };
+    document.querySelectorAll('.link-choice').forEach(b => { b.onclick = () => fin(b.dataset.c); });
+    $('#m-choice-cancel').onclick = () => fin(null);
+    const bd = $('#modal-bd'); if (bd) bd.addEventListener('click', (e) => { if (e.target.id === 'modal-bd') fin(null); });
+  });
+}
+function linkDownloadBackup(b) {
+  const blob = new Blob([JSON.stringify(b.data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'gkc-notes-' + (b.kind === 'remote' ? 'cloud' : 'device') + '-backup-' + new Date(b.at).toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+async function openLinkBackups() {
+  const list = await linkBackups();
+  const fmt = t => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  openModal(`
+    <h3>🗂 연결 전 백업</h3>
+    <p style="font-size:12px;color:var(--text3);line-height:1.4;margin-bottom:10px">기기를 연결할 때 바뀌기 전 노트가 여기에 남아요. <b>되살리기</b>는 지금 없는 노트만 다시 넣어요 (지금 노트는 그대로).</p>
+    ${list.length ? list.map(b => `<div class="link-bk" data-id="${esc(b.id)}">
+      <div><b>${esc(b.label)}</b><br><span>${fmt(b.at)} · ${linkCountText(b.counts || linkCounts(b.data))}</span></div>
+      <div class="link-row"><button class="btn" data-a="file">⬇ 파일 저장</button><button class="btn primary" data-a="restore">되살리기</button></div></div>`).join('') : '<p class="link-meta">백업이 없어요</p>'}
+    <div class="modal-actions"><button class="btn primary" id="m-bk-close">닫기</button></div>`);
+  $('#m-bk-close').onclick = closeModal;
+  document.querySelectorAll('.link-bk').forEach(el => {
+    const b = list.find(x => x.id === el.dataset.id);
+    el.querySelector('[data-a="file"]').onclick = () => linkDownloadBackup(b);
+    el.querySelector('[data-a="restore"]').onclick = async () => {
+      if (!confirm(`"${b.label}"에서 지금 없는 노트를 다시 넣을까요?\n지금 있는 노트는 지워지지 않아요.`)) return;
+      const r = await restoreLinkBackup(b.id);
+      closeModal();
+      toast(r.ok ? (r.added ? `${r.added}개를 되살렸어요` : '되살릴 노트가 없어요 (모두 있어요)') : r.error);
+    };
+  });
 }
 let pendingLinkCode = null;
 // QR opened with the phone camera app: #link=CODE → open 동기화 with the code filled in
@@ -1983,7 +2042,7 @@ async function linkStatus(slot) {
 }
 async function linkCancel(slot) { try { await linkCall(slot, '', 'DELETE'); } catch (_) {} }
 // new device: code (or scanned QR text) → connect to the same vault. { ok, error }
-async function linkClaim(input) {
+async function linkClaim(input, chooser) {
   const code = linkNormalize(input);
   if (!code) return { ok: false, error: '코드는 10자리예요 (예: ABCDE-FGH23)' };
   const { slot, key } = await linkKeys(code);
@@ -2000,8 +2059,157 @@ async function linkClaim(input) {
     secret = JSON.parse(new TextDecoder().decode(pt));
   } catch (_) { return { ok: false, error: '코드가 맞지 않아요' }; }
   if (!secret || typeof secret.pw !== 'string' || secret.pw.length < 4) return { ok: false, error: '연결 정보가 올바르지 않아요' };
-  const ok = await connectWithPassword(secret.pw);
-  return ok ? { ok: true } : { ok: false, error: syncLastError || '연결하지 못했어요' };
+  return linkJoin(secret.pw, chooser);
+}
+
+/* ---- 기준 기기 (which notes win when a linked device already has notes) ----
+   merge  : keep both (union, nothing deleted)                       — default/recommended
+   remote : this device takes the connected devices' notes (local notes are backed up first)
+   local  : everyone takes this device's notes (cloud copy is backed up here first; the other
+            devices' extra items get the usual deletion markers so they disappear there too)
+   Every choice first saves a local backup (IndexedDB, max 5) that can be downloaded or restored. */
+const LINK_BACKUP_KEY = 'link-backups', LINK_BACKUP_MAX = 5;
+function linkCounts(d) {
+  let nb = 0, mk = 0, sb = 0, ink = 0;
+  ((d && d.notebooks) || []).forEach(n => { nb++; (n.mokchas || []).forEach(m => { mk++; (m.sebus || []).forEach(x => { sb++; const p = (x.pages || [])[0]; if (p) ink += (p.strokes || []).length + (p.texts || []).length + (p.images || []).length + (p.notes || []).length; }); }); });
+  return { nb, mk, sb, ink };
+}
+function linkCountText(c) { return `노트 ${c.nb}개 · 목차 ${c.mk}개 · 세부 ${c.sb}개`; }
+async function linkBackups() { const v = await idbGet(LINK_BACKUP_KEY); return Array.isArray(v) ? v : []; }
+async function saveLinkBackup(kind, data, label) {
+  const list = await linkBackups();
+  const b = { id: 'bk' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: Date.now(), kind, label, counts: linkCounts(data), data: JSON.parse(JSON.stringify(data)) };
+  list.unshift(b);
+  const ok = await idbSet(LINK_BACKUP_KEY, list.slice(0, LINK_BACKUP_MAX));
+  if (!ok) throw new Error('백업을 저장하지 못했어요');
+  return b;
+}
+// sebu id → sebu, and all notebook/mokcha/sebu ids of a data tree
+function linkIndex(d) {
+  const ids = new Set(), sebus = new Map();
+  ((d && d.notebooks) || []).forEach(n => { ids.add(n.id); (n.mokchas || []).forEach(m => { ids.add(m.id); (m.sebus || []).forEach(x => { ids.add(x.id); sebus.set(x.id, x); }); }); });
+  return { ids, sebus };
+}
+// "이 기기 노트로 맞추기": mark everything only the cloud has as deleted (normal sync tombstones)
+function linkTombstoneOthers(local, remote) {
+  const out = JSON.parse(JSON.stringify(local)), li = linkIndex(out), ri = linkIndex(remote);
+  ri.ids.forEach(id => { if (!li.ids.has(id)) addTomb(out, 'delIds', id); });
+  ri.sebus.forEach((rs, id) => {
+    const ls = li.sebus.get(id); if (!ls) return;
+    const rp = (rs.pages || [])[0]; if (!rp) return;
+    if (!Array.isArray(ls.pages) || !ls.pages.length) ls.pages = [{ strokes: [], texts: [] }];
+    const lp = ls.pages[0];
+    const mark = (field, rArr, lArr, key) => { const have = new Set((lArr || []).map(key)); (rArr || []).forEach(o => { const k = key(o); if (k && !have.has(k)) addTomb(lp, field, k); }); };
+    mark('del', rp.strokes, lp.strokes, strokeKey);
+    mark('delT', rp.texts, lp.texts, o => o && o.id);
+    mark('delI', rp.images, lp.images, o => o && o.id);
+    mark('delN', rp.notes, lp.notes, o => o && o.id);
+  });
+  return out;
+}
+async function linkSaveLocal() {
+  clearTimeout(saveTimer);
+  await idbSet('app', DATA);
+  lsSaveData();
+}
+async function linkJoin(pw, chooser) {
+  const vid = await vaultIdFromPassword(pw);
+  let env;
+  try { env = await syncFetchGet(vid); } catch (e) { return { ok: false, error: syncKoreanError(e) || '서버에 연결할 수 없어요' }; }
+  let remote = null;
+  if (env) { try { remote = await decryptEnvelope(env, pw); } catch (_) { return { ok: false, error: '연결 정보가 올바르지 않아요' }; } }
+  const localHas = dataHasContent(DATA), remoteHas = dataHasContent(remote);
+  // nothing on this device, or identical: nothing can be lost → normal connect
+  if (!localHas || (remoteHas && JSON.stringify(DATA.notebooks) === JSON.stringify(remote.notebooks))) {
+    const ok = await connectWithPassword(pw);
+    return ok ? { ok: true, choice: 'auto' } : { ok: false, error: syncLastError || '연결하지 못했어요' };
+  }
+  let choice = remoteHas ? null : 'upload';
+  while (!choice) {
+    choice = chooser ? await chooser({ local: linkCounts(DATA), remote: linkCounts(remote) }) : 'merge';
+    if (!choice) return { ok: false, cancelled: true, error: '연결을 취소했어요. 다시 하려면 연결된 기기에서 새 코드를 만드세요' };
+    if (choice === 'remote' && !confirm(`이 기기의 노트(${linkCountText(linkCounts(DATA))})가 연결된 기기의 노트(${linkCountText(linkCounts(remote))})로 바뀌어요.\n\n바꾸기 전 이 기기 노트는 자동 백업해 둘게요 (동기화 → 연결 전 백업에서 되살리기·파일 저장).\n\n바꿀까요?`)) choice = null;
+    if (choice === 'local' && !confirm(`연결된 기기들의 노트(${linkCountText(linkCounts(remote))})가 이 기기의 노트(${linkCountText(linkCounts(DATA))})로 바뀌어요. 이 기기에 없는 노트는 다른 기기에서도 지워져요.\n\n바꾸기 전 클라우드 노트는 이 기기에 자동 백업해 둘게요 (동기화 → 연결 전 백업에서 되살리기·파일 저장).\n\n바꿀까요?`)) choice = null;
+  }
+  try {
+    await saveLinkBackup('local', DATA, '연결 전 이 기기 노트');
+    if (choice === 'local') await saveLinkBackup('remote', remote, '연결 전 연결된 기기(클라우드) 노트');
+  } catch (e) { return { ok: false, error: e.message + ' — 아무것도 바꾸지 않았어요' }; }
+  const remoteAt = (env && env.updatedAt != null ? env.updatedAt : (remote && remote.updatedAt)) || 0;
+  syncBusy = true; syncLastError = ''; updateSyncStatusUI('syncing');
+  if (choice === 'remote') {
+    await applyRemoteData(remote);
+    syncVaultId = vid; rememberSyncPassword(pw);
+    syncPendingPush = false; syncBusy = false; updateSyncStatusUI('synced');
+    toast('연결된 기기 노트로 맞췄어요 (이전 노트는 백업됨)');
+    return { ok: true, choice };
+  }
+  if (choice === 'local') DATA = linkTombstoneOthers(DATA, remote);
+  else if (choice === 'merge') DATA = mergeLocalRemote(DATA, remote, remoteAt, DATA.updatedAt || 0).data;
+  DATA.updatedAt = Math.max(Date.now(), remoteAt + 1, (DATA.updatedAt || 0) + 1);
+  await linkSaveLocal();
+  syncApplyingRemote = true; try { reRenderAfterSync(); } finally { syncApplyingRemote = false; }
+  syncVaultId = vid; rememberSyncPassword(pw);
+  syncBusy = false;
+  await syncPushNow();
+  toast(choice === 'local' ? '이 기기 노트로 맞췄어요 (클라우드 노트는 백업됨)' : (choice === 'merge' ? '두 기기 노트를 합쳤어요' : '이 기기 노트를 올렸어요'));
+  return { ok: true, choice };
+}
+// 되살리기: add back whatever the backup has that is missing now (fresh ids, so deletion
+// markers cannot remove it again). Never deletes or changes anything that exists now.
+function linkNewId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function linkReId(x) {
+  const c = JSON.parse(JSON.stringify(x));
+  const walk = (o) => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (!o || typeof o !== 'object') return;
+    if (typeof o.id === 'string' || typeof o.id === 'number') o.id = linkNewId();
+    ['del', 'delT', 'delI', 'delN', 'delIds', 'ord', 'ordAt', 'dk'].forEach(f => { delete o[f]; });
+    Object.keys(o).forEach(k => { if (k !== 'points') walk(o[k]); });
+  };
+  walk(c);
+  return c;
+}
+function linkRestoreInto(cur, bk) {
+  const out = JSON.parse(JSON.stringify(cur)); let added = 0;
+  const tomb = new Set(out.delIds || []);
+  const live = (arr, id) => (arr || []).find(x => x && x.id === id && !tomb.has(id));
+  if (!Array.isArray(out.notebooks)) out.notebooks = [];
+  (bk.notebooks || []).forEach(bn => {
+    const n = live(out.notebooks, bn.id);
+    if (!n) { out.notebooks.push(linkReId(bn)); added++; return; }
+    if (!Array.isArray(n.mokchas)) n.mokchas = [];
+    (bn.mokchas || []).forEach(bm => {
+      const m = live(n.mokchas, bm.id);
+      if (!m) { n.mokchas.push(linkReId(bm)); added++; return; }
+      if (!Array.isArray(m.sebus)) m.sebus = [];
+      (bm.sebus || []).forEach(bs => {
+        const x = live(m.sebus, bs.id);
+        if (!x) { m.sebus.push(linkReId(bs)); added++; return; }
+        const bp = (bs.pages || [])[0]; if (!bp) return;
+        if (!Array.isArray(x.pages) || !x.pages.length) x.pages = [{ strokes: [], texts: [] }];
+        const p = x.pages[0];
+        const back = (field, tombF, key) => {
+          const have = new Set((p[field] || []).map(key)), t = new Set(p[tombF] || []);
+          (bp[field] || []).forEach(o => { const k = key(o); if (k && have.has(k) && !t.has(k)) return; if (!Array.isArray(p[field])) p[field] = []; p[field].push(Object.assign(linkReId(o), field === 'strokes' && !o.id ? { id: linkNewId() } : {})); added++; });
+        };
+        back('strokes', 'del', strokeKey); back('texts', 'delT', o => o && o.id); back('images', 'delI', o => o && o.id); back('notes', 'delN', o => o && o.id);
+        if ((bs.pageHeight || 0) > (x.pageHeight || 0)) x.pageHeight = bs.pageHeight;
+      });
+    });
+  });
+  return { data: out, added };
+}
+async function restoreLinkBackup(id) {
+  const b = (await linkBackups()).find(x => x.id === id); if (!b) return { ok: false, error: '백업을 찾을 수 없어요' };
+  const r = linkRestoreInto(DATA, b.data);
+  if (!r.added) return { ok: true, added: 0 };
+  await saveLinkBackup('local', DATA, '되살리기 전 이 기기 노트');
+  DATA = r.data; DATA.updatedAt = Math.max(Date.now(), (DATA.updatedAt || 0) + 1);
+  await linkSaveLocal();
+  syncApplyingRemote = true; try { reRenderAfterSync(); } finally { syncApplyingRemote = false; }
+  if (syncPassword) queueSyncPush(500);
+  return { ok: true, added: r.added };
 }
 
 /* ========== State ========== */
@@ -5315,6 +5523,7 @@ async function boot() {
   goHome();
   tryAutoReconnect();
   checkLinkHash();
+  window.addEventListener('hashchange', checkLinkHash);   // link opened while the app is already open
 }
 
 boot();

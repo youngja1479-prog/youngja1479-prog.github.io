@@ -46,7 +46,9 @@ function device(name, mf, ip = '198.51.100.7', clockSkew = 0) {
     const defaultData = () => ({ version: 1, notebooks: [], updatedAt: 0 });
     var DATA = defaultData(); var saveTimer = null;
     const state = { view: 'draw', drawing: false, nbId: 'nb1', mokId: 'm1', sebuId: 's1' };
-    async function idbSet() { return true; }
+    const __idb = {}; let idbFail = false;
+    async function idbSet(k, v) { if (idbFail && k === 'link-backups') return false; __idb[k] = v; return true; }
+    async function idbGet(k) { return __idb[k] || null; }
     async function lsSaveData() {}
     function renderHome(){} function renderMokcha(){} function renderSebu(){} function renderTree(){} function goHome(){}
     function getSebu() { const n = DATA.notebooks.find(x => x.id === 'nb1'); const m = n && n.mokchas.find(x => x.id === 'm1'); return m && m.sebus.find(x => x.id === 's1'); }
@@ -54,7 +56,7 @@ function device(name, mf, ip = '198.51.100.7', clockSkew = 0) {
     function openModal(){} function closeModal(){}
   ` + syncBlock + `
     globalThis.api = { get DATA() { return DATA; }, set DATA(d) { DATA = d; },
-      connectWithPassword, linkOffer, linkClaim, linkStatus, linkCancel, linkNormalize, linkUrl, linkFormat, get syncPassword() { return syncPassword; }, syncPushNow, syncPullAndMaybeApply, syncNowManual, decryptEnvelope, encryptData,
+      connectWithPassword, linkOffer, linkClaim, linkBackups, restoreLinkBackup, setIdbFail(v) { idbFail = v; }, linkStatus, linkCancel, linkNormalize, linkUrl, linkFormat, get syncPassword() { return syncPassword; }, syncPushNow, syncPullAndMaybeApply, syncNowManual, decryptEnvelope, encryptData,
       st: () => ({ syncBusy, syncPendingPush, syncConflicts, syncLastError }) };
   `, ctx);
   const api = ctx.api;
@@ -171,10 +173,93 @@ const VENDOR = path.join(__dirname, '../vendor/qr');
     const late = device('late', mfShort, '198.51.100.21');
     r = await late.linkClaim(o4.code); assert.equal(r.ok, false); assert.match(r.error, /시간이 지났/); assert.equal(late.syncPassword, null);
     assert.equal(await tShort.linkStatus(o4.slot), 'gone');
+    // 12) 기준 기기: the new device already has its own notes → it is asked, every choice backs up first
+    const nbOf = (id, n, tag) => ({ id, title: id, mokchas: [{ id: id + '-m', title: 'm', sebus: [{ id: id + '-s', title: 's', pageHeight: 1200,
+      pages: [{ strokes: Array.from({ length: n }, (_, i) => ({ id: tag + i, tool: 'pen', color: '#111', width: 1.5, points: [{ x: i, y: i }, { x: i + 5, y: i + 5 }] })), texts: [] }] }] }] });
+    const nbIds = d => d.DATA.notebooks.map(n => n.id).sort().join(',');
+    const pullAll = async (...ds) => { for (const d of ds) { await d.syncPullAndMaybeApply({}); await idle(d); } };
+    const cloudIds = async () => { await pullAll(tablet); return nbIds(tablet); };
+    const before = await cloudIds();                       // 'nb1'
+    let asked = null;
+    // 12a) merge (keep both): nothing deleted anywhere
+    const dm = device('dev-merge', mf, '198.51.100.40'); dm.DATA = { version: 1, updatedAt: Date.now() - 1000, notebooks: [nbOf('mine-m', 3, 'mm')] };
+    let oc = await tablet.linkOffer();
+    r = await dm.linkClaim(oc.code, async (info) => { asked = info; return 'merge'; });
+    assert.equal(r.ok, true, r.error); assert.equal(r.choice, 'merge'); await idle(dm);
+    assert.equal(JSON.stringify(asked.local), JSON.stringify({ nb: 1, mk: 1, sb: 1, ink: 3 })); assert.equal(asked.remote.nb, 1);
+    assert.equal(nbIds(dm), [before, 'mine-m'].sort().join(','));
+    assert.equal(await cloudIds(), nbIds(dm), 'cloud has both');
+    let bks = await dm.linkBackups(); assert.equal(bks.length, 1); assert.equal(bks[0].kind, 'local'); assert.equal(bks[0].data.notebooks[0].id, 'mine-m');
+    // 12b) cancel → nothing changed, not connected, no backup
+    const dc = device('dev-cancel', mf, '198.51.100.41'); dc.DATA = { version: 1, updatedAt: 5, notebooks: [nbOf('keep-c', 2, 'kc')] };
+    const dcBefore = JSON.stringify(dc.DATA);
+    oc = await tablet.linkOffer();
+    r = await dc.linkClaim(oc.code, async () => null);
+    assert.equal(r.ok, false); assert.equal(r.cancelled, true); assert.equal(JSON.stringify(dc.DATA), dcBefore); assert.equal(dc.syncPassword, null);
+    assert.equal((await dc.linkBackups()).length, 0);
+    // 12c) backup cannot be saved → nothing changed
+    const df = device('dev-fail', mf, '198.51.100.42'); df.DATA = { version: 1, updatedAt: 5, notebooks: [nbOf('keep-f', 2, 'kf')] }; df.setIdbFail(true);
+    const dfBefore = JSON.stringify(df.DATA);
+    oc = await tablet.linkOffer();
+    r = await df.linkClaim(oc.code, async () => 'remote');
+    assert.equal(r.ok, false); assert.match(r.error, /백업을 저장하지 못했어요/); assert.equal(JSON.stringify(df.DATA), dfBefore); assert.equal(df.syncPassword, null);
+    // 12d) "연결된 기기 노트로 맞추기": confirm declined first → asked again; then local notes replaced, backed up, cloud untouched
+    const dr = device('dev-remote', mf, '198.51.100.43'); dr.DATA = { version: 1, updatedAt: Date.now() + 99999, notebooks: [nbOf('mine-r', 4, 'mr')] };
+    const cloudBefore = await cloudIds();
+    let asks = 0, confirms = []; dr.ctx.confirm = (m) => { confirms.push(m); return confirms.length > 1; };
+    oc = await tablet.linkOffer();
+    r = await dr.linkClaim(oc.code, async () => { asks++; return 'remote'; });
+    assert.equal(r.ok, true, r.error); assert.equal(asks, 2, 'declined confirm → choose again'); await idle(dr);
+    assert.match(confirms[0], /이 기기의 노트\(노트 1개 · 목차 1개 · 세부 1개\)가 연결된 기기의 노트/); assert.match(confirms[0], /자동 백업/);
+    assert.equal(nbIds(dr), cloudBefore, 'device now has the cloud notes');
+    await pullAll(dr); assert.equal(await cloudIds(), cloudBefore, 'cloud unchanged (even though this device was "newer")');
+    bks = await dr.linkBackups(); assert.equal(bks[0].data.notebooks[0].id, 'mine-r'); assert.equal(bks[0].counts.ink, 4);
+    // ... and 되살리기 brings the old notes back (new ids), deleting nothing
+    const rr = await dr.restoreLinkBackup(bks[0].id); assert.equal(rr.ok, true); assert.equal(rr.added, 1);
+    await new Promise(res => setTimeout(res, 100)); await dr.syncPushNow(); await idle(dr);
+    assert.equal(dr.DATA.notebooks.length, cloudBefore.split(',').length + 1);
+    const restored = dr.DATA.notebooks.find(n => n.title === 'mine-r'); assert.ok(restored && restored.id !== 'mine-r', 'restored with a fresh id');
+    assert.equal(restored.mokchas[0].sebus[0].pages[0].strokes.length, 4);
+    await pullAll(tablet); assert.ok(tablet.DATA.notebooks.some(n => n.title === 'mine-r'), 'restored notes sync to the other device');
+    assert.equal((await dr.linkBackups())[0].label, '되살리기 전 이 기기 노트', 'restore itself is backed up first');
+    // 12e) "이 기기 노트로 맞추기": every device ends with this device's notes; the cloud copy is backed up here
+    const dl = device('dev-local', mf, '198.51.100.44');
+    // this device: a copy of the shared notebook with 2 strokes removed + its own notebook
+    await pullAll(tablet);
+    const shared = JSON.parse(JSON.stringify(tablet.DATA.notebooks.find(n => n.id === 'nb1')));
+    const sp = shared.mokchas[0].sebus[0].pages[0], gone = sp.strokes.slice(0, 2).map(x => x.id); sp.strokes = sp.strokes.slice(2);
+    dl.DATA = { version: 1, updatedAt: 10, notebooks: [shared, nbOf('mine-l', 2, 'ml')] };
+    const cloudFull = JSON.parse(JSON.stringify(tablet.DATA));
+    confirms = []; dl.ctx.confirm = (m) => { confirms.push(m); return true; };
+    oc = await tablet.linkOffer();
+    r = await dl.linkClaim(oc.code, async () => 'local');
+    assert.equal(r.ok, true, r.error); await idle(dl);
+    assert.match(confirms[0], /이 기기에 없는 노트는 다른 기기에서도 지워져요/);
+    bks = await dl.linkBackups();
+    assert.equal(bks.map(b => b.kind).sort().join(), 'local,remote');
+    assert.equal(JSON.stringify(bks.find(b => b.kind === 'remote').data.notebooks.map(n => n.id).sort()), JSON.stringify(cloudFull.notebooks.map(n => n.id).sort()), 'cloud copy backed up');
+    await pullAll(tablet, dr, phone);
+    for (const d of [tablet, dr, phone]) {
+      assert.equal(nbIds(d), 'mine-l,nb1', d.name + ' has exactly this device\'s notebooks');
+      const ids = new Set(d.DATA.notebooks.find(n => n.id === 'nb1').mokchas[0].sebus[0].pages[0].strokes.map(x => x.id));
+      assert.ok(gone.every(g => !ids.has(g)), d.name + ': strokes this device did not have are gone');
+      assert.equal(ids.size, sp.strokes.length);
+    }
+    // restore the cloud backup on this device → everything comes back to everyone (fresh ids)
+    const rb = await dl.restoreLinkBackup(bks.find(b => b.kind === 'remote').id); assert.equal(rb.ok, true); assert.ok(rb.added >= 3, 'added ' + rb.added);
+    await new Promise(res => setTimeout(res, 100)); await dl.syncPushNow(); await idle(dl); await pullAll(tablet);
+    const tAll = tablet.DATA.notebooks.flatMap(n => n.mokchas.flatMap(m => m.sebus.flatMap(x => x.pages[0].strokes))).length;
+    const cAll = cloudFull.notebooks.flatMap(n => n.mokchas.flatMap(m => m.sebus.flatMap(x => x.pages[0].strokes))).length;
+    assert.ok(tAll >= cAll, `all strokes back (${tAll} ≥ ${cAll})`);
+    assert.ok(tablet.DATA.notebooks.some(n => n.title === 'mine-r') && tablet.DATA.notebooks.some(n => n.title === 'mine-m'));
+    // 12f) empty new device: no question, as before
+    const de = device('dev-empty', mf, '198.51.100.45'); let qn = 0;
+    oc = await tablet.linkOffer();
+    r = await de.linkClaim(oc.code, async () => { qn++; return 'merge'; }); assert.equal(r.ok, true); assert.equal(qn, 0); assert.equal(r.choice, 'auto');
     // 11) the vault itself was never touched by linking: same KV keys/revisions as plain sync
     const kv = await mf.getKVNamespace('NOTES');
     const keys = (await kv.list()).keys.map(k => k.name);
     assert.ok(keys.every(k => /^[0-9a-f]{64}$/.test(k)), 'linking stores nothing in the notes KV');
-    console.log('PASS: 기기 연결 — code+QR (real QR roundtrip, jsQR), server sees only slot+ciphertext, wrong/short code refused, link → same vault without password, reuse refused, cancel, expiry, claim+offer rate limits, two-device sync after linking, password path unchanged');
+    console.log('PASS: 기기 연결 — code+QR (real QR roundtrip, jsQR), server sees only slot+ciphertext, wrong/short code refused, link → same vault without password, reuse refused, cancel, expiry, claim+offer rate limits, two-device sync after linking, password path unchanged; 기준 기기 choice (merge / 연결된 기기 / 이 기기) with confirm + automatic backup, cancel and backup failure change nothing, 되살리기 restores without deleting');
   } finally { await mf.dispose(); await mfShort.dispose(); }
 })().catch(e => { console.error('FAIL', e); process.exitCode = 1; });
