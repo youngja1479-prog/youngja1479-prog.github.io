@@ -365,3 +365,24 @@ tombstone, same format as before, so other devices and old versions drop it too)
 then touch no ink are removed, and a pass over empty paper is not stored. Old data is not rewritten
 just by opening it. The test draws, erases fully/partly/over nothing, checks the label and stored
 strokes, undo/redo, and that PR38 (1967308) still opens the data.
+
+## 과목 → 수준 → 카테고리 (PR41)
+
+```
+node study/outline/tests/subject-level-browser.cjs
+MINIFLARE_PATH=… node study/outline/tests/subject-level-sync.cjs
+```
+
+Data (additive; older apps ignore it and keep listing every category):
+`DATA.subjects = [{ id, title, u, ordAt, levels: [{ id, title, u }] }]`, `DATA.subjOrdAt`, and on a
+category `sl = { s, l, st, lt, at }` (st/lt = title copies used only if the registry entry got lost).
+A category without `sl`, or whose 과목/수준 is gone, is shown under 미분류 (fixed ids `subj-default` /
+`lvl-default`, so two devices never create two). Deleted 과목/수준 use the shared `delIds` tombstones.
+Merge: newer `u` wins a title, levels/subjects union by id, order by `ordAt`/`subjOrdAt`, a category's
+place by `sl.at`; a copy without `sl` (older app) never clears it. First start of the new app on a
+device with notes: automatic local backup (동기화 → 연결 전 백업, kind `migrate`), then only the 미분류
+registry entry is added — categories are not rewritten. Deleting a 과목/수준 that holds any 노트 is
+refused; an empty one is deleted after a confirm with 되돌리기 (fresh ids).
+The browser test migrates PR38/PR40 data, does touch CRUD/move/breadcrumbs/delete safety and has the
+PR40 app open and edit the new data. The sync test runs new and PR40 sync code against the real Worker,
+including an old device with a stale copy whose merge drops the new fields (the new app restores them).

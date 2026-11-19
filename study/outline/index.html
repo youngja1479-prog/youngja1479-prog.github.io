@@ -49,6 +49,10 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 .topbar h1 { font-size: 16px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .crumb { font-size: 13px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumb .cr-link { color: var(--accent); font-weight: 600; cursor: pointer; padding: 10px 2px; }
+.toast.has-act { pointer-events: auto; display: flex; align-items: center; gap: 12px; }
+.toast .toast-act { color: #9cc0ff; font-weight: 700; min-height: 36px; padding: 0 6px; }
+.move-pick select { width: 100%; height: 44px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; font-size: 15px; background: var(--surface); color: var(--text); }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
@@ -573,6 +577,36 @@ button:disabled { opacity: .4; cursor: not-allowed; }
         <p>손으로 쓰는 학습 노트. 사고 과정과 개념 정리를 체계적으로 정리하세요.</p>
       </div>
       <div class="section-head">
+        <h2>과목</h2>
+        <button class="btn primary" id="btn-new-subj">＋ 과목</button>
+      </div>
+      <div id="subj-list" class="item-list"></div>
+    </div>
+  </div>
+
+  <!-- 수준 LIST (in a 과목) -->
+  <div id="view-levels" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-levels" title="뒤로">←</button>
+      <div class="crumb" id="levels-crumb"></div>
+      <button class="btn primary sm" id="btn-new-level">＋ 수준</button>
+    </div>
+    <div class="view-body">
+      <div class="section-head">
+        <h2 id="levels-heading">수준</h2>
+      </div>
+      <div id="level-list" class="item-list"></div>
+    </div>
+  </div>
+
+  <!-- 카테고리 (notebooks) in a 과목 › 수준 -->
+  <div id="view-cats" class="view hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-back-cats" title="뒤로">←</button>
+      <div class="crumb" id="cats-crumb"></div>
+    </div>
+    <div class="view-body">
+      <div class="section-head">
         <h2>내 노트</h2>
         <button class="btn primary" id="btn-new-nb">＋ 새 노트</button>
       </div>
@@ -714,6 +748,7 @@ const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
 function toast(msg) {
   const t = $('#toast');
   t.textContent = msg;
+  t.classList.remove('has-act');
   t.classList.add('show');
   clearTimeout(t._tm);
   t._tm = setTimeout(() => t.classList.remove('show'), 2200);
@@ -1256,6 +1291,11 @@ function mergeData(base, other) {
   if (tomb.size) m.delIds = Array.from(tomb).slice(-TOMB_MAX);
   m.notebooks = mergeKids(base.notebooks, other.notebooks, tomb, (bn, on, st) => {
     const n = Object.assign({}, bn);
+    // 과목/수준 자리 (sl): the later move wins; a copy without sl (older app) never clears it
+    if (on.sl && (!bn.sl || (on.sl.at || 0) > (bn.sl.at || 0))) {
+      if (JSON.stringify(on.sl) !== JSON.stringify(bn.sl)) st.n++;
+      n.sl = on.sl;
+    }
     n.mokchas = mergeKids(bn.mokchas, on.mokchas, tomb, (bm, om, st2) => {
       const k = Object.assign({}, bm);
       k.sebus = mergeKids(bm.sebus, om.sebus, tomb, mergeSebu, st2);
@@ -1265,7 +1305,30 @@ function mergeData(base, other) {
     mergeOrder(n, 'mokchas', bn, on, st);
     return n;
   }, stat);
+  if (Array.isArray(base.subjects) || Array.isArray(other.subjects)) mergeSubjects(m, base, other, tomb, stat);
   return { data: m, added: stat.n };
+}
+/* 과목 → 수준 (additive; older apps ignore these and keep showing every category):
+   DATA.subjects = [{ id, title, u, ordAt, levels: [{ id, title, u }] }], DATA.subjOrdAt
+   category.sl = { s: subject id, l: level id, st, lt: title copies (fallback only), at }
+   Deleted subjects/levels go into the shared delIds tombstones like every other item. */
+function mergeTitled(a, b, stat) {
+  const bn = (b.u || 0) > (a.u || 0);
+  if (bn && b.title !== a.title) stat.n++;
+  return Object.assign({}, a, bn ? { title: b.title, u: b.u } : {});
+}
+function mergeSubjects(m, base, other, tomb, stat) {
+  m.subjects = mergeKids(base.subjects, other.subjects, tomb, (a, b, st) => {
+    const k = mergeTitled(a, b, st);
+    k.levels = mergeKids(a.levels, b.levels, tomb, mergeTitled, st);
+    mergeOrder(k, 'levels', a, b, st);
+    return k;
+  }, stat);
+  const ba = base.subjOrdAt || 0, oa = other.subjOrdAt || 0;
+  if (oa > ba && Array.isArray(other.subjects)) {
+    if (reorderByIds(m.subjects, other.subjects.map(x => x && x.id))) stat.n++;
+    m.subjOrdAt = oa;
+  } else if (ba || oa) m.subjOrdAt = Math.max(ba, oa);
 }
 // Combine local DATA with remote; returns {data, addedFromRemote, addedFromLocal}
 function mergeLocalRemote(local, remote, remoteAt, localAt) {
@@ -1382,6 +1445,8 @@ function dataHasContent(d) {
 
 function reRenderAfterSync() {
   if (state.view === 'home') renderHome();
+  else if (state.view === 'levels') renderLevels();
+  else if (state.view === 'cats') renderCats();
   else if (state.view === 'mokcha') renderMokcha();
   else if (state.view === 'sebu') renderSebu();
   else if (state.view === 'tree') renderTree();
@@ -2088,6 +2153,7 @@ async function saveLinkBackup(kind, data, label) {
 function linkIndex(d) {
   const ids = new Set(), sebus = new Map();
   ((d && d.notebooks) || []).forEach(n => { ids.add(n.id); (n.mokchas || []).forEach(m => { ids.add(m.id); (m.sebus || []).forEach(x => { ids.add(x.id); sebus.set(x.id, x); }); }); });
+  ((d && d.subjects) || []).forEach(su => { if (!su) return; ids.add(su.id); (su.levels || []).forEach(l => { if (l) ids.add(l.id); }); });
   return { ids, sebus };
 }
 // "이 기기 노트로 맞추기": mark everything only the cloud has as deleted (normal sync tombstones)
@@ -2175,9 +2241,10 @@ function linkRestoreInto(cur, bk) {
   const tomb = new Set(out.delIds || []);
   const live = (arr, id) => (arr || []).find(x => x && x.id === id && !tomb.has(id));
   if (!Array.isArray(out.notebooks)) out.notebooks = [];
+  const restoredNbs = [];
   (bk.notebooks || []).forEach(bn => {
     const n = live(out.notebooks, bn.id);
-    if (!n) { out.notebooks.push(linkReId(bn)); added++; return; }
+    if (!n) { const c = linkReId(bn); out.notebooks.push(c); restoredNbs.push(c); added++; return; }
     if (!Array.isArray(n.mokchas)) n.mokchas = [];
     (bn.mokchas || []).forEach(bm => {
       const m = live(n.mokchas, bm.id);
@@ -2198,6 +2265,28 @@ function linkRestoreInto(cur, bk) {
       });
     });
   });
+  // 과목/수준 missing now come back (fresh ids); restored categories keep pointing at them
+  if (Array.isArray(bk.subjects) && bk.subjects.length) {
+    const map = new Map();
+    if (!Array.isArray(out.subjects)) out.subjects = [];
+    bk.subjects.forEach(bsu => {
+      if (!bsu || !bsu.id) return;
+      let su = live(out.subjects, bsu.id);
+      if (!su) {
+        su = { id: bsu.id === 'subj-default' ? bsu.id : linkNewId(), title: bsu.title, u: bsu.u || 0, levels: [] }; // 미분류 keeps its fixed id
+        out.subjects.push(su); map.set(bsu.id, su.id); added++;
+      } else map.set(bsu.id, su.id);
+      if (!Array.isArray(su.levels)) su.levels = [];
+      (bsu.levels || []).forEach(bl => {
+        if (!bl || !bl.id) return;
+        if (live(su.levels, bl.id)) { map.set(bl.id, bl.id); return; }
+        const id = bl.id === 'lvl-default' ? bl.id : linkNewId(); su.levels.push({ id, title: bl.title, u: bl.u || 0 }); map.set(bl.id, id); added++;
+      });
+    });
+    restoredNbs.forEach(n => {
+      if (n.sl && map.has(n.sl.s) && map.has(n.sl.l)) n.sl = Object.assign({}, n.sl, { s: map.get(n.sl.s), l: map.get(n.sl.l), at: Date.now() });
+    });
+  }
   return { data: out, added };
 }
 async function restoreLinkBackup(id) {
@@ -2287,12 +2376,27 @@ function showView(name) {
 
 function goHome() {
   state.nbId = state.mokId = state.sebuId = null;
+  state.subjId = state.lvlId = null;
   showView('home');
   renderHome();
+}
+function goLevels(subjId) {
+  state.subjId = subjId; state.lvlId = null;
+  state.nbId = state.mokId = state.sebuId = null;
+  showView('levels');
+  renderLevels();
+}
+function goCats(subjId, lvlId) {
+  state.subjId = subjId; state.lvlId = lvlId;
+  state.nbId = state.mokId = state.sebuId = null;
+  showView('cats');
+  renderCats();
 }
 
 function goMokcha(nbId) {
   state.nbId = nbId;
+  const nbx = DATA.notebooks.find(n => n.id === nbId);
+  if (nbx) { const pl = nbPlace(nbx); state.subjId = pl.s; state.lvlId = pl.l; }
   state.mokId = state.sebuId = null;
   showView('mokcha');
   renderMokcha();
@@ -2346,10 +2450,206 @@ const TEMPLATES = {
   }
 };
 
-/* ========== Render: Home ========== */
+/* ========== 과목 → 수준 (model, migration, CRUD) ========== */
+// Categories with no (or an unknown/deleted) 과목·수준 — made by older app versions or other
+// devices on them — are shown under 미분류, so nothing ever disappears from the list.
+const SUBJ_DEFAULT = 'subj-default', LVL_DEFAULT = 'lvl-default', SUBJ_DEFAULT_TITLE = '미분류';
+const SUBJ_MIG_KEY = 'subj-migration';
+let subjMigrated = false;
+function subjTomb() { return new Set(DATA.delIds || []); }
+/** Display model: live subjects (+ 미분류 and any place a category points to whose registry entry
+    was lost, e.g. merged away by an older app). Pure — never writes DATA. */
+function subjModel() {
+  const tomb = subjTomb();
+  const list = [];
+  (Array.isArray(DATA.subjects) ? DATA.subjects : []).forEach(su => {
+    if (!su || !su.id || tomb.has(su.id) || list.some(x => x.id === su.id)) return;
+    const lv = [];
+    (Array.isArray(su.levels) ? su.levels : []).forEach(l => { if (l && l.id && !tomb.has(l.id) && !lv.some(x => x.id === l.id)) lv.push({ id: l.id, title: l.title || '', ref: l }); });
+    list.push({ id: su.id, title: su.title || '', ref: su, levels: lv });
+  });
+  let def = list.find(x => x.id === SUBJ_DEFAULT);
+  if (!def) { def = { id: SUBJ_DEFAULT, title: SUBJ_DEFAULT_TITLE, ref: null, levels: [] }; list.unshift(def); }
+  if (!def.levels.some(l => l.id === LVL_DEFAULT)) def.levels.unshift({ id: LVL_DEFAULT, title: SUBJ_DEFAULT_TITLE, ref: null });
+  DATA.notebooks.forEach(nb => {
+    const sl = nb && nb.sl;
+    if (!sl || !sl.s || !sl.l || tomb.has(sl.s) || tomb.has(sl.l)) return;
+    let su = list.find(x => x.id === sl.s);
+    if (!su) { su = { id: sl.s, title: sl.st || '과목', ref: null, levels: [] }; list.push(su); }
+    if (!su.levels.some(l => l.id === sl.l)) su.levels.push({ id: sl.l, title: sl.lt || '수준', ref: null });
+  });
+  return list;
+}
+/** Where a category is shown: its 과목/수준 if both still exist, otherwise 미분류. */
+function nbPlace(nb, model) {
+  const m = model || subjModel(), sl = nb && nb.sl;
+  if (sl) { const su = m.find(x => x.id === sl.s); if (su && su.levels.some(l => l.id === sl.l)) return { s: sl.s, l: sl.l }; }
+  return { s: SUBJ_DEFAULT, l: LVL_DEFAULT };
+}
+function nbsIn(s, l, model) { const m = model || subjModel(); return DATA.notebooks.filter(nb => { const p = nbPlace(nb, m); return p.s === s && (l == null || p.l === l); }); }
+// 미분류 is shown only while it holds something or was renamed / has own levels
+function subjShown(su, model) {
+  if (su.id !== SUBJ_DEFAULT) return true;
+  return nbsIn(su.id, null, model).length > 0 || (su.ref && su.ref.u) || su.levels.some(l => l.id !== LVL_DEFAULT);
+}
+function lvlShown(su, l, model) {
+  if (l.id !== LVL_DEFAULT) return true;
+  return nbsIn(su.id, l.id, model).length > 0 || (l.ref && l.ref.u) || su.levels.length === 1;
+}
+/** First time on this device: automatic local backup, then add the 미분류 registry entry.
+    Categories themselves are not rewritten (no sl = 미분류). Returns false if the backup failed. */
+async function subjReady() {
+  if (subjMigrated) return true;
+  if (Array.isArray(DATA.subjects) && DATA.subjects.length) { subjMigrated = true; return true; } // already set up (here or via sync): no I/O at start
+  const mark = await idbGet(SUBJ_MIG_KEY);
+  if (!mark && !(Array.isArray(DATA.subjects) && DATA.subjects.length) && dataHasContent(DATA)) {
+    try { await saveLinkBackup('migrate', DATA, '과목·수준 도입 전 노트 (자동 백업)'); }
+    catch (e) { return false; }
+  }
+  if (!mark) await idbSet(SUBJ_MIG_KEY, { at: Date.now() });
+  subjMigrated = true;
+  if (!(Array.isArray(DATA.subjects) && DATA.subjects.length)) {
+    subjMaterialize();
+    await idbSet('app', DATA); // no updatedAt bump: nothing visible changed; synced with the next edit
+  }
+  return true;
+}
+/** Make every entry of the display model a real record in DATA.subjects (before a write). */
+function subjMaterialize() {
+  const model = subjModel();
+  if (!Array.isArray(DATA.subjects)) DATA.subjects = [];
+  model.forEach(ms => {
+    let su = ms.ref;
+    if (!su) {
+      su = DATA.subjects.find(x => x && x.id === ms.id);
+      if (!su) { su = { id: ms.id, title: ms.title, u: 0, levels: [] }; if (ms.id === SUBJ_DEFAULT) DATA.subjects.unshift(su); else DATA.subjects.push(su); }
+    }
+    if (!Array.isArray(su.levels)) su.levels = [];
+    ms.levels.forEach(ml => {
+      if (ml.ref || su.levels.some(x => x && x.id === ml.id)) return;
+      if (ml.id === LVL_DEFAULT) su.levels.unshift({ id: ml.id, title: ml.title, u: 0 }); else su.levels.push({ id: ml.id, title: ml.title, u: 0 });
+    });
+  });
+}
+function subjRec(id) { return (DATA.subjects || []).find(x => x && x.id === id); }
+function lvlRec(su, id) { return su && (su.levels || []).find(x => x && x.id === id); }
+async function subjWrite(fn) {
+  if (!(await subjReady())) { toast('자동 백업을 저장하지 못해 바꾸지 않았어요 — 저장 공간을 확인해 주세요'); return false; }
+  subjMaterialize();
+  fn();
+  scheduleSave();
+  return true;
+}
+function slFor(s, l) {
+  const m = subjModel(), su = m.find(x => x.id === s), lv = su && su.levels.find(x => x.id === l);
+  return { s, l, st: su ? su.title : '', lt: lv ? lv.title : '', at: Date.now() };
+}
+function crumbHTML(parts) {
+  return parts.map(p => p.go ? `<span class="cr-link" data-go="${esc(p.go)}">${esc(p.t)}</span>` : esc(p.t)).join(' › ');
+}
+function wireCrumb(el) {
+  el.querySelectorAll('[data-go]').forEach(x => x.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const g = x.dataset.go;
+    if (g === 'home') goHome();
+    else if (g === 'subj') goLevels(state.subjId);
+    else if (g === 'lvl') goCats(state.subjId, state.lvlId);
+    else if (g === 'nb') goMokcha(state.nbId);
+  }));
+}
+function placeCrumbParts() {
+  const m = subjModel(), su = m.find(x => x.id === state.subjId), lv = su && su.levels.find(x => x.id === state.lvlId);
+  return [{ t: '과목', go: 'home' }, { t: su ? su.title : SUBJ_DEFAULT_TITLE, go: 'subj' }, { t: lv ? lv.title : SUBJ_DEFAULT_TITLE, go: 'lvl' }];
+}
+function itemRowHTML(id, i, title, sub) {
+  return `
+    <div class="item-row" data-id="${esc(id)}">
+      <span class="drag-handle" title="끌어서 순서 변경 (톡 누르면 ▲▼)">⋮⋮</span>
+      <span class="item-num">${i + 1}</span>
+      <div class="item-body">
+        <div class="item-title">${esc(title)}</div>
+        <div class="item-sub">${sub}</div>
+      </div>
+      <div class="move-btns">
+        <button class="icon-btn" data-act="up" title="위로" style="width:36px;height:36px;font-size:14px">▲</button>
+        <button class="icon-btn" data-act="down" title="아래로" style="width:36px;height:36px;font-size:14px">▼</button>
+      </div>
+      <div class="item-actions">
+        <button class="icon-btn" data-act="edit" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</button>
+        <button class="icon-btn danger" data-act="del" title="삭제" style="width:32px;height:32px;font-size:14px">🗑</button>
+      </div>
+    </div>`;
+}
+function toastUndo(msg, undo) {
+  const t = $('#toast');
+  t.innerHTML = `<span>${esc(msg)}</span><button type="button" class="toast-act">되돌리기</button>`;
+  t.classList.add('show', 'has-act');
+  clearTimeout(t._tm);
+  const hide = () => { t.classList.remove('show', 'has-act'); };
+  t.querySelector('.toast-act').onclick = () => { hide(); undo(); };
+  t._tm = setTimeout(hide, 6000);
+}
+
+/* ========== Render: Home (과목) ========== */
 function renderHome() {
+  const list = $('#subj-list');
+  const model = subjModel();
+  const shown = model.filter(su => subjShown(su, model));
+  if (!shown.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📚</div>
+        <p>아직 과목이 없어요.<br>예: 국어 · 수학 · 영어</p>
+        <button class="btn primary" id="btn-empty-subj">＋ 첫 과목 만들기</button>
+      </div>`;
+    $('#btn-empty-subj')?.addEventListener('click', () => openSubjModal('subj', 'add'));
+    return;
+  }
+  list.innerHTML = shown.map((su, i) => {
+    const lv = su.levels.filter(l => lvlShown(su, l, model)).length, nc = nbsIn(su.id, null, model).length;
+    return itemRowHTML(su.id, i, su.title, `수준 ${lv}개 · 노트 ${nc}개`);
+  }).join('');
+  setupListInteractions(list, shown, id => goLevels(id), () => {
+    const ids = shown.map(x => x.id);
+    subjWrite(() => { reorderByIds(DATA.subjects, ids); DATA.subjOrdAt = Date.now(); }).then(() => renderHome());
+  }, null, { edit: id => openSubjModal('subj', 'edit', id), del: id => confirmDeleteSubj('subj', id) });
+}
+
+/* ========== Render: 수준 ========== */
+function renderLevels() {
+  const model = subjModel(), su = model.find(x => x.id === state.subjId);
+  if (!su) { goHome(); return; }
+  const crumb = $('#levels-crumb');
+  crumb.innerHTML = crumbHTML([{ t: '과목', go: 'home' }, { t: su.title }]); wireCrumb(crumb);
+  $('#levels-heading').textContent = su.title + ' — 수준';
+  const list = $('#level-list');
+  const shown = su.levels.filter(l => lvlShown(su, l, model));
+  if (!shown.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🪜</div>
+        <p>수준을 추가해 보세요.<br>예: 입문 · 기본 · 심화</p>
+        <button class="btn primary" id="btn-empty-level">＋ 첫 수준 추가</button>
+      </div>`;
+    $('#btn-empty-level')?.addEventListener('click', () => openSubjModal('lvl', 'add'));
+    return;
+  }
+  list.innerHTML = shown.map((l, i) => itemRowHTML(l.id, i, l.title, `노트 ${nbsIn(su.id, l.id, model).length}개`)).join('');
+  setupListInteractions(list, shown, id => goCats(su.id, id), () => {
+    const ids = shown.map(x => x.id);
+    subjWrite(() => { const r = subjRec(su.id); reorderByIds(r.levels, ids); r.ordAt = Date.now(); }).then(() => renderLevels());
+  }, null, { edit: id => openSubjModal('lvl', 'edit', id), del: id => confirmDeleteSubj('lvl', id) });
+}
+
+/* ========== Render: 카테고리 (노트) in 과목 › 수준 ========== */
+function renderCats() {
+  const model = subjModel(), su = model.find(x => x.id === state.subjId), lv = su && su.levels.find(x => x.id === state.lvlId);
+  if (!su) { goHome(); return; }
+  if (!lv) { goLevels(su.id); return; }
+  const crumb = $('#cats-crumb');
+  crumb.innerHTML = crumbHTML([{ t: '과목', go: 'home' }, { t: su.title, go: 'subj' }, { t: lv.title }]); wireCrumb(crumb);
   const grid = $('#nb-grid');
-  const nbs = DATA.notebooks;
+  const nbs = nbsIn(su.id, lv.id, model);
   if (!nbs.length) {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1">
@@ -2367,6 +2667,7 @@ function renderHome() {
     return `
       <button class="nb-card" data-id="${esc(nb.id)}" type="button">
         <div class="nb-actions">
+          <span class="icon-btn" data-act="move" data-id="${esc(nb.id)}" title="다른 과목/수준으로 옮기기" style="width:32px;height:32px;font-size:14px">📂</span>
           <span class="icon-btn" data-act="edit" data-id="${esc(nb.id)}" title="이름 변경" style="width:32px;height:32px;font-size:14px">✏️</span>
           <span class="icon-btn danger" data-act="del" data-id="${esc(nb.id)}" title="삭제" style="width:32px;height:32px;font-size:14px">🗑</span>
         </div>
@@ -2386,6 +2687,7 @@ function renderHome() {
       const act = e.target.closest('[data-act]');
       if (act) {
         e.stopPropagation();
+        if (act.dataset.act === 'move') openMoveNbModal(act.dataset.id);
         if (act.dataset.act === 'edit') openRenameNbModal(act.dataset.id);
         if (act.dataset.act === 'del') confirmDeleteNb(act.dataset.id);
         return;
@@ -2395,13 +2697,140 @@ function renderHome() {
   });
   $('#btn-add-nb-card')?.addEventListener('click', openNewNbModal);
 }
+function renderNbArea() { if (state.view === 'cats') renderCats(); else renderHome(); }
+
+/* 과목/수준: add · rename */
+function openSubjModal(kind, mode, id) {
+  const isS = kind === 'subj', model = subjModel();
+  const su = isS ? (mode === 'edit' ? model.find(x => x.id === id) : null) : model.find(x => x.id === state.subjId);
+  if (!isS && !su) return;
+  const item = mode === 'edit' ? (isS ? su : su.levels.find(l => l.id === id)) : null;
+  if (mode === 'edit' && !item) return;
+  const name = isS ? '과목' : '수준';
+  openModal(`
+    <h3>${mode === 'add' ? name + ' 추가' : name + ' 이름 변경'}</h3>
+    <div class="field">
+      <label>${name} 이름</label>
+      <input type="text" id="subj-title" value="${esc(item ? item.title : '')}" placeholder="${isS ? '예: 국어 · 수학 · 영어' : '예: 입문 · 기본 · 심화'}" maxlength="60" autofocus>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn primary" id="m-ok">${mode === 'add' ? '추가' : '저장'}</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = async () => {
+    const title = ($('#subj-title').value || '').trim();
+    if (!title) { $('#subj-title').focus(); return; }
+    closeModal();
+    const now = Date.now();
+    await subjWrite(() => {
+      if (mode === 'add' && isS) DATA.subjects.push({ id: uid(), title, u: now, levels: [] });
+      else if (mode === 'add') subjRec(su.id).levels.push({ id: uid(), title, u: now });
+      else {
+        const rec = isS ? subjRec(id) : lvlRec(subjRec(su.id), id);
+        rec.title = title; rec.u = now;
+        // keep the fallback title copies on categories current (their move time is unchanged)
+        DATA.notebooks.forEach(nb => { if (nb.sl && (isS ? nb.sl.s === id : nb.sl.l === id)) nb.sl[isS ? 'st' : 'lt'] = title; });
+      }
+    });
+    if (state.view === 'levels') renderLevels(); else renderHome();
+    toast(mode === 'add' ? name + '을(를) 추가했어요' : '저장됨');
+  };
+  $('#subj-title').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#m-ok').click(); });
+}
+/* 과목/수준 delete: refused while any 노트 is inside (notes are never removed this way);
+   an empty one is deleted after a confirm, with 되돌리기 */
+function confirmDeleteSubj(kind, id) {
+  const isS = kind === 'subj', model = subjModel();
+  const su = isS ? model.find(x => x.id === id) : model.find(x => x.id === state.subjId);
+  const item = isS ? su : su && su.levels.find(l => l.id === id);
+  if (!item) return;
+  const name = isS ? '과목' : '수준';
+  const info = (msg) => {
+    openModal(`<h3>${name} 삭제</h3><p style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">${msg}</p>
+      <div class="modal-actions"><button class="btn primary" id="m-ok">확인</button></div>`);
+    $('#m-ok').onclick = closeModal;
+  };
+  if (id === SUBJ_DEFAULT || id === LVL_DEFAULT) { info('「' + esc(item.title) + '」은(는) 기본 ' + name + '이라 지울 수 없어요. 예전 버전 기기에서 만든 노트가 여기에 모여요. 이름은 바꿀 수 있어요.'); return; }
+  const inside = isS ? nbsIn(su.id, null, model) : nbsIn(su.id, id, model);
+  if (inside.length) {
+    info('「' + esc(item.title) + '」 안에 노트 ' + inside.length + '개가 있어서 삭제할 수 없어요.<br>노트의 📂 버튼으로 다른 과목/수준으로 옮기거나 노트를 삭제한 뒤 다시 해 주세요.');
+    return;
+  }
+  const extra = isS && su.levels.length ? ` (빈 수준 ${su.levels.length}개 포함)` : '';
+  openModal(`
+    <h3>${name} 삭제</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5">빈 ${name} 「${esc(item.title)}」${extra}을(를) 삭제할까요?<br>안에 노트가 없어서 지워지는 노트는 없어요.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn danger" id="m-ok">삭제</button>
+    </div>`);
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = async () => {
+    closeModal();
+    let copy = null, pos = -1;
+    const ok = await subjWrite(() => {
+      const arr = isS ? DATA.subjects : subjRec(su.id).levels;
+      pos = arr.findIndex(x => x && x.id === id);
+      copy = JSON.parse(JSON.stringify(arr[pos]));
+      arr.splice(pos, 1);
+      addDelId(id);
+      if (isS) (copy.levels || []).forEach(l => l && addDelId(l.id));
+    });
+    if (!ok) return;
+    if (isS) renderHome(); else renderLevels();
+    toastUndo(name + '을(를) 삭제했어요', () => {
+      // back with fresh ids: the deletion may already have reached other devices
+      subjWrite(() => {
+        const c = Object.assign({}, copy, { id: uid(), u: Date.now() });
+        if (isS) { c.levels = (copy.levels || []).map(l => Object.assign({}, l, { id: uid() })); DATA.subjects.splice(Math.min(pos, DATA.subjects.length), 0, c); }
+        else { const r = subjRec(su.id); if (!r) return; r.levels.splice(Math.min(pos, r.levels.length), 0, c); }
+      }).then(() => { reRenderAfterSync(); toast('되돌렸어요'); });
+    });
+  };
+}
+/* 노트(카테고리) → another 과목/수준 */
+function openMoveNbModal(nbId) {
+  const nb = DATA.notebooks.find(n => n.id === nbId);
+  if (!nb) return;
+  const model = subjModel(), cur = nbPlace(nb, model);
+  const subs = model.filter(su => su.id !== SUBJ_DEFAULT || subjShown(su, model) || cur.s === SUBJ_DEFAULT);
+  const lvOpts = sid => { const su = model.find(x => x.id === sid); return (su ? su.levels : []).map(l => `<option value="${esc(l.id)}">${esc(l.title)}</option>`).join(''); };
+  openModal(`
+    <h3>노트 옮기기</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">「${esc(nb.title)}」를 옮길 과목과 수준을 고르세요. 안의 목차·필기는 그대로예요.</p>
+    <div class="field move-pick"><label>과목</label><select id="mv-subj">${subs.map(su => `<option value="${esc(su.id)}">${esc(su.title)}</option>`).join('')}</select></div>
+    <div class="field move-pick"><label>수준</label><select id="mv-lvl"></select></div>
+    <p id="mv-hint" style="font-size:12px;color:var(--danger);min-height:16px"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="m-cancel">취소</button>
+      <button class="btn primary" id="m-ok">옮기기</button>
+    </div>`);
+  const ss = $('#mv-subj'), ls = $('#mv-lvl');
+  const fill = () => { ls.innerHTML = lvOpts(ss.value); $('#mv-hint').textContent = ls.options.length ? '' : '이 과목에 수준이 없어요. 먼저 수준을 추가해 주세요.'; };
+  ss.value = cur.s; fill(); ls.value = cur.l;
+  ss.onchange = fill;
+  $('#m-cancel').onclick = closeModal;
+  $('#m-ok').onclick = async () => {
+    const s2 = ss.value, l2 = ls.value;
+    if (!s2 || !l2) return;
+    closeModal();
+    if (s2 === cur.s && l2 === cur.l) return;
+    const sl = slFor(s2, l2);
+    await subjWrite(() => { nb.sl = sl; });
+    renderNbArea();
+    const su = model.find(x => x.id === s2), lv = su && su.levels.find(x => x.id === l2);
+    toast('「' + (su ? su.title : '') + ' › ' + (lv ? lv.title : '') + '」(으)로 옮겼어요');
+  };
+}
 
 /* ========== Render: Mokcha ========== */
 function renderMokcha() {
   const nb = getNb();
   if (!nb) { goHome(); return; }
   const t = TEMPLATES[nb.type] || TEMPLATES.thought;
-  $('#mokcha-crumb').textContent = nb.title;
+  const mcr = $('#mokcha-crumb');
+  mcr.innerHTML = crumbHTML(placeCrumbParts().concat([{ t: nb.title }])); wireCrumb(mcr);
   $('#mokcha-heading').textContent = '목차';
   const badge = $('#mokcha-type-badge');
   badge.textContent = t.label;
@@ -2446,7 +2875,8 @@ function renderSebu() {
   const nb = getNb();
   const mok = getMok();
   if (!nb || !mok) { goMokcha(state.nbId); return; }
-  $('#sebu-crumb').textContent = nb.title + ' › ' + mok.title;
+  const scr = $('#sebu-crumb');
+  scr.innerHTML = crumbHTML(placeCrumbParts().slice(1).concat([{ t: nb.title, go: 'nb' }, { t: mok.title }])); wireCrumb(scr);
   $('#sebu-heading').textContent = mok.title + ' — 세부목차';
 
   const list = $('#sebu-list');
@@ -2502,7 +2932,7 @@ function listScroller(el) {
   }
   return document.scrollingElement || document.documentElement;
 }
-function setupListInteractions(list, arr, onOpen, onChange, owner) {
+function setupListInteractions(list, arr, onOpen, onChange, owner, acts) {
   const changed = () => { if (owner) owner.ordAt = Date.now(); onChange(); };
   const rows = () => Array.from(list.querySelectorAll('.item-row'));
   const renumber = () => rows().forEach((r, i) => { const n = r.querySelector('.item-num'); if (n) n.textContent = i + 1; });
@@ -2520,6 +2950,7 @@ function setupListInteractions(list, arr, onOpen, onChange, owner) {
           if (moveItem(arr, i, i + (act.dataset.act === 'up' ? -1 : 1))) changed();
           return;
         }
+        if (acts && (act.dataset.act === 'edit' || act.dataset.act === 'del')) { acts[act.dataset.act](id); return; }
         if (act.dataset.act === 'edit') {
           const kind = state.view === 'mokcha' ? 'mok' : 'sebu';
           openItemModal(kind, 'edit', id);
@@ -2712,6 +3143,7 @@ function openNewNbModal() {
       mokchas: [],
       createdAt: Date.now()
     };
+    if (state.view === 'cats' && state.subjId && state.lvlId) { subjMaterialize(); nb.sl = slFor(state.subjId, state.lvlId); }
     DATA.notebooks.push(nb);
     scheduleSave();
     closeModal();
@@ -2739,7 +3171,7 @@ function openRenameNbModal(id) {
     nb.title = ($('#nb-title').value || '').trim() || nb.title;
     scheduleSave();
     closeModal();
-    renderHome();
+    renderNbArea();
     toast('저장됨');
   };
 }
@@ -2759,7 +3191,7 @@ function confirmDeleteNb(id) {
     addDelId(id); DATA.notebooks = DATA.notebooks.filter(n => n.id !== id);
     scheduleSave();
     closeModal();
-    renderHome();
+    renderNbArea();
     toast('삭제됨');
   };
 }
@@ -5405,7 +5837,11 @@ function importBackup(file) {
 /* ========== Event wiring ========== */
 function wireEvents() {
   $('#btn-new-nb').addEventListener('click', openNewNbModal);
-  $('#btn-back-home').addEventListener('click', goHome);
+  $('#btn-new-subj').addEventListener('click', () => openSubjModal('subj', 'add'));
+  $('#btn-new-level').addEventListener('click', () => openSubjModal('lvl', 'add'));
+  $('#btn-back-levels').addEventListener('click', goHome);
+  $('#btn-back-cats').addEventListener('click', () => goLevels(state.subjId));
+  $('#btn-back-home').addEventListener('click', () => { const nb = getNb(); if (nb) { const p = nbPlace(nb); goCats(p.s, p.l); } else goHome(); });
   $('#btn-back-mok').addEventListener('click', () => goMokcha(state.nbId));
   $('#btn-back-draw').addEventListener('click', () => {
     flushSave();
@@ -5606,6 +6042,7 @@ function wireEvents() {
 /* ========== Boot ========== */
 async function boot() {
   await loadData();
+  try { await subjReady(); } catch (e) {}
   wireEvents();
   goHome();
   tryAutoReconnect();
@@ -5656,7 +6093,8 @@ window.__gkcInk = {
   isPalmRejectedTouch
 };
 window.__gkcNav = {
-  goHome, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
+  goHome, goLevels, goCats, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
+  subjModel, nbPlace, subjReady,
   initDrawPage, renderTextLayer, setInputMode
 };
 })();
