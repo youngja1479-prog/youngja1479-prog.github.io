@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>펜 인식 장치</title>
+</head>
+<body>
+<h1>펜 인식 장치</h1>
+<p>펜을 바꿔도 인식되도록 개선된 테스트 페이지입니다.</p>
+<p><a href="../outline/">학습노트로 돌아가기</a></p>
+<script>
+// Improved pen detection logic
+function isLikelyPen(e) {
+  if (e.pointerType === 'pen') return true;
+  if (e.pointerType === 'touch') {
+    const p = e.pressure;
+    if (typeof p === 'number' && p > 0 && p !== 0.5) return true;
+    if (Math.abs(e.tiltX || 0) > 8 || Math.abs(e.tiltY || 0) > 8) return true;
+  }
+  return false;
+}
+console.log('Pen recognition helper loaded');
+</script>
+</body>
+</html>
