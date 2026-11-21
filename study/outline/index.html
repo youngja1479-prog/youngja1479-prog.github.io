@@ -135,6 +135,67 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
   .masthead-kicker { margin-bottom: 13px; }
 }
 
+/* ===== Home — 통합 빠른 검색 ===== */
+.home-search {
+  display: flex; align-items: center; gap: 8px;
+  height: 42px; padding: 0 10px; margin-bottom: 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  transition: border-color .12s;
+}
+.home-search:focus-within { border-color: var(--text); }
+.home-search .hs-icon { display: flex; flex-shrink: 0; color: var(--text4); }
+.home-search input {
+  flex: 1; min-width: 0; height: 100%; padding: 0; border: none; outline: none; background: transparent;
+  font-size: 14px; font-weight: 500; letter-spacing: -.005em; color: var(--text);
+  -webkit-appearance: none; appearance: none;
+}
+.home-search input::placeholder { color: var(--text4); font-weight: 400; }
+/* 터치 기기에서는 16px를 유지해야 iOS가 포커스할 때 화면을 확대하지 않는다 */
+@media (pointer: coarse) { .home-search input { font-size: 16px; } }
+.home-search .hs-clear {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; color: var(--text3);
+}
+.home-search .hs-clear[hidden] { display: none; }
+.home-search .hs-clear:hover, .home-search .hs-clear:focus-visible { background: var(--surface2); color: var(--text); }
+.home-search .hs-kbd {
+  flex-shrink: 0; font: 500 10px/1 var(--mono); letter-spacing: .04em; color: var(--text4);
+  border: 1px solid var(--border); border-radius: 4px; padding: 4px 5px 3px;
+}
+@media (hover: none), (pointer: coarse) { .home-search .hs-kbd { display: none; } }
+/* 검색어가 있을 때만 과목 목록을 접고 결과를 보여줌 */
+#view-home.searching .section-head, #view-home.searching #subj-list { display: none; }
+#home-search-results { display: flex; flex-direction: column; gap: 6px; }
+#home-search-results.hidden { display: none; }
+.hs-summary {
+  font: 500 10.5px/1 var(--mono); letter-spacing: .08em; color: var(--text4);
+  padding: 0 2px 8px;
+}
+.hs-row {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 12px; color: var(--text);
+  transition: border-color .12s, background .12s;
+}
+.hs-row:hover, .hs-row:focus-visible { border-color: var(--border2); background: #fcfcfc; }
+.hs-kind {
+  flex-shrink: 0; margin-top: 2px;
+  font: 600 9.5px/1 var(--mono); letter-spacing: .04em; color: var(--text3);
+  border: 1px solid var(--border); border-radius: 3px; padding: 4px 5px 3px;
+}
+.hs-body { display: block; flex: 1; min-width: 0; }
+.hs-title {
+  display: block; font-size: 14px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35;
+  word-break: keep-all; overflow-wrap: break-word;
+}
+.hs-title mark { background: var(--surface3); color: inherit; border-radius: 2px; padding: 0 1px; }
+.hs-path {
+  display: block; margin-top: 3px; font-size: 11.5px; line-height: 1.4; color: var(--text3);
+  word-break: keep-all; overflow-wrap: break-word;
+}
+.hs-empty { padding: 30px 6px; text-align: center; font-size: 13px; line-height: 1.6; color: var(--text3); word-break: keep-all; overflow-wrap: break-word; }
+
 .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 10px; }
 .nb-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -242,6 +303,31 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 .tree-sebu:hover { background: var(--surface2); color: var(--text); }
 .tree-sebu .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text4); flex-shrink: 0; }
 .tree-sebu .tree-idx { font: 500 10.5px/1 var(--mono); letter-spacing: .06em; color: var(--text4); }
+.tree-sebu .sebu-title { flex: 0 1 auto; min-width: 0; max-width: 100%; word-break: keep-all; overflow-wrap: break-word; }
+.tree-sebu .sebu-open {
+  display: none; flex-shrink: 0; margin-left: auto; height: 26px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  font-size: 11px; font-weight: 600; letter-spacing: .01em; color: var(--text2);
+}
+.tree-sebu .sebu-open:hover, .tree-sebu .sebu-open:focus-visible { border-color: var(--text); color: var(--text); }
+
+/* 암기 가리기 — 대목차만 보고 세부목차를 떠올리는 인출 복습 모드 */
+#btn-tree-blind { flex-shrink: 0; }
+#btn-tree-blind.on { background: var(--text); border-color: var(--text); color: #fff; }
+#btn-tree-blind.on:hover { background: #000; border-color: #000; }
+#tree-content.blind .tree-sebu { cursor: pointer; }
+#tree-content.blind .tree-sebu .sebu-open { display: inline-flex; align-items: center; }
+#tree-content.blind .tree-sebu .sebu-title {
+  color: transparent; text-shadow: 0 0 6px rgba(24,24,27,.42);
+  background: var(--surface2); border-radius: 3px; padding: 1px 6px; margin: -1px 0;
+  min-width: 1.6em;
+  box-shadow: inset 0 0 0 1px var(--border);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+/* 탭해서 확인한 항목만 답을 보여줌(다시 탭하면 가려짐) */
+#tree-content.blind .tree-sebu.revealed .sebu-title {
+  color: var(--text2); text-shadow: none; background: transparent; box-shadow: none;
+}
 
 /* ===== Drawing Page ===== */
 #view-draw { background: var(--surface3); }
@@ -674,6 +760,13 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
         <h2>목차 → 세부목차 → 세부내용</h2>
         <p>손으로 쓰는 학습 노트. 사고 과정과 개념 정리를 체계적으로 정리하세요.</p>
       </div>
+      <div class="home-search" id="home-search-box">
+        <span class="hs-icon" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></span>
+        <input type="text" id="home-search" placeholder="과목·수준·노트·목차 검색" aria-label="통합 검색" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button type="button" class="hs-clear" id="home-search-clear" title="검색어 지우기" aria-label="검색어 지우기" hidden>✕</button>
+        <kbd class="hs-kbd">Ctrl K</kbd>
+      </div>
+      <div id="home-search-results" class="hidden"></div>
       <div class="section-head">
         <h2>과목</h2>
         <button class="btn primary" id="btn-new-subj">＋ 과목</button>
@@ -749,6 +842,7 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
     <div class="topbar">
       <button class="icon-btn" id="btn-back-tree" title="뒤로">←</button>
       <h1>목차 한눈에 보기</h1>
+      <button class="btn sm" id="btn-tree-blind" aria-pressed="false" title="세부목차 제목을 가리고 떠올려 보기">암기 가리기</button>
     </div>
     <div class="view-body">
       <div id="tree-content" class="tree-list"></div>
@@ -2688,8 +2782,115 @@ function toastUndo(msg, undo) {
   t._tm = setTimeout(hide, 6000);
 }
 
+/* ========== Home: 통합 빠른 검색 ==========
+   과목 › 수준 › 노트 › 목차 › 세부목차의 이름을 한 번에 찾는다. 메모리(DATA)만 읽어
+   결과를 그때그때 만들므로 저장 구조(IndexedDB/localStorage/동기화)는 건드리지 않는다. */
+const HS_KIND = { subject: '과목', level: '수준', note: '노트', mokcha: '목차', sebu: '세부목차' };
+const HS_MAX = 60;
+let hsHits = [], hsTimer = 0;
+
+function hsQuery() { const el = $('#home-search'); return el ? el.value.trim() : ''; }
+function hsLower(s) { return String(s == null ? '' : s).toLowerCase(); }
+
+/** 검색어와 일치하는 부분만 강조한 제목 HTML */
+function hsMarkHTML(text, q) {
+  const t = String(text == null ? '' : text);
+  const i = q ? hsLower(t).indexOf(hsLower(q)) : -1;
+  if (i < 0) return esc(t);
+  return esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length));
+}
+
+/** 현재 노트 기록에서 검색어를 포함하는 항목을 위에서 아래 순서로 모은다. */
+function hsSearch(q) {
+  const ql = hsLower(q);
+  if (!ql) return [];
+  const has = (s) => hsLower(s).includes(ql);
+  const model = subjModel();
+  const suById = new Map(model.map(su => [su.id, su]));
+  const out = [];
+  model.forEach(su => {
+    if (!subjShown(su, model)) return; // 홈 목록에 보이지 않는 빈 항목은 결과에서도 제외
+    if (has(su.title)) out.push({ kind: 'subject', title: su.title, path: [], act: () => goLevels(su.id) });
+    su.levels.forEach(lv => {
+      if (!lvlShown(su, lv, model)) return;
+      if (has(lv.title)) out.push({ kind: 'level', title: lv.title, path: [su.title], act: () => goCats(su.id, lv.id) });
+    });
+  });
+  (DATA.notebooks || []).forEach(nb => {
+    if (!nb || !nb.id) return;
+    const place = nbPlace(nb, model);
+    const su = suById.get(place.s), lv = su && su.levels.find(x => x.id === place.l);
+    const placePath = [su ? su.title : SUBJ_DEFAULT_TITLE, lv ? lv.title : SUBJ_DEFAULT_TITLE];
+    if (has(nb.title)) out.push({ kind: 'note', title: nb.title, path: placePath, act: () => goMokcha(nb.id) });
+    (nb.mokchas || []).forEach(m => {
+      if (!m || !m.id) return;
+      if (has(m.title)) out.push({
+        kind: 'mokcha', title: m.title, path: placePath.concat(nb.title),
+        act: () => { state.subjId = place.s; state.lvlId = place.l; state.nbId = nb.id; goSebu(m.id); }
+      });
+      (m.sebus || []).forEach(s => {
+        if (!s || !s.id) return;
+        if (!has(s.title)) return;
+        out.push({
+          kind: 'sebu', title: s.title, path: placePath.concat(nb.title, m.title),
+          act: () => { state.subjId = place.s; state.lvlId = place.l; state.nbId = nb.id; state.mokId = m.id; goDraw(s.id); }
+        });
+      });
+    });
+  });
+  return out;
+}
+
+/** 검색 상태를 화면에 반영: 검색어가 있으면 과목 목록을 접고 결과를 보여준다. */
+function hsRender() {
+  const box = $('#home-search-results'), home = $('#view-home');
+  if (!box || !home) return;
+  const q = hsQuery();
+  const clearBtn = $('#home-search-clear');
+  if (clearBtn) clearBtn.hidden = !q;
+  home.classList.toggle('searching', !!q);
+  box.classList.toggle('hidden', !q);
+  if (!q) { hsHits = []; box.innerHTML = ''; return; }
+  hsHits = hsSearch(q);
+  if (!hsHits.length) {
+    box.innerHTML = `<div class="hs-empty">‘${esc(q)}’에 맞는 항목이 없어요.</div>`;
+    return;
+  }
+  const shown = hsHits.slice(0, HS_MAX);
+  box.innerHTML = `<div class="hs-summary">${hsHits.length}개 결과${hsHits.length > HS_MAX ? ` · 상위 ${HS_MAX}개 표시` : ''}</div>`
+    + shown.map((h, i) => `
+      <button type="button" class="hs-row" data-hs="${i}">
+        <span class="hs-kind">${HS_KIND[h.kind] || ''}</span>
+        <span class="hs-body">
+          <span class="hs-title">${hsMarkHTML(h.title, q)}</span>
+          ${h.path.length ? `<span class="hs-path">${h.path.map(p => esc(p)).join(' › ')}</span>` : ''}
+        </span>
+      </button>`).join('');
+  box.querySelectorAll('.hs-row').forEach(el => el.addEventListener('click', () => hsOpen(+el.dataset.hs)));
+}
+
+/** 결과로 이동. 홈으로 돌아왔을 때 검색 상태가 남지 않도록 먼저 비운다. */
+function hsOpen(i) {
+  const hit = hsHits[i];
+  if (!hit) return;
+  hsClear();
+  hit.act();
+}
+function hsClear() {
+  const el = $('#home-search');
+  if (el) el.value = '';
+  hsRender();
+}
+function hsFocus() {
+  if (state.view !== 'home') return;
+  const el = $('#home-search');
+  if (!el) return;
+  try { el.focus(); el.select(); } catch (e) {}
+}
+
 /* ========== Render: Home (과목) ========== */
 function renderHome() {
+  hsRender();
   const list = $('#subj-list');
   const model = subjModel();
   const shown = model.filter(su => subjShown(su, model));
@@ -3150,12 +3351,17 @@ function setupListInteractions(list, arr, onOpen, onChange, owner, acts) {
 }
 
 /* ========== Tree ========== */
+// 암기 가리기 모드: 대목차만 두고 세부목차 제목을 가린다. 이 세션(탭) 안에서만 유지되며
+// 노트 데이터에는 아무것도 저장하지 않는다.
+let treeBlind = false;
+
 function renderTree() {
   const nb = getNb();
   if (!nb) { goHome(); return; }
   const root = $('#tree-content');
   if (!nb.mokchas.length) {
     root.innerHTML = `<div class="empty-state"><div class="empty-icon">🗂</div><p>아직 목차가 없습니다.</p></div>`;
+    syncTreeBlind();
     return;
   }
   root.innerHTML = nb.mokchas.map((m, i) => `
@@ -3169,19 +3375,53 @@ function renderTree() {
         <div class="tree-sebu" data-mok="${esc(m.id)}" data-sebu="${esc(s.id)}">
           <span class="dot"></span>
           <span class="tree-idx">${String(j + 1).padStart(2, '0')}</span>
-          <span>${esc(s.title)}</span>
+          <span class="sebu-title">${esc(s.title)}</span>
+          <button type="button" class="sebu-open" data-sebu="${esc(s.id)}" title="필기 페이지 열기" aria-label="${esc(s.title)} 필기 페이지 열기">열기</button>
         </div>`).join('') || `<div class="tree-sebu" style="color:var(--text3);cursor:default">세부목차 없음</div>`}
     </div>`).join('');
 
   root.querySelectorAll('.tree-mok-head').forEach(el => {
-    el.addEventListener('click', () => goSebu(el.dataset.mok));
+    el.addEventListener('click', () => { state.nbId = nb.id; goSebu(el.dataset.mok); });
   });
   root.querySelectorAll('.tree-sebu[data-sebu]').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.sebu-open')) return; // 열기 버튼은 아래에서 처리
+      if (treeBlind) { el.classList.toggle('revealed'); return; } // 가려진 제목은 탭해서 확인
+      state.nbId = nb.id;
       state.mokId = el.dataset.mok;
       goDraw(el.dataset.sebu);
     });
   });
+  root.querySelectorAll('.sebu-open').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const row = btn.closest('.tree-sebu');
+      if (!row || !row.dataset.sebu) return;
+      state.nbId = nb.id;
+      state.mokId = row.dataset.mok;
+      goDraw(row.dataset.sebu);
+    });
+  });
+  syncTreeBlind();
+}
+
+/** 암기 가리기 버튼·목록에 현재 모드 반영 */
+function syncTreeBlind() {
+  const btn = $('#btn-tree-blind'), root = $('#tree-content');
+  if (btn) {
+    btn.classList.toggle('on', treeBlind);
+    btn.setAttribute('aria-pressed', treeBlind ? 'true' : 'false');
+    btn.textContent = treeBlind ? '암기 가리기 켬' : '암기 가리기';
+  }
+  if (root) root.classList.toggle('blind', treeBlind);
+}
+
+function toggleTreeBlind() {
+  treeBlind = !treeBlind;
+  const root = $('#tree-content');
+  if (root) root.querySelectorAll('.tree-sebu.revealed').forEach(x => x.classList.remove('revealed'));
+  syncTreeBlind();
+  if (treeBlind) toast('암기 가리기 — 세부목차를 탭하면 잠깐 보여요 · 열기로 필기');
 }
 
 /* ========== Modals ========== */
@@ -5952,6 +6192,39 @@ function wireEvents() {
   });
   $('#btn-back-tree').addEventListener('click', () => goMokcha(state.nbId));
   $('#btn-tree-view').addEventListener('click', goTree);
+  $('#btn-tree-blind').addEventListener('click', toggleTreeBlind);
+
+  // 통합 빠른 검색 (홈)
+  const hsInput = $('#home-search');
+  if (hsInput) {
+    hsInput.addEventListener('input', () => { clearTimeout(hsTimer); hsTimer = setTimeout(hsRender, 40); });
+    hsInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); if (hsHits.length) hsOpen(0); }
+    });
+    $('#home-search-clear').addEventListener('click', () => { hsInput.value = ''; hsInput.focus(); hsRender(); });
+  }
+  // Ctrl/⌘+K(또는 /)로 검색창 포커스, Esc로 검색어 지우기 — 홈 화면에서만
+  document.addEventListener('keydown', (e) => {
+    if (state.view !== 'home') return;
+    const mr = document.getElementById('modal-root');
+    if (mr && mr.children.length) return;
+    const ae = document.activeElement;
+    const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable);
+    const k = String(e.key || '').toLowerCase(), c = e.code || '';
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (c === 'KeyK' || k === 'k')) {
+      e.preventDefault(); hsFocus(); return;
+    }
+    if (e.key === 'Escape') {
+      if (typing && ae.id === 'home-search') {
+        if (hsQuery()) { e.preventDefault(); hsClear(); }
+        try { ae.blur(); } catch (_) {}
+      } else if (!typing && hsQuery()) { e.preventDefault(); hsClear(); }
+      return;
+    }
+    if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault(); hsFocus();
+    }
+  });
   $('#btn-new-mok').addEventListener('click', () => openItemModal('mok', 'add'));
   $('#btn-new-sebu').addEventListener('click', () => openItemModal('sebu', 'add'));
 
@@ -6196,8 +6469,8 @@ window.__gkcInk = {
   isPalmRejectedTouch
 };
 window.__gkcNav = {
-  goHome, goLevels, goCats, goMokcha, goSebu, goDraw, getState: () => ({ ...state }),
-  subjModel, nbPlace, subjReady,
+  goHome, goLevels, goCats, goMokcha, goSebu, goTree, goDraw, getState: () => ({ ...state }),
+  subjModel, nbPlace, subjReady, hsQuery,
   initDrawPage, renderTextLayer, setInputMode
 };
 })();

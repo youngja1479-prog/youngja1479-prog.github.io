@@ -386,3 +386,28 @@ refused; an empty one is deleted after a confirm with 되돌리기 (fresh ids).
 The browser test migrates PR38/PR40 data, does touch CRUD/move/breadcrumbs/delete safety and has the
 PR40 app open and edit the new data. The sync test runs new and PR40 sync code against the real Worker,
 including an old device with a stale copy whose merge drops the new fields (the new app restores them).
+
+## 홈 통합 빠른 검색 + 목차 암기 가리기 (2026-11-21)
+
+```
+node study/outline/tests/home-search-tree-blind-browser.cjs   # headless Chrome, desktop 1280x800 + phone 390x844
+SHOT_DIR=/path node study/outline/tests/home-search-tree-blind-browser.cjs   # + 화면 캡처(검색/가리기, desktop·mobile)
+```
+
+홈의 `.masthead`와 과목 목록 사이에 모노톤 검색창(`#home-search`, 지우기 버튼 `#home-search-clear`,
+`Ctrl K` 힌트)이 들어간다. 검색어가 비어 있으면 기존 `#subj-list`·`.section-head`가 그대로 보이고,
+입력하면 그 둘을 접고 `#home-search-results`에 과목·수준·노트·목차·세부목차 이름을 대소문자 구분 없이
+부분 일치로 보여준다(경로 `과목 › 수준 › 노트 › 목차`와 결과 개수, 최대 60개, 일치 부분 강조). 결과를
+누르면 그 항목의 `state`(과목/수준/노트/목차 id)를 채운 뒤 `goLevels`·`goCats`·`goMokcha`·`goSebu`·
+세부목차는 `goDraw`로 이동하고 검색창은 비운다(뒤로 가기 경로도 그대로 동작). 데스크톱에서는 홈에서
+`Ctrl/⌘+K`(또는 `/`)로 검색창에 포커스, `Esc`로 검색어를 지운다(입력 중인 다른 칸에서는 가로채지 않음).
+
+`#view-tree` 상단 오른쪽 `#btn-tree-blind`(암기 가리기)는 세부목차 제목만 가림막+블러로 가려 대목차만
+보고 떠올리게 한다. 가려진 행을 탭하면 그 항목만 답이 드러나고 다시 탭하면 가려지며, 오른쪽 `열기`
+버튼(가리기 중에만 보임)으로 필기 페이지에 들어간다. 평소(가리기 꺼짐)에는 기존처럼 행 클릭 한 번에
+바로 필기로 간다. 모드는 이 탭 세션 안에서만 유지되고(새로고침하면 꺼짐) 노트 데이터·IndexedDB·
+localStorage 키·동기화 payload에 아무것도 저장하지 않는다 — 검색과 가리기 모두 메모리 조회/UI 상태뿐이다.
+The test builds sample 과목/수준/노트/목차/세부목차 (same sebu title under two places), types and taps real
+rows, walks the back path, checks Ctrl/⌘+K·`/`·Esc·clear, no-match, empty-query restore, overflow and
+console errors on both viewports, then checks blind toggle, per-row reveal, 열기, normal one-click open,
+mode memory, and that `DATA`/device keys are unchanged.
