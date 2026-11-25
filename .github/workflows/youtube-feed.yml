@@ -1,0 +1,57 @@
+name: Update YouTube feed
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Crawl every video on each allowed channel (slow)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-feed
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install yt-dlp
+        run: pip install -U yt-dlp
+      - name: Refresh recent RSS list
+        run: python3 study/youtube/update_feed.py
+      - name: Refresh search index
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.full }}" = "true" ]; then
+            python3 study/youtube/update_index.py --full
+          else
+            # Nightly (00:00 UTC) do a full crawl; otherwise merge recent videos only.
+            hour=$(date -u +%H)
+            if [ "$hour" = "00" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+              python3 study/youtube/update_index.py --full
+            else
+              python3 study/youtube/update_index.py
+            fi
+          fi
+      - name: Commit if changed
+        run: |
+          git config user.name "youngja1479-prog"
+          git config user.email "youngja1479-prog@users.noreply.github.com"
+          git add study/youtube/videos.json study/youtube/index
+          if git diff --staged --quiet; then
+            echo "No feed changes"
+          else
+            git commit -m "Update YouTube feed and search index"
+            git push
+          fi

@@ -1,6 +1,6 @@
 # 허용 채널 유튜브
 
-허용한 채널의 영상만 이 페이지에서 볼 수 있습니다. 일반 유튜브 검색은 없습니다.
+허용한 채널의 영상만 이 페이지에서 볼 수 있습니다. 검색도 허용 채널의 제목 안에서만 이루어집니다. 일반 유튜브 검색은 없습니다.
 
 ## 채널 추가하는 방법
 
@@ -18,11 +18,22 @@
 }
 ```
 
-3. 저장소 루트에서 `python3 study/youtube/update_feed.py`를 실행하거나, GitHub Actions의 **Update YouTube feed** 워크플로를 수동 실행합니다.
-4. 변경된 `channels.json`과 `videos.json`을 커밋하면 사이트에 반영됩니다.
+3. 최근 목록과 검색 인덱스를 갱신합니다.
 
-영상 목록은 YouTube RSS로 약 3시간마다 자동 갱신됩니다. API 키는 필요 없습니다.
+```bash
+python3 study/youtube/update_feed.py
+python3 -m venv /tmp/ytdlp-venv && /tmp/ytdlp-venv/bin/pip install -U yt-dlp
+/tmp/ytdlp-venv/bin/python3 study/youtube/update_index.py --full
+```
+
+4. 변경된 `channels.json`, `videos.json`, `index/` 를 커밋하면 사이트에 반영됩니다.
+
+## 목록을 다시 받는 방법
+
+- 최근 영상(채널당 약 15개, `videos.json`): `python3 study/youtube/update_feed.py`
+- 검색용 전체 인덱스(`index/`): `yt-dlp`가 있는 환경에서 `python3 study/youtube/update_index.py --full`
+- 이미 인덱스가 있을 때 최신분만 덧붙이려면 `--full` 없이 `python3 study/youtube/update_index.py` 만 실행하면 됩니다.
 
 ## 자동 갱신 (GitHub Actions)
 
-`github-action-youtube-feed.yml`을 저장소의 `.github/workflows/youtube-feed.yml`로 복사하면 약 3시간마다 `videos.json`이 자동 갱신됩니다. 이 파일을 워크플로 경로에 넣으려면 GitHub 토큰에 `workflow` 권한이 필요합니다.
+`.github/workflows/youtube-feed.yml`이 약 3시간마다 최근 목록(`videos.json`)과 검색 인덱스(`index/`)를 갱신합니다. 자정(UTC) 회차와 수동 실행의 `full` 옵션은 채널 전체를 다시 수집합니다. 같은 내용의 사본이 `github-action-youtube-feed.yml`에도 있습니다.

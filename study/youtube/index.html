@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="공부 유튜브" />
-  <meta name="description" content="허용한 채널의 영상만 볼 수 있는 공부용 유튜브" />
+  <meta name="description" content="허용한 채널의 영상만 찾아 볼 수 있는 공부용 유튜브" />
   <title>공부 유튜브</title>
   <style>
     :root {
@@ -34,9 +34,7 @@
       color: var(--text);
       font-family: ui-sans-serif, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
     }
-    body {
-      min-height: 100dvh;
-    }
+    body { min-height: 100dvh; }
 
     .shell {
       width: 100%;
@@ -97,7 +95,58 @@
     }
     .shell.is-watch .back { display: inline-flex; }
     .shell.is-watch .brand { display: none; }
+    .shell.is-watch .search-wrap { display: none; }
     .back svg { width: 22px; height: 22px; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 4px 0 12px;
+    }
+    .search-wrap:focus-within { border-color: #52525b; }
+    #q {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: var(--tap);
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+      outline: none;
+    }
+    #q::placeholder { color: #71717a; }
+    #qClear {
+      flex: 0 0 auto;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #qClear[hidden] { display: none; }
 
     .chips {
       display: flex;
@@ -192,12 +241,13 @@
       line-height: 1.5;
     }
     .status.error { color: var(--danger); }
-    .updated {
+    .updated, .result-count {
       color: var(--muted);
       font-size: 0.72rem;
       text-align: center;
-      padding: 8px 0 4px;
+      padding: 4px 0 10px;
     }
+    .result-count { text-align: left; font-weight: 650; }
 
     .player-wrap {
       display: none;
@@ -221,9 +271,9 @@
     .now {
       padding: 12px var(--pad) 4px;
       flex: 0 0 auto;
+      display: none;
     }
     .shell.is-watch .now { display: block; }
-    .now { display: none; }
     .now h2 {
       margin: 0;
       font-size: 1.02rem;
@@ -261,6 +311,11 @@
         </div>
         <p class="sub">허용한 채널만 볼 수 있어요</p>
       </div>
+      <div class="search-wrap">
+        <label class="sr-only" for="q">허용 채널에서 제목 검색</label>
+        <input id="q" type="search" enterkeyhint="search" placeholder="제목 검색 (허용 채널만)" autocomplete="off" autocorrect="off" spellcheck="false" />
+        <button type="button" id="qClear" aria-label="검색어 지우기" hidden>&times;</button>
+      </div>
     </header>
 
     <div class="player-wrap" id="playerWrap">
@@ -283,20 +338,73 @@
       const player = document.getElementById("player");
       const nowEl = document.getElementById("now");
       const backBtn = document.getElementById("back");
+      const qEl = document.getElementById("q");
+      const qClear = document.getElementById("qClear");
+
+      const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 
       const state = {
         channels: [],
         channelMap: new Map(),
+        allowed: new Set(),
         videos: [],
+        index: null,
+        indexParts: new Map(),
+        indexError: false,
+        manifest: null,
         updatedAt: "",
         filter: "all",
+        query: "",
         current: null,
+      };
+
+      let searchTimer = 0;
+
+      const choseong = (s) => {
+        let out = "";
+        for (const ch of s) {
+          const c = ch.codePointAt(0);
+          if (c >= 0xac00 && c <= 0xd7a3) out += CHO[Math.floor((c - 0xac00) / 588)];
+          else if (CHO.indexOf(ch) !== -1) out += ch;
+        }
+        return out;
+      };
+
+      const normalize = (s) =>
+        (s || "")
+          .normalize("NFKC")
+          .toLowerCase()
+          .replace(/[\s[\](){}「」『』【】<>|／/·・,.:;!?~…'"“”‘’_\-+]+/g, "");
+
+      const isChoseongQuery = (s) => {
+        const t = (s || "").replace(/\s+/g, "");
+        if (!t) return false;
+        for (const ch of t) {
+          if (CHO.indexOf(ch) === -1) return false;
+        }
+        return true;
+      };
+
+      const titleMatches = (title, query) => {
+        const q = (query || "").trim();
+        if (!q) return true;
+        if (isChoseongQuery(q)) {
+          const hay = choseong(title || "");
+          return q.split(/\s+/).filter(Boolean).every((n) => hay.indexOf(n) !== -1);
+        }
+        const hay = normalize(title);
+        return q
+          .split(/\s+/)
+          .filter(Boolean)
+          .map(normalize)
+          .filter(Boolean)
+          .every((t) => hay.indexOf(t) !== -1);
       };
 
       const fmtDate = (iso) => {
         if (!iso) return "";
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return "";
+        const d = new Date(iso.length <= 10 ? iso + "T00:00:00+09:00" : iso);
+        if (Number.isNaN(d.getTime())) return iso.length >= 10 ? iso.slice(0, 10) : "";
         return new Intl.DateTimeFormat("ko-KR", {
           timeZone: "Asia/Seoul",
           year: "numeric",
@@ -319,12 +427,27 @@
         }).format(d);
       };
 
-      const visibleVideos = () => {
-        if (state.filter === "all") return state.videos;
-        return state.videos.filter((v) => v.channelId === state.filter);
+      const channelName = (id) => (state.channelMap.get(id) || {}).name || "허용 채널";
+
+      const inFilter = (v) => state.filter === "all" || v.channelId === state.filter;
+
+      const neededChannelIds = () => {
+        if (state.filter === "all") return state.channels.map((c) => c.id);
+        return [state.filter];
       };
 
-      const channelName = (id) => (state.channelMap.get(id) || {}).name || "허용 채널";
+      const indexReady = () => neededChannelIds().every((id) => state.indexParts.has(id));
+
+      const visibleVideos = () => {
+        const q = state.query.trim();
+        const source = q && indexReady() ? state.index : state.videos;
+        let list = source.filter(inFilter);
+        if (q) list = list.filter((v) => titleMatches(v.title, q));
+        if (q && indexReady()) {
+          list = list.slice().sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+        }
+        return list;
+      };
 
       const renderChips = () => {
         chipsEl.innerHTML = "";
@@ -341,6 +464,9 @@
               closePlayer();
             }
             renderChips();
+            if (state.query.trim()) {
+              ensureIndex().then(() => renderList());
+            }
             renderList();
             listEl.scrollTop = 0;
           });
@@ -349,22 +475,57 @@
       };
 
       const renderList = () => {
+        const q = state.query.trim();
         const videos = visibleVideos();
         listEl.innerHTML = "";
-        if (state.current) {
-          const label = document.createElement("p");
-          label.className = "list-label";
-          label.textContent =
-            state.filter === "all" ? "다른 허용 영상" : channelName(state.filter) + "의 다른 영상";
-          listEl.appendChild(label);
-        }
-        if (!videos.length) {
+
+        if (q && !indexReady() && !state.indexError) {
           const p = document.createElement("p");
           p.className = "status";
-          p.textContent = "이 채널의 영상이 아직 없어요. 목록이 곧 갱신될 수 있어요.";
+          p.textContent = "검색용 목록을 불러오는 중…";
           listEl.appendChild(p);
           return;
         }
+
+        if (state.current) {
+          const label = document.createElement("p");
+          label.className = "list-label";
+          label.textContent = q
+            ? "다른 검색 결과"
+            : state.filter === "all"
+              ? "다른 허용 영상"
+              : channelName(state.filter) + "의 다른 영상";
+          listEl.appendChild(label);
+        } else if (q) {
+          const n = document.createElement("p");
+          n.className = "result-count";
+          n.textContent =
+            videos.length === 0
+              ? "검색 결과 없음"
+              : "검색 결과 " + videos.length.toLocaleString("ko-KR") + "개";
+          listEl.appendChild(n);
+        }
+
+        if (!videos.length) {
+          if (!q) {
+            const p = document.createElement("p");
+            p.className = "status";
+            p.textContent = "이 채널의 영상이 아직 없어요. 목록이 곧 갱신될 수 있어요.";
+            listEl.appendChild(p);
+          } else if (state.indexError && !indexReady()) {
+            const p = document.createElement("p");
+            p.className = "status error";
+            p.textContent = "검색 목록을 불러오지 못했어요. 잠시 후 다시 시도해 보세요.";
+            listEl.appendChild(p);
+          } else {
+            const p = document.createElement("p");
+            p.className = "status";
+            p.textContent = "허용한 채널 안에서 맞는 제목이 없어요.";
+            listEl.appendChild(p);
+          }
+          return;
+        }
+
         for (const v of videos) {
           if (state.current && v.id === state.current.id) continue;
           const btn = document.createElement("button");
@@ -388,7 +549,8 @@
           title.textContent = v.title;
           const sub = document.createElement("div");
           sub.className = "v-sub";
-          sub.textContent = channelName(v.channelId) + " · " + fmtDate(v.published);
+          const date = fmtDate(v.published);
+          sub.textContent = date ? channelName(v.channelId) + " · " + date : channelName(v.channelId);
           meta.appendChild(title);
           meta.appendChild(sub);
 
@@ -397,7 +559,8 @@
           btn.addEventListener("click", () => openPlayer(v));
           listEl.appendChild(btn);
         }
-        if (state.updatedAt && !state.current) {
+
+        if (state.updatedAt && !state.current && !q) {
           const u = document.createElement("p");
           u.className = "updated";
           u.textContent = "목록 업데이트 " + fmtUpdated(state.updatedAt);
@@ -419,10 +582,7 @@
         iframe.allow =
           "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
         iframe.allowFullscreen = true;
-        iframe.setAttribute(
-          "sandbox",
-          "allow-scripts allow-same-origin allow-presentation"
-        );
+        iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
         iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
         player.appendChild(iframe);
 
@@ -431,7 +591,8 @@
         const h = document.createElement("h2");
         h.textContent = video.title;
         const p = document.createElement("p");
-        p.textContent = channelName(video.channelId) + " · " + fmtDate(video.published);
+        const date = fmtDate(video.published);
+        p.textContent = date ? channelName(video.channelId) + " · " + date : channelName(video.channelId);
         nowEl.appendChild(h);
         nowEl.appendChild(p);
 
@@ -448,6 +609,95 @@
         nowEl.innerHTML = "";
         renderList();
       };
+
+      const rebuildIndex = () => {
+        const all = [];
+        for (const list of state.indexParts.values()) all.push(...list);
+        state.index = all;
+      };
+
+      const ensureIndex = () => {
+        const want = new Set(neededChannelIds());
+        const manP = state.manifest
+          ? Promise.resolve(state.manifest)
+          : fetch("index/manifest.json", { cache: "no-store" }).then((r) => {
+              if (!r.ok) throw new Error("manifest");
+              return r.json();
+            }).then((m) => {
+              state.manifest = m;
+              return m;
+            });
+
+        return manP
+          .then((man) => {
+            const files = (man.channels || []).filter(
+              (c) => c && c.file && want.has(c.id) && state.allowed.has(c.id) && !state.indexParts.has(c.id)
+            );
+            return Promise.all(
+              files.map((c) =>
+                fetch("index/" + encodeURIComponent(c.file), { cache: "no-store" }).then((r) => {
+                  if (!r.ok) throw new Error(c.file);
+                  return r.json();
+                }).then((data) => {
+                  const cid = data && data.id;
+                  if (!cid || !state.allowed.has(cid)) return;
+                  const list = [];
+                  const seen = new Set();
+                  for (const row of data.videos || []) {
+                    const id = row && row[0];
+                    if (!id || seen.has(id)) continue;
+                    seen.add(id);
+                    list.push({
+                      id: id,
+                      title: row[1] || "",
+                      channelId: cid,
+                      published: row[2] || "",
+                    });
+                  }
+                  state.indexParts.set(cid, list);
+                })
+              )
+            ).then(() => {
+              rebuildIndex();
+              state.indexError = false;
+            });
+          })
+          .catch(() => {
+            state.indexError = true;
+          });
+      };
+
+      const applyQuery = (value) => {
+        state.query = value;
+        qClear.hidden = !value;
+        if (value.trim()) {
+          ensureIndex().then(() => renderList());
+        }
+        renderList();
+      };
+
+      qEl.addEventListener("input", () => {
+        qClear.hidden = !qEl.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => applyQuery(qEl.value), 180);
+      });
+      qEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          clearTimeout(searchTimer);
+          applyQuery(qEl.value);
+          qEl.blur();
+        }
+      });
+      qEl.addEventListener("focus", () => {
+        ensureIndex();
+      });
+      qClear.addEventListener("click", () => {
+        qEl.value = "";
+        clearTimeout(searchTimer);
+        applyQuery("");
+        qEl.focus();
+      });
 
       backBtn.addEventListener("click", closePlayer);
 
@@ -470,19 +720,20 @@
         }),
       ])
         .then(([chData, vData]) => {
-          const allowed = new Set();
           state.channels = Array.isArray(chData.channels) ? chData.channels : [];
           state.channelMap = new Map();
+          state.allowed = new Set();
           for (const ch of state.channels) {
             if (!ch || !ch.id) continue;
-            allowed.add(ch.id);
+            state.allowed.add(ch.id);
             state.channelMap.set(ch.id, ch);
           }
           const videos = Array.isArray(vData.videos) ? vData.videos : [];
-          state.videos = videos.filter((v) => v && v.id && allowed.has(v.channelId));
+          state.videos = videos.filter((v) => v && v.id && state.allowed.has(v.channelId));
           state.updatedAt = vData.updatedAt || "";
           renderChips();
           renderList();
+          setTimeout(() => ensureIndex(), 400);
         })
         .catch(() => {
           fail("목록을 불러오지 못했어요. 잠시 후 다시 열어 보세요.");

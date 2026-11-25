@@ -1,0 +1,60 @@
+{
+  "updatedAt": "2026-11-25T15:24:19Z",
+  "channels": [
+    {
+      "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
+      "name": "이현호(미친국어)",
+      "file": "UC-JSzYAYzGI19jPtanJ3mEQ.json",
+      "count": 529
+    },
+    {
+      "id": "UChvD-OcXLp7em-mu4LpWw_A",
+      "name": "신영균 국어",
+      "file": "UChvD-OcXLp7em-mu4LpWw_A.json",
+      "count": 1753
+    },
+    {
+      "id": "UCwpzqlsnZOOswsRE0xSKhpw",
+      "name": "수학강사 강윤구",
+      "file": "UCwpzqlsnZOOswsRE0xSKhpw.json",
+      "count": 211
+    },
+    {
+      "id": "UCGwOGZs0aoxMLhtY9q1WGRw",
+      "name": "이영수",
+      "file": "UCGwOGZs0aoxMLhtY9q1WGRw.json",
+      "count": 278
+    },
+    {
+      "id": "UCEuh7pMi1-jZa4QTLH4k9eg",
+      "name": "이다지do",
+      "file": "UCEuh7pMi1-jZa4QTLH4k9eg.json",
+      "count": 400
+    },
+    {
+      "id": "UCEZgS-_4GOwLfK_UyPs-OPQ",
+      "name": "통과생과 이승후",
+      "file": "UCEZgS-_4GOwLfK_UyPs-OPQ.json",
+      "count": 284
+    },
+    {
+      "id": "UCEv0kqq3WYMjCnJ6AMKYCpg",
+      "name": "이투스 채널",
+      "file": "UCEv0kqq3WYMjCnJ6AMKYCpg.json",
+      "count": 4795
+    },
+    {
+      "id": "UCma37fJBlF718VRgGlx4yGA",
+      "name": "theMEGASTUDY",
+      "file": "UCma37fJBlF718VRgGlx4yGA.json",
+      "count": 15000
+    },
+    {
+      "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "name": "대성마이맥",
+      "file": "UCKziRqbw2AvmAJ5wcYXRaMw.json",
+      "count": 5303
+    }
+  ],
+  "total": 28553
+}
