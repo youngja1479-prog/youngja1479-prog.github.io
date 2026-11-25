@@ -329,6 +329,21 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 #tree-content.blind .tree-sebu.revealed .sebu-title {
   color: var(--text2); text-shadow: none; background: transparent; box-shadow: none;
 }
+/* 회독 막대 — 이번 회독에서 확인한 세부목차 수를 보여주고, 다시 가리기로 다음 회독을 연다 */
+.tree-blind-bar {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  padding: 7px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+@media (min-width: 720px) {
+  .tree-blind-bar { padding: 7px max(24px, calc((100% - 860px) / 2)); }
+}
+.tree-blind-bar .tbb-round { font: 500 10.5px/1 var(--mono); letter-spacing: .06em; color: var(--text3); }
+.tree-blind-bar .tbb-count { font-size: 12px; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tree-blind-bar .tbb-track { flex: 1; min-width: 36px; height: 2px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.tree-blind-bar .tbb-track i { display: block; height: 100%; width: 0; background: var(--text); transition: width .16s ease; }
+.tree-blind-bar #btn-blind-reset { flex-shrink: 0; }
+.tree-blind-bar.done #btn-blind-reset { background: var(--text); border-color: var(--text); color: #fff; }
+.tree-blind-bar.done #btn-blind-reset:hover { background: #000; border-color: #000; }
 
 /* ===== Drawing Page ===== */
 #view-draw { background: var(--surface3); }
@@ -844,6 +859,12 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
       <button class="icon-btn" id="btn-back-tree" title="뒤로">←</button>
       <h1>목차 한눈에 보기</h1>
       <button class="btn sm" id="btn-tree-blind" aria-pressed="false" title="세부목차 제목을 가리고 떠올려 보기">암기 가리기</button>
+    </div>
+    <div class="tree-blind-bar hidden" id="tree-blind-bar" aria-hidden="true">
+      <span class="tbb-round" id="tbb-round">1회독</span>
+      <span class="tbb-count" id="tbb-count" aria-live="polite">확인 0/0</span>
+      <span class="tbb-track" aria-hidden="true"><i id="tbb-fill"></i></span>
+      <button type="button" class="btn sm" id="btn-blind-reset" title="확인한 항목을 다시 가리고 다음 회독 시작">다시 가리기</button>
     </div>
     <div class="view-body">
       <div id="tree-content" class="tree-list"></div>
@@ -3355,6 +3376,10 @@ function setupListInteractions(list, arr, onOpen, onChange, owner, acts) {
 // 암기 가리기 모드: 대목차만 두고 세부목차 제목을 가린다. 이 세션(탭) 안에서만 유지되며
 // 노트 데이터에는 아무것도 저장하지 않는다.
 let treeBlind = false;
+// 백지 복습 회독 — 이번 회독에서 확인(공개)해 둔 세부목차 id 와 회독 번호.
+// 위와 같이 이 탭의 메모리에만 두고 저장·동기화하지 않는다.
+let treeBlindRound = 1;
+let treeBlindOpen = new Set();
 
 function renderTree() {
   const nb = getNb();
@@ -3385,9 +3410,15 @@ function renderTree() {
     el.addEventListener('click', () => { state.nbId = nb.id; goSebu(el.dataset.mok); });
   });
   root.querySelectorAll('.tree-sebu[data-sebu]').forEach(el => {
+    if (treeBlind && treeBlindOpen.has(el.dataset.sebu)) el.classList.add('revealed'); // 다시 그려도 확인해 둔 답은 그대로
     el.addEventListener('click', (e) => {
       if (e.target.closest('.sebu-open')) return; // 열기 버튼은 아래에서 처리
-      if (treeBlind) { el.classList.toggle('revealed'); return; } // 가려진 제목은 탭해서 확인
+      if (treeBlind) { // 가려진 제목은 탭해서 확인, 다시 탭하면 가림
+        const id = el.dataset.sebu;
+        if (el.classList.toggle('revealed')) treeBlindOpen.add(id); else treeBlindOpen.delete(id);
+        syncTreeBlind();
+        return;
+      }
       state.nbId = nb.id;
       state.mokId = el.dataset.mok;
       goDraw(el.dataset.sebu);
@@ -3406,23 +3437,55 @@ function renderTree() {
   syncTreeBlind();
 }
 
-/** 암기 가리기 버튼·목록에 현재 모드 반영 */
+/** 암기 가리기 버튼·목록·회독 막대에 현재 모드 반영 */
 function syncTreeBlind() {
-  const btn = $('#btn-tree-blind'), root = $('#tree-content');
+  const btn = $('#btn-tree-blind'), root = $('#tree-content'), bar = $('#tree-blind-bar');
   if (btn) {
     btn.classList.toggle('on', treeBlind);
     btn.setAttribute('aria-pressed', treeBlind ? 'true' : 'false');
     btn.textContent = treeBlind ? '암기 가리기 켬' : '암기 가리기';
   }
   if (root) root.classList.toggle('blind', treeBlind);
+  if (!bar) return;
+  bar.classList.toggle('hidden', !treeBlind);
+  bar.setAttribute('aria-hidden', treeBlind ? 'false' : 'true');
+  if (!treeBlind) return;
+  const nb = getNb();
+  let total = 0;
+  if (nb) {
+    const live = new Set();
+    (nb.mokchas || []).forEach(m => (m.sebus || []).forEach(s => { live.add(s.id); total++; }));
+    treeBlindOpen = new Set([...treeBlindOpen].filter(id => live.has(id))); // 지워진 세부목차는 빼기
+  }
+  const seen = treeBlindOpen.size;
+  const roundEl = $('#tbb-round'), countEl = $('#tbb-count'), fillEl = $('#tbb-fill'), reset = $('#btn-blind-reset');
+  if (roundEl) roundEl.textContent = treeBlindRound + '회독';
+  if (countEl) countEl.textContent = '확인 ' + seen + '/' + total;
+  if (fillEl) fillEl.style.width = total ? Math.round(seen / total * 100) + '%' : '0%';
+  if (reset) reset.disabled = total === 0;
+  bar.classList.toggle('done', total > 0 && seen >= total);
 }
 
 function toggleTreeBlind() {
   treeBlind = !treeBlind;
+  treeBlindOpen.clear();
+  if (treeBlind) treeBlindRound = 1;
   const root = $('#tree-content');
   if (root) root.querySelectorAll('.tree-sebu.revealed').forEach(x => x.classList.remove('revealed'));
   syncTreeBlind();
-  if (treeBlind) toast('암기 가리기 — 세부목차를 탭하면 잠깐 보여요 · 열기로 필기');
+  if (treeBlind) toast('암기 가리기 — 탭해 확인 · 끝나면 다시 가리기');
+}
+
+/** 다음 회독: 확인해 둔 답을 모두 다시 가리고 회독 번호를 하나 올린다(지난 회독 확인 수를 알려 준다). */
+function resetTreeBlindRound() {
+  if (!treeBlind) return;
+  const seen = treeBlindOpen.size;
+  treeBlindOpen.clear();
+  treeBlindRound += 1;
+  const root = $('#tree-content');
+  if (root) root.querySelectorAll('.tree-sebu.revealed').forEach(x => x.classList.remove('revealed'));
+  syncTreeBlind();
+  toast(treeBlindRound + '회독 — 지난 회독에서 ' + seen + '개 확인');
 }
 
 /* ========== Modals ========== */
@@ -6234,6 +6297,8 @@ function wireEvents() {
   $('#btn-back-tree').addEventListener('click', () => goMokcha(state.nbId));
   $('#btn-tree-view').addEventListener('click', goTree);
   $('#btn-tree-blind').addEventListener('click', toggleTreeBlind);
+  const blindReset = $('#btn-blind-reset');
+  if (blindReset) blindReset.addEventListener('click', resetTreeBlindRound);
 
   // 통합 빠른 검색 (홈)
   const hsInput = $('#home-search');
