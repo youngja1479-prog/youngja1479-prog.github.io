@@ -1,5 +1,5 @@
 // 홈 통합 빠른 검색(#home-search, Ctrl/⌘+K, /, Esc) + 목차 한눈에 보기 암기 가리기(#btn-tree-blind,
-// 개별 확인, 회독 막대 #tree-blind-bar·#btn-blind-reset).
+// 개별 확인, 가리기 막대 #tree-blind-bar·#tbb-count·#btn-blind-big·#btn-blind-reset).
 // 샘플 과목·수준·노트·목차·세부목차를 넣고 실제 입력·클릭·탭으로 확인한다. 노트 데이터(DATA)는 검색으로
 // 바뀌지 않는지, 저장 키/스키마를 건드리지 않는지 함께 본다. Needs Chrome + puppeteer-core.
 // Run: node study/outline/tests/home-search-tree-blind-browser.cjs [rootDir]
@@ -304,20 +304,24 @@ const NB = () => ({
       await page.click('#btn-tree-blind'); await sleep(60);
       assert.equal(await page.evaluate(() => JSON.stringify(__gkcSync.getData())), dataTreeBefore, 'blind mode does not touch notebook data');
 
-      // 11) 회독 막대 — 이번 회독에서 확인한 세부목차 수, 다시 가리기로 다음 회독
-      assert.ok(!(await visible('#tree-blind-bar')), '회독 막대는 암기 가리기가 꺼져 있으면 보이지 않는다');
+      // 11) 가리기 막대 — 회독 수 라벨 없이 확인 n/m + 진행선 + 다시 가리기만
+      assert.ok(!(await visible('#tree-blind-bar')), '가리기 막대는 암기 가리기가 꺼져 있으면 보이지 않는다');
       await page.click('#btn-tree-blind'); await sleep(80);
-      assert.ok(await visible('#tree-blind-bar'), '회독 막대는 암기 가리기와 함께 나타난다');
-      assert.equal(await q('#tbb-round', 'textContent'), '1회독', '회독 번호는 1부터');
+      assert.ok(await visible('#tree-blind-bar'), '가리기 막대는 암기 가리기와 함께 나타난다');
+      assert.equal(await q('#tbb-round'), null, '회독 수 라벨(#tbb-round)은 없다');
+      assert.ok(!(await q('#tree-blind-bar')).includes('회독'), '막대에는 회독 표시가 없다');
+      assert.deepEqual(await page.evaluate(() => [...document.getElementById('tree-blind-bar').children].map(c => c.id || c.className)),
+        ['tbb-count', 'tbb-track', 'btn-blind-big', 'btn-blind-reset'], '막대 구성: 확인 수 · 진행선 · 큰 목차도 · 다시 가리기');
       assert.equal(await q('#tbb-count', 'textContent'), '확인 0/2', '세부목차 전체 수를 분모로 0부터');
       const barFit = await page.evaluate(() => {
         const bar = document.getElementById('tree-blind-bar').getBoundingClientRect();
         const btn = document.getElementById('btn-blind-reset').getBoundingClientRect();
+        const chip = document.getElementById('btn-blind-big').getBoundingClientRect();
         const body = document.querySelector('#view-tree .view-body').getBoundingClientRect();
-        return { top: bar.top, bodyTop: body.top, right: btn.right, left: btn.left, h: bar.height, over: document.querySelector('#view-tree .view-body').scrollWidth - document.querySelector('#view-tree .view-body').clientWidth };
+        return { top: bar.top, bodyTop: body.top, right: btn.right, left: chip.left, h: bar.height, over: document.querySelector('#view-tree .view-body').scrollWidth - document.querySelector('#view-tree .view-body').clientWidth };
       });
-      assert.ok(barFit.top >= 0 && barFit.bodyTop >= barFit.top - 1, '회독 막대는 목록 위(스크롤 밖)에 고정');
-      assert.ok(barFit.left >= -0.5 && barFit.right <= vp.width + 0.5, `다시 가리기 button inside the viewport (${barFit.left}..${barFit.right})`);
+      assert.ok(barFit.top >= 0 && barFit.bodyTop >= barFit.top - 1, '가리기 막대는 목록 위(스크롤 밖)에 고정');
+      assert.ok(barFit.left >= -0.5 && barFit.right <= vp.width + 0.5, `다시 가리기·큰 목차도 버튼이 화면 안 (${barFit.left}..${barFit.right}, ${vp.width})`);
       assert.ok(barFit.over <= 1, `no horizontal overflow with the bar (${barFit.over}px)`);
       if (!vp.mobile) await page.screenshot({ path: path.join(SHOT_DIR || tmp, 'outline-blind-bar.png') });
       await page.click('.tree-sebu[data-sebu="sb1"] .sebu-title'); await sleep(60);
@@ -328,27 +332,89 @@ const NB = () => ({
       await page.click('.tree-sebu[data-sebu="sb1"] .sebu-title'); await sleep(40);
       await page.click('.tree-sebu[data-sebu="sb2"] .sebu-title'); await sleep(60);
       assert.equal(await q('#tbb-count', 'textContent'), '확인 2/2', '전부 확인하면 2/2');
-      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), true, '다 봤을 때는 다음 회독을 권한다');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), true, '다 봤을 때는 다시 가리기를 권한다');
       await page.click('#btn-blind-reset'); await sleep(80);
-      assert.equal(await q('#tbb-round', 'textContent'), '2회독', '다시 가리기 → 다음 회독');
-      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/2', '새 회독은 0부터');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/2', '다시 가리면 0부터');
       assert.equal(await page.evaluate(() => document.querySelectorAll('.tree-sebu.revealed').length), 0, '답은 모두 다시 가려짐');
-      assert.ok((await q('#toast', 'textContent')).includes('2회독'), '지난 회독 확인 수를 토스트로 알려 줌');
-      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), false, '새 회독은 다시 진행 중');
+      assert.ok((await q('#toast', 'textContent')).includes('다시 가렸어요'), '다시 가렸다고 알려 줌');
+      assert.ok(!(await q('#toast', 'textContent')).includes('회독'), '토스트에도 회독 표시가 없다');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), false, '다시 가리면 진행 중');
 
-      // 12) 회독 상태는 다시 그려도 유지되고, 끄면 초기화된다 (저장·동기화는 하지 않음)
-      await page.click('.tree-sebu[data-sebu="sb1"]'); await sleep(60);
+      // 12) 큰 목차도 — 대목차 제목까지 가리고, 대목차도 하나씩 확인·재가리기
+      const chip = '#btn-blind-big';
+      assert.ok(await visible(chip), '큰 목차도 토글이 막대에 있다');
+      assert.equal(await q(chip, 'textContent'), '큰 목차도', '짧은 칩 라벨');
+      assert.equal(await page.evaluate(() => document.getElementById('btn-blind-big').getAttribute('aria-pressed')), 'false', '큰 목차도는 기본 꺼짐');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-content').classList.contains('big')), false, '기본은 세부목차만 가림');
+      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.tree-mok-head .mok-title')).color !== 'rgba(0, 0, 0, 0)'), true, '꺼져 있을 때 대목차 제목은 보임');
+      await page.click(chip); await sleep(200); // 색 전환(120ms)이 끝난 뒤 읽는다
+      assert.equal(await page.evaluate(() => document.getElementById('btn-blind-big').getAttribute('aria-pressed')), 'true', '큰 목차도 켜짐');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-content').classList.contains('big')), true, 'tree gets .big');
+      const chipInk = await page.evaluate(() => {
+        const cs = getComputedStyle(document.getElementById('btn-blind-big'));
+        const r = document.getElementById('btn-blind-big').getBoundingClientRect();
+        return { color: cs.color, bg: cs.backgroundColor, w: r.width, h: r.height, text: document.getElementById('btn-blind-big').textContent };
+      });
+      assert.ok(chipInk.color === 'rgb(255, 255, 255)', `켜진 칩은 흰 글자(호버 중에도) (${chipInk.color})`);
+      assert.ok(chipInk.bg !== 'rgba(0, 0, 0, 0)' && chipInk.bg !== chipInk.color, '켜진 칩은 채워진 배경');
+      assert.ok(chipInk.w > 40 && chipInk.w < 120 && chipInk.h <= 30, `작은 칩 (${chipInk.w}x${chipInk.h})`);
+      const mokBlind = await page.evaluate(() => {
+        const t = document.querySelector('.tree-mok-head .mok-title');
+        const cs = getComputedStyle(t);
+        return { color: cs.color, shadow: cs.textShadow, bg: cs.backgroundColor };
+      });
+      assert.ok(mokBlind.color === 'rgba(0, 0, 0, 0)' || mokBlind.color === 'transparent', `대목차 제목도 가려짐 (${mokBlind.color})`);
+      assert.ok(mokBlind.shadow && mokBlind.shadow !== 'none', '대목차도 블러 실루엣');
+      assert.ok(mokBlind.bg !== 'rgba(0, 0, 0, 0)', '대목차 뒤에도 가림막');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/3', '대목차+세부목차 전체(1+2)를 분모로');
+      if (!vp.mobile) await page.screenshot({ path: path.join(SHOT_DIR || tmp, 'outline-blind-bar-big.png') });
+      // 대목차 탭 → 그 대목차만 공개, 목차 화면으로 이동하지 않음
+      const viewBefore = (await page.evaluate(() => __gkcNav.getState())).view;
+      await page.click('.tree-mok-head'); await sleep(80);
+      assert.equal(await page.evaluate(() => document.querySelector('.tree-mok-head').classList.contains('revealed')), true, '대목차 탭 → 그 대목차 공개');
+      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.tree-mok-head .mok-title')).color !== 'rgba(0, 0, 0, 0)'), true, '공개된 대목차 제목은 읽힘');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 1/3', '대목차도 확인 수에 들어감');
+      assert.equal((await page.evaluate(() => __gkcNav.getState())).view, viewBefore, '큰 목차도 중에는 대목차 탭이 화면을 옮기지 않음');
+      assert.equal(await page.evaluate(() => document.querySelector('.tree-sebu.revealed') === null), true, '세부목차는 그대로 가려져 있음');
+      await page.click('.tree-mok-head'); await sleep(80);
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/3', '다시 탭하면 대목차도 다시 가려짐');
+      await page.click('.tree-mok-head'); await sleep(40);
+      await page.click('.tree-sebu[data-sebu="sb1"] .sebu-title'); await sleep(40);
+      await page.click('.tree-sebu[data-sebu="sb2"] .sebu-title'); await sleep(60);
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 3/3', '대목차까지 전부 확인하면 3/3');
+      assert.equal(await page.evaluate(() => document.getElementById('tbb-fill').style.width), '100%', '진행선이 가득 참');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), true, '완료 상태');
+      await page.click('#btn-blind-reset'); await sleep(80);
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/3', '다시 가리기 → 대목차까지 0부터');
+      assert.equal(await page.evaluate(() => document.querySelectorAll('.tree-mok-head.revealed, .tree-sebu.revealed').length), 0, '대목차·세부목차 모두 다시 가려짐');
+      assert.equal(await page.evaluate(() => document.getElementById('tree-blind-bar').classList.contains('done')), false, '다시 진행 중');
+      // 끄면 세부목차만 가리는 기존 동작으로 돌아가고, 세부목차 수로 센다
+      await page.click('.tree-sebu[data-sebu="sb1"] .sebu-title'); await sleep(60);
+      await page.click(chip); await sleep(80);
+      assert.equal(await page.evaluate(() => document.getElementById('tree-content').classList.contains('big')), false, '큰 목차도 끔');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 1/2', '끄면 세부목차 기준으로 센다');
+      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.tree-mok-head .mok-title')).color !== 'rgba(0, 0, 0, 0)'), true, '대목차 제목은 다시 보임');
+      await page.click('.tree-mok-head'); await sleep(120);
+      assert.equal((await page.evaluate(() => __gkcNav.getState())).view, 'sebu', '큰 목차도가 꺼져 있으면 대목차 클릭은 목차 화면으로');
       await page.evaluate(() => __gkcNav.goTree()); await sleep(120);
-      assert.equal(await page.evaluate(() => document.querySelector('.tree-sebu[data-sebu="sb1"]').classList.contains('revealed')), true, '확인해 둔 답은 다시 그려도 보임');
-      assert.equal(await q('#tbb-count', 'textContent'), '확인 1/2', '다시 그려도 확인 수 유지');
-      assert.equal(await q('#tbb-round', 'textContent'), '2회독', '다시 그려도 회독 번호 유지');
+
+      // 13) 가리기 상태는 다시 그려도 유지되고, 끄면 초기화된다 (저장·동기화는 하지 않음)
+      await page.click(chip); await sleep(80);
+      await page.click('.tree-mok-head'); await sleep(40);
+      await page.click('.tree-sebu[data-sebu="sb2"]'); await sleep(60);
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 3/3', '대목차+세부목차 확인');
+      await page.evaluate(() => __gkcNav.goTree()); await sleep(120);
+      assert.equal(await page.evaluate(() => document.querySelector('.tree-mok-head').classList.contains('revealed')), true, '확인해 둔 대목차는 다시 그려도 보임');
+      assert.equal(await page.evaluate(() => document.querySelector('.tree-sebu[data-sebu="sb2"]').classList.contains('revealed')), true, '확인해 둔 답은 다시 그려도 보임');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 3/3', '다시 그려도 확인 수 유지');
+      assert.equal(await page.evaluate(() => document.getElementById('btn-blind-big').getAttribute('aria-pressed')), 'true', '다시 그려도 big 유지');
       await page.click('#btn-tree-blind'); await sleep(60);
       assert.ok(!(await visible('#tree-blind-bar')), '끄면 막대가 사라짐');
       await page.click('#btn-tree-blind'); await sleep(60);
-      assert.equal(await q('#tbb-round', 'textContent'), '1회독', '다시 켜면 1회독부터');
-      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/2', '다시 켜면 확인 0부터');
+      assert.equal(await q('#tbb-count', 'textContent'), '확인 0/2', '다시 켜면 확인 0부터(세부목차만)');
+      assert.equal(await page.evaluate(() => document.getElementById('btn-blind-big').getAttribute('aria-pressed')), 'false', '다시 켜면 큰 목차도도 꺼진 상태');
       await page.click('#btn-tree-blind'); await sleep(60);
-      assert.equal(await page.evaluate(() => JSON.stringify(__gkcSync.getData())), dataTreeBefore, '회독 막대는 노트 데이터를 건드리지 않는다');
+      assert.equal(await page.evaluate(() => JSON.stringify(__gkcSync.getData())), dataTreeBefore, '가리기 막대는 노트 데이터를 건드리지 않는다');
 
       assert.deepEqual(errors, [], `no console/page errors (${vp.width}x${vp.height}): ${errors.join(' | ')}`);
       if (SHOT_DIR && vp.mobile) {
@@ -365,11 +431,16 @@ const NB = () => ({
         if (!on) { await page.click('#btn-tree-blind'); await sleep(160); }
         await hideToast(); await sleep(350);
         await page.screenshot({ path: path.join(SHOT_DIR, 'outline-tree-blind-mobile.png') });
+        // 큰 목차까지 가린 상태 + 대목차 하나만 확인한 모습
+        await page.click('#btn-blind-big'); await sleep(220);
+        await page.click('.tree-mok-head'); await sleep(160);
+        await hideToast(); await sleep(320);
+        await page.screenshot({ path: path.join(SHOT_DIR, 'outline-tree-blind-big-mobile.png') });
       }
       await page.close();
       console.log(`ok ${tag} ${vp.width}x${vp.height}`);
     }
-    console.log('PASS: 홈 통합 빠른 검색 (과목·수준·노트·목차·세부목차 경로 결과, 클릭 점프·뒤로 경로, Ctrl/⌘+K·/·Esc·지우기, 읽기 전용) + 목차 한눈에 보기 암기 가리기 (토글, 개별 확인, 열기로 필기, 평소 클릭 동작, 회독 막대·다시 가리기, 데이터 불변), desktop/mobile 콘솔 에러 없음');
+    console.log('PASS: 홈 통합 빠른 검색 (과목·수준·노트·목차·세부목차 경로 결과, 클릭 점프·뒤로 경로, Ctrl/⌘+K·/·Esc·지우기, 읽기 전용) + 목차 한눈에 보기 암기 가리기 (토글, 개별 확인, 열기로 필기, 평소 클릭 동작, 가리기 막대·큰 목차도·다시 가리기, 데이터 불변), desktop/mobile 콘솔 에러 없음');
   } finally {
     await browser.close(); srv.close();
   }
