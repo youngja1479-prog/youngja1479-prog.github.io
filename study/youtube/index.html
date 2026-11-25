@@ -286,6 +286,22 @@
       font-size: 0.8rem;
     }
 
+    .more {
+      display: block;
+      width: 100%;
+      min-height: var(--tap);
+      margin: 4px 0 16px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg-elev);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
     .list-label {
       display: none;
       margin: 4px 0 10px;
@@ -343,6 +359,9 @@
 
       const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 
+      const PAGE_SIZE = 100;
+      const ENRICH_CHUNK = 400;
+
       const state = {
         channels: [],
         channelMap: new Map(),
@@ -356,13 +375,17 @@
         filter: "all",
         query: "",
         current: null,
+        hits: null,
+        hitsKey: "",
+        renderLimit: PAGE_SIZE,
       };
 
       let searchTimer = 0;
+      let searchGen = 0;
 
       const choseong = (s) => {
         let out = "";
-        for (const ch of s) {
+        for (const ch of s || "") {
           const c = ch.codePointAt(0);
           if (c >= 0xac00 && c <= 0xd7a3) out += CHO[Math.floor((c - 0xac00) / 588)];
           else if (CHO.indexOf(ch) !== -1) out += ch;
@@ -385,20 +408,39 @@
         return true;
       };
 
-      const titleMatches = (title, query) => {
-        const q = (query || "").trim();
-        if (!q) return true;
-        if (isChoseongQuery(q)) {
-          const hay = choseong(title || "");
-          return q.split(/\s+/).filter(Boolean).every((n) => hay.indexOf(n) !== -1);
+      const enrich = (v) => {
+        if (!v.norm) v.norm = normalize(v.title);
+        if (!v.cho) v.cho = choseong(v.title);
+        return v;
+      };
+
+      const enrichChunk = (list, start) => {
+        const end = Math.min(start + ENRICH_CHUNK, list.length);
+        for (let i = start; i < end; i++) enrich(list[i]);
+        if (end < list.length) {
+          return new Promise((resolve) => {
+            setTimeout(() => enrichChunk(list, end).then(resolve), 0);
+          });
         }
-        const hay = normalize(title);
-        return q
-          .split(/\s+/)
-          .filter(Boolean)
-          .map(normalize)
-          .filter(Boolean)
-          .every((t) => hay.indexOf(t) !== -1);
+        return Promise.resolve();
+      };
+
+      const prepareQuery = (query) => {
+        const q = (query || "").trim();
+        if (!q) return null;
+        if (isChoseongQuery(q)) return { cho: q.split(/\s+/).filter(Boolean) };
+        const tokens = q.split(/\s+/).filter(Boolean).map(normalize).filter(Boolean);
+        return tokens.length ? { tokens: tokens } : null;
+      };
+
+      const titleMatches = (v, prepared) => {
+        if (!prepared) return true;
+        if (prepared.cho) {
+          const hay = v.cho || "";
+          return prepared.cho.every((n) => hay.indexOf(n) !== -1);
+        }
+        const hay = v.norm || "";
+        return prepared.tokens.every((tok) => hay.indexOf(tok) !== -1);
       };
 
       const fmtDate = (iso) => {
@@ -429,8 +471,6 @@
 
       const channelName = (id) => (state.channelMap.get(id) || {}).name || "허용 채널";
 
-      const inFilter = (v) => state.filter === "all" || v.channelId === state.filter;
-
       const neededChannelIds = () => {
         if (state.filter === "all") return state.channels.map((c) => c.id);
         return [state.filter];
@@ -438,14 +478,29 @@
 
       const indexReady = () => neededChannelIds().every((id) => state.indexParts.has(id));
 
-      const visibleVideos = () => {
+      const invalidateHits = () => {
+        state.hits = null;
+        state.hitsKey = "";
+        state.renderLimit = PAGE_SIZE;
+      };
+
+      const getHits = () => {
         const q = state.query.trim();
-        const source = q && indexReady() ? state.index : state.videos;
-        let list = source.filter(inFilter);
-        if (q) list = list.filter((v) => titleMatches(v.title, q));
-        if (q && indexReady()) {
-          list = list.slice().sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+        const key = state.filter + "\n" + q + "\n" + (q && indexReady() ? "i" : "v");
+        if (state.hits && state.hitsKey === key) return state.hits;
+        const prepared = prepareQuery(q);
+        const source = prepared && indexReady() ? state.index : state.videos;
+        let list;
+        if (state.filter === "all") list = source.slice();
+        else list = source.filter((v) => v.channelId === state.filter);
+        if (prepared) {
+          list = list.filter((v) => titleMatches(v, prepared));
+          if (indexReady()) {
+            list.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+          }
         }
+        state.hitsKey = key;
+        state.hits = list;
         return list;
       };
 
@@ -460,23 +515,57 @@
           btn.setAttribute("aria-pressed", String(state.filter === ch.id));
           btn.addEventListener("click", () => {
             state.filter = ch.id;
+            invalidateHits();
             if (state.current && ch.id !== "all" && state.current.channelId !== ch.id) {
               closePlayer();
             }
             renderChips();
             if (state.query.trim()) {
               ensureIndex().then(() => renderList());
+            } else {
+              renderList();
             }
-            renderList();
             listEl.scrollTop = 0;
           });
           chipsEl.appendChild(btn);
         }
       };
 
+      const makeCard = (v) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "card";
+        btn.setAttribute("aria-label", v.title);
+
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        const img = document.createElement("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.src = "https://i.ytimg.com/vi/" + encodeURIComponent(v.id) + "/hqdefault.jpg";
+        thumb.appendChild(img);
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const title = document.createElement("div");
+        title.className = "v-title";
+        title.textContent = v.title;
+        const sub = document.createElement("div");
+        sub.className = "v-sub";
+        const date = fmtDate(v.published);
+        sub.textContent = date ? channelName(v.channelId) + " · " + date : channelName(v.channelId);
+        meta.appendChild(title);
+        meta.appendChild(sub);
+
+        btn.appendChild(thumb);
+        btn.appendChild(meta);
+        btn.addEventListener("click", () => openPlayer(v));
+        return btn;
+      };
+
       const renderList = () => {
         const q = state.query.trim();
-        const videos = visibleVideos();
         listEl.innerHTML = "";
 
         if (q && !indexReady() && !state.indexError) {
@@ -486,6 +575,9 @@
           listEl.appendChild(p);
           return;
         }
+
+        const videos = getHits();
+        const limit = q ? Math.min(state.renderLimit, videos.length) : videos.length;
 
         if (state.current) {
           const label = document.createElement("p");
@@ -499,10 +591,17 @@
         } else if (q) {
           const n = document.createElement("p");
           n.className = "result-count";
-          n.textContent =
-            videos.length === 0
-              ? "검색 결과 없음"
-              : "검색 결과 " + videos.length.toLocaleString("ko-KR") + "개";
+          if (videos.length === 0) n.textContent = "검색 결과 없음";
+          else if (limit < videos.length) {
+            n.textContent =
+              "검색 결과 " +
+              videos.length.toLocaleString("ko-KR") +
+              "개 중 " +
+              limit.toLocaleString("ko-KR") +
+              "개 표시";
+          } else {
+            n.textContent = "검색 결과 " + videos.length.toLocaleString("ko-KR") + "개";
+          }
           listEl.appendChild(n);
         }
 
@@ -526,38 +625,29 @@
           return;
         }
 
-        for (const v of videos) {
+        const frag = document.createDocumentFragment();
+        let added = 0;
+        for (let i = 0; i < videos.length && added < limit; i++) {
+          const v = videos[i];
           if (state.current && v.id === state.current.id) continue;
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "card";
-          btn.setAttribute("aria-label", v.title);
+          frag.appendChild(makeCard(v));
+          added += 1;
+        }
+        listEl.appendChild(frag);
 
-          const thumb = document.createElement("div");
-          thumb.className = "thumb";
-          const img = document.createElement("img");
-          img.alt = "";
-          img.loading = "lazy";
-          img.decoding = "async";
-          img.src = "https://i.ytimg.com/vi/" + encodeURIComponent(v.id) + "/hqdefault.jpg";
-          thumb.appendChild(img);
-
-          const meta = document.createElement("div");
-          meta.className = "meta";
-          const title = document.createElement("div");
-          title.className = "v-title";
-          title.textContent = v.title;
-          const sub = document.createElement("div");
-          sub.className = "v-sub";
-          const date = fmtDate(v.published);
-          sub.textContent = date ? channelName(v.channelId) + " · " + date : channelName(v.channelId);
-          meta.appendChild(title);
-          meta.appendChild(sub);
-
-          btn.appendChild(thumb);
-          btn.appendChild(meta);
-          btn.addEventListener("click", () => openPlayer(v));
-          listEl.appendChild(btn);
+        const remaining = videos.length - limit;
+        if (q && remaining > 0) {
+          const more = document.createElement("button");
+          more.type = "button";
+          more.className = "more";
+          more.textContent = "더 보기 · " + remaining.toLocaleString("ko-KR") + "개 남음";
+          more.addEventListener("click", () => {
+            state.renderLimit += PAGE_SIZE;
+            const keep = listEl.scrollTop;
+            renderList();
+            listEl.scrollTop = keep;
+          });
+          listEl.appendChild(more);
         }
 
         if (state.updatedAt && !state.current && !q) {
@@ -614,6 +704,7 @@
         const all = [];
         for (const list of state.indexParts.values()) all.push(...list);
         state.index = all;
+        invalidateHits();
       };
 
       const ensureIndex = () => {
@@ -654,7 +745,9 @@
                       published: row[2] || "",
                     });
                   }
-                  state.indexParts.set(cid, list);
+                  return enrichChunk(list, 0).then(() => {
+                    state.indexParts.set(cid, list);
+                  });
                 })
               )
             ).then(() => {
@@ -668,10 +761,17 @@
       };
 
       const applyQuery = (value) => {
+        const gen = ++searchGen;
         state.query = value;
+        invalidateHits();
         qClear.hidden = !value;
         if (value.trim()) {
-          ensureIndex().then(() => renderList());
+          ensureIndex().then(() => {
+            if (gen !== searchGen) return;
+            renderList();
+          });
+          if (!indexReady() && !state.indexError) renderList();
+          return;
         }
         renderList();
       };
@@ -679,7 +779,7 @@
       qEl.addEventListener("input", () => {
         qClear.hidden = !qEl.value;
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => applyQuery(qEl.value), 180);
+        searchTimer = setTimeout(() => applyQuery(qEl.value), 250);
       });
       qEl.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
@@ -729,7 +829,9 @@
             state.channelMap.set(ch.id, ch);
           }
           const videos = Array.isArray(vData.videos) ? vData.videos : [];
-          state.videos = videos.filter((v) => v && v.id && state.allowed.has(v.channelId));
+          state.videos = videos
+            .filter((v) => v && v.id && state.allowed.has(v.channelId))
+            .map(enrich);
           state.updatedAt = vData.updatedAt || "";
           renderChips();
           renderList();
