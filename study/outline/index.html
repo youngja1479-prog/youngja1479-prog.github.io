@@ -297,6 +297,8 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 }
 .tree-mok-head:hover { background: var(--surface2); }
 .tree-mok-head .item-num { width: 26px; text-align: left; font: 500 11.5px/1 var(--mono); color: var(--text4); }
+.tree-mok-head .mok-title { flex: 0 1 auto; min-width: 0; word-break: keep-all; overflow-wrap: break-word; }
+.tree-mok-head .mok-count { margin-left: auto; flex-shrink: 0; font-size: 12px; color: var(--text3); font-weight: 400; }
 .tree-sebu {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 42px;
   border-top: 1px solid var(--border); cursor: pointer; font-size: 13.5px; color: var(--text2);
@@ -329,7 +331,19 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 #tree-content.blind .tree-sebu.revealed .sebu-title {
   color: var(--text2); text-shadow: none; background: transparent; box-shadow: none;
 }
-/* 회독 막대 — 이번 회독에서 확인한 세부목차 수를 보여주고, 다시 가리기로 다음 회독을 연다 */
+/* 큰 목차까지 가리기 — 막대의 `큰 목차도`가 켜졌을 때 대목차 제목도 같은 방식으로 가린다 */
+#tree-content.blind.big .tree-mok-head { cursor: pointer; }
+#tree-content.blind.big .tree-mok-head .mok-title {
+  color: transparent; text-shadow: 0 0 6px rgba(24,24,27,.42);
+  background: var(--surface2); border-radius: 3px; padding: 1px 6px; margin: -1px 0;
+  min-width: 1.6em;
+  box-shadow: inset 0 0 0 1px var(--border);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+#tree-content.blind.big .tree-mok-head.revealed .mok-title {
+  color: var(--text); text-shadow: none; background: transparent; box-shadow: none;
+}
+/* 가리기 막대 — 확인한 항목 수와 진행선, 다시 가리기, 큰 목차까지 가리기 */
 .tree-blind-bar {
   display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   padding: 7px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
@@ -337,10 +351,18 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 @media (min-width: 720px) {
   .tree-blind-bar { padding: 7px max(24px, calc((100% - 860px) / 2)); }
 }
-.tree-blind-bar .tbb-round { font: 500 10.5px/1 var(--mono); letter-spacing: .06em; color: var(--text3); }
 .tree-blind-bar .tbb-count { font-size: 12px; color: var(--text2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tree-blind-bar .tbb-track { flex: 1; min-width: 36px; height: 2px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
 .tree-blind-bar .tbb-track i { display: block; height: 100%; width: 0; background: var(--text); transition: width .16s ease; }
+.tree-blind-bar .tbb-chip {
+  flex-shrink: 0; height: 26px; padding: 0 9px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); font: 500 10.5px/1 var(--mono); letter-spacing: .04em; color: var(--text3);
+  transition: background .12s, color .12s, border-color .12s;
+}
+.tree-blind-bar .tbb-chip:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+.tree-blind-bar .tbb-chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
+.tree-blind-bar .tbb-chip[aria-pressed="true"]:hover:not(:disabled) { background: #000; border-color: #000; color: #fff; }
+.tree-blind-bar .tbb-chip:disabled { opacity: .45; cursor: default; }
 .tree-blind-bar #btn-blind-reset { flex-shrink: 0; }
 .tree-blind-bar.done #btn-blind-reset { background: var(--text); border-color: var(--text); color: #fff; }
 .tree-blind-bar.done #btn-blind-reset:hover { background: #000; border-color: #000; }
@@ -861,10 +883,10 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
       <button class="btn sm" id="btn-tree-blind" aria-pressed="false" title="세부목차 제목을 가리고 떠올려 보기">암기 가리기</button>
     </div>
     <div class="tree-blind-bar hidden" id="tree-blind-bar" aria-hidden="true">
-      <span class="tbb-round" id="tbb-round">1회독</span>
       <span class="tbb-count" id="tbb-count" aria-live="polite">확인 0/0</span>
       <span class="tbb-track" aria-hidden="true"><i id="tbb-fill"></i></span>
-      <button type="button" class="btn sm" id="btn-blind-reset" title="확인한 항목을 다시 가리고 다음 회독 시작">다시 가리기</button>
+      <button type="button" class="tbb-chip" id="btn-blind-big" aria-pressed="false" title="대목차 제목까지 가리고 떠올리기">큰 목차도</button>
+      <button type="button" class="btn sm" id="btn-blind-reset" title="확인한 항목을 다시 가리기">다시 가리기</button>
     </div>
     <div class="view-body">
       <div id="tree-content" class="tree-list"></div>
@@ -3373,13 +3395,13 @@ function setupListInteractions(list, arr, onOpen, onChange, owner, acts) {
 }
 
 /* ========== Tree ========== */
-// 암기 가리기 모드: 대목차만 두고 세부목차 제목을 가린다. 이 세션(탭) 안에서만 유지되며
-// 노트 데이터에는 아무것도 저장하지 않는다.
+// 암기 가리기 모드: 세부목차 제목(그리고 `큰 목차도`가 켜지면 대목차 제목까지)을 가린다.
+// 이 세션(탭) 안에서만 유지되며 노트 데이터에는 아무것도 저장하지 않는다.
 let treeBlind = false;
-// 백지 복습 회독 — 이번 회독에서 확인(공개)해 둔 세부목차 id 와 회독 번호.
-// 위와 같이 이 탭의 메모리에만 두고 저장·동기화하지 않는다.
-let treeBlindRound = 1;
+// 이번에 확인(공개)해 둔 세부목차·대목차 id 와, 대목차까지 가릴지 여부. 역시 이 탭의 메모리에만 둔다.
+let treeBlindBig = false;
 let treeBlindOpen = new Set();
+let treeBlindMokOpen = new Set();
 
 function renderTree() {
   const nb = getNb();
@@ -3394,8 +3416,8 @@ function renderTree() {
     <div class="tree-mok">
       <div class="tree-mok-head" data-mok="${esc(m.id)}">
         <span class="item-num">${String(i + 1).padStart(2, '0')}</span>
-        <span style="flex:1">${esc(m.title)}</span>
-        <span style="font-size:12px;color:var(--text3);font-weight:400">${m.sebus.length}개</span>
+        <span class="mok-title">${esc(m.title)}</span>
+        <span class="mok-count">${m.sebus.length}개</span>
       </div>
       ${m.sebus.map((s, j) => `
         <div class="tree-sebu" data-mok="${esc(m.id)}" data-sebu="${esc(s.id)}">
@@ -3407,7 +3429,16 @@ function renderTree() {
     </div>`).join('');
 
   root.querySelectorAll('.tree-mok-head').forEach(el => {
-    el.addEventListener('click', () => { state.nbId = nb.id; goSebu(el.dataset.mok); });
+    if (treeBlind && treeBlindBig && treeBlindMokOpen.has(el.dataset.mok)) el.classList.add('revealed'); // 다시 그려도 확인해 둔 답은 그대로
+    el.addEventListener('click', () => {
+      if (treeBlind && treeBlindBig) { // 큰 목차까지 가린 상태에서는 대목차도 탭해서 확인, 다시 탭하면 가림
+        const id = el.dataset.mok;
+        if (el.classList.toggle('revealed')) treeBlindMokOpen.add(id); else treeBlindMokOpen.delete(id);
+        syncTreeBlind();
+        return;
+      }
+      state.nbId = nb.id; goSebu(el.dataset.mok);
+    });
   });
   root.querySelectorAll('.tree-sebu[data-sebu]').forEach(el => {
     if (treeBlind && treeBlindOpen.has(el.dataset.sebu)) el.classList.add('revealed'); // 다시 그려도 확인해 둔 답은 그대로
@@ -3437,55 +3468,81 @@ function renderTree() {
   syncTreeBlind();
 }
 
-/** 암기 가리기 버튼·목록·회독 막대에 현재 모드 반영 */
+/** 암기 가리기 버튼·목록·가리기 막대에 현재 모드 반영 */
 function syncTreeBlind() {
   const btn = $('#btn-tree-blind'), root = $('#tree-content'), bar = $('#tree-blind-bar');
+  const nb = getNb();
+  const hasMok = !!(nb && (nb.mokchas || []).length);
   if (btn) {
     btn.classList.toggle('on', treeBlind);
     btn.setAttribute('aria-pressed', treeBlind ? 'true' : 'false');
     btn.textContent = treeBlind ? '암기 가리기 켬' : '암기 가리기';
   }
-  if (root) root.classList.toggle('blind', treeBlind);
+  if (root) {
+    root.classList.toggle('blind', treeBlind);
+    root.classList.toggle('big', treeBlind && treeBlindBig && hasMok);
+  }
   if (!bar) return;
   bar.classList.toggle('hidden', !treeBlind);
   bar.setAttribute('aria-hidden', treeBlind ? 'false' : 'true');
   if (!treeBlind) return;
-  const nb = getNb();
-  let total = 0;
+  let total = 0, mokTotal = 0;
   if (nb) {
-    const live = new Set();
-    (nb.mokchas || []).forEach(m => (m.sebus || []).forEach(s => { live.add(s.id); total++; }));
+    const live = new Set(), liveMok = new Set();
+    (nb.mokchas || []).forEach(m => {
+      liveMok.add(m.id); mokTotal++;
+      (m.sebus || []).forEach(s => { live.add(s.id); total++; });
+    });
     treeBlindOpen = new Set([...treeBlindOpen].filter(id => live.has(id))); // 지워진 세부목차는 빼기
+    treeBlindMokOpen = new Set([...treeBlindMokOpen].filter(id => liveMok.has(id))); // 지워진 대목차도 빼기
   }
-  const seen = treeBlindOpen.size;
-  const roundEl = $('#tbb-round'), countEl = $('#tbb-count'), fillEl = $('#tbb-fill'), reset = $('#btn-blind-reset');
-  if (roundEl) roundEl.textContent = treeBlindRound + '회독';
-  if (countEl) countEl.textContent = '확인 ' + seen + '/' + total;
-  if (fillEl) fillEl.style.width = total ? Math.round(seen / total * 100) + '%' : '0%';
-  if (reset) reset.disabled = total === 0;
-  bar.classList.toggle('done', total > 0 && seen >= total);
+  const big = treeBlindBig && mokTotal > 0;
+  const all = big ? total + mokTotal : total;
+  const seen = treeBlindOpen.size + (big ? treeBlindMokOpen.size : 0);
+  const countEl = $('#tbb-count'), fillEl = $('#tbb-fill'), reset = $('#btn-blind-reset'), bigBtn = $('#btn-blind-big');
+  if (countEl) countEl.textContent = '확인 ' + seen + '/' + all;
+  if (fillEl) fillEl.style.width = all ? Math.round(seen / all * 100) + '%' : '0%';
+  if (reset) reset.disabled = all === 0;
+  if (bigBtn) {
+    bigBtn.setAttribute('aria-pressed', big ? 'true' : 'false');
+    bigBtn.disabled = mokTotal === 0;
+  }
+  bar.classList.toggle('done', all > 0 && seen >= all);
 }
 
 function toggleTreeBlind() {
   treeBlind = !treeBlind;
+  treeBlindBig = false;
   treeBlindOpen.clear();
-  if (treeBlind) treeBlindRound = 1;
+  treeBlindMokOpen.clear();
   const root = $('#tree-content');
-  if (root) root.querySelectorAll('.tree-sebu.revealed').forEach(x => x.classList.remove('revealed'));
+  if (root) root.querySelectorAll('.tree-sebu.revealed, .tree-mok-head.revealed').forEach(x => x.classList.remove('revealed'));
   syncTreeBlind();
   if (treeBlind) toast('암기 가리기 — 탭해 확인 · 끝나면 다시 가리기');
 }
 
-/** 다음 회독: 확인해 둔 답을 모두 다시 가리고 회독 번호를 하나 올린다(지난 회독 확인 수를 알려 준다). */
-function resetTreeBlindRound() {
+/** 큰 목차도 — 대목차 제목까지 가리고 대목차도 하나씩 확인한다(끄면 세부목차만). */
+function toggleTreeBlindBig() {
   if (!treeBlind) return;
-  const seen = treeBlindOpen.size;
-  treeBlindOpen.clear();
-  treeBlindRound += 1;
+  const nb = getNb();
+  if (!nb || !(nb.mokchas || []).length) return;
+  treeBlindBig = !treeBlindBig;
+  treeBlindMokOpen.clear(); // 대목차는 가려졌다 풀렸다 하므로 확인 상태도 새로 시작
   const root = $('#tree-content');
-  if (root) root.querySelectorAll('.tree-sebu.revealed').forEach(x => x.classList.remove('revealed'));
+  if (root) root.querySelectorAll('.tree-mok-head.revealed').forEach(x => x.classList.remove('revealed'));
   syncTreeBlind();
-  toast(treeBlindRound + '회독 — 지난 회독에서 ' + seen + '개 확인');
+}
+
+/** 다시 가리기: 확인해 둔 답을 모두 가린다(큰 목차도가 켜져 있으면 대목차까지). */
+function resetTreeBlind() {
+  if (!treeBlind) return;
+  const seen = treeBlindOpen.size + (treeBlindBig ? treeBlindMokOpen.size : 0);
+  treeBlindOpen.clear();
+  treeBlindMokOpen.clear();
+  const root = $('#tree-content');
+  if (root) root.querySelectorAll('.tree-sebu.revealed, .tree-mok-head.revealed').forEach(x => x.classList.remove('revealed'));
+  syncTreeBlind();
+  toast(seen ? '다시 가렸어요 — ' + seen + '개 확인' : '다시 가렸어요');
 }
 
 /* ========== Modals ========== */
@@ -6298,7 +6355,9 @@ function wireEvents() {
   $('#btn-tree-view').addEventListener('click', goTree);
   $('#btn-tree-blind').addEventListener('click', toggleTreeBlind);
   const blindReset = $('#btn-blind-reset');
-  if (blindReset) blindReset.addEventListener('click', resetTreeBlindRound);
+  if (blindReset) blindReset.addEventListener('click', resetTreeBlind);
+  const blindBig = $('#btn-blind-big');
+  if (blindBig) blindBig.addEventListener('click', toggleTreeBlindBig);
 
   // 통합 빠른 검색 (홈)
   const hsInput = $('#home-search');
