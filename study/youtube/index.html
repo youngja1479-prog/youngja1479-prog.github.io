@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="공부 유튜브" />
+  <meta name="description" content="허용한 채널의 영상만 볼 수 있는 공부용 유튜브" />
+  <title>공부 유튜브</title>
+  <style>
+    :root {
+      --bg: #121214;
+      --bg-elev: #1c1c20;
+      --bg-chip: #26262b;
+      --line: #2e2e34;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --accent: #e8c56b;
+      --accent-ink: #1a1408;
+      --danger: #f0a8a8;
+      --radius: 14px;
+      --tap: 48px;
+      --pad: 16px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+    body {
+      min-height: 100dvh;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      height: 100dvh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    @media (orientation: landscape) {
+      body { background: #000; }
+      .shell {
+        width: min(100vw, 430px, calc(100dvh * 9 / 16 + 80px));
+        max-width: 430px;
+        box-shadow: 0 0 0 1px #1a1a1a;
+      }
+    }
+
+    header.app-bar {
+      flex: 0 0 auto;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) var(--pad) 8px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+    .titles { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .back {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      min-height: var(--tap);
+      min-width: var(--tap);
+      margin: -8px 0 -8px -10px;
+      padding: 0 12px 0 6px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .shell.is-watch .back { display: inline-flex; }
+    .shell.is-watch .brand { display: none; }
+    .back svg { width: 22px; height: 22px; }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      padding: 10px var(--pad) 12px;
+      scrollbar-width: none;
+      flex: 0 0 auto;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: 0 0 auto;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg-chip);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .chip[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .list {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 4px var(--pad) calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .card {
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      gap: 12px;
+      width: 100%;
+      margin: 0 0 12px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius);
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .thumb {
+      position: relative;
+      width: 132px;
+      aspect-ratio: 16 / 9;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #2a2a2e;
+    }
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .meta { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 2px 0; }
+    .v-title {
+      font-size: 0.92rem;
+      font-weight: 650;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .v-sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 28px 8px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .status.error { color: var(--danger); }
+    .updated {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .player-wrap {
+      display: none;
+      flex: 0 0 auto;
+      background: #000;
+    }
+    .shell.is-watch .player-wrap { display: block; }
+    .player {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+    .player iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .now {
+      padding: 12px var(--pad) 4px;
+      flex: 0 0 auto;
+    }
+    .shell.is-watch .now { display: block; }
+    .now { display: none; }
+    .now h2 {
+      margin: 0;
+      font-size: 1.02rem;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .now p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .list-label {
+      display: none;
+      margin: 4px 0 10px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 650;
+    }
+    .shell.is-watch .list-label { display: block; }
+  </style>
+</head>
+<body>
+  <div class="shell" id="shell">
+    <header class="app-bar">
+      <button class="back" id="back" type="button" aria-label="목록으로">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
+        목록
+      </button>
+      <div class="brand">
+        <div class="titles">
+          <h1>공부 유튜브</h1>
+        </div>
+        <p class="sub">허용한 채널만 볼 수 있어요</p>
+      </div>
+    </header>
+
+    <div class="player-wrap" id="playerWrap">
+      <div class="player" id="player"></div>
+    </div>
+    <div class="now" id="now" hidden></div>
+
+    <div class="chips" id="chips" role="tablist" aria-label="채널 고르기"></div>
+
+    <main class="list" id="list">
+      <p class="status">목록을 불러오는 중…</p>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const chipsEl = document.getElementById("chips");
+      const listEl = document.getElementById("list");
+      const shell = document.getElementById("shell");
+      const player = document.getElementById("player");
+      const nowEl = document.getElementById("now");
+      const backBtn = document.getElementById("back");
+
+      const state = {
+        channels: [],
+        channelMap: new Map(),
+        videos: [],
+        updatedAt: "",
+        filter: "all",
+        current: null,
+      };
+
+      const fmtDate = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "";
+        return new Intl.DateTimeFormat("ko-KR", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+        }).format(d);
+      };
+
+      const fmtUpdated = (iso) => {
+        if (!iso) return "";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "";
+        return new Intl.DateTimeFormat("ko-KR", {
+          timeZone: "Asia/Seoul",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(d);
+      };
+
+      const visibleVideos = () => {
+        if (state.filter === "all") return state.videos;
+        return state.videos.filter((v) => v.channelId === state.filter);
+      };
+
+      const channelName = (id) => (state.channelMap.get(id) || {}).name || "허용 채널";
+
+      const renderChips = () => {
+        chipsEl.innerHTML = "";
+        const items = [{ id: "all", name: "전체" }, ...state.channels];
+        for (const ch of items) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "chip";
+          btn.textContent = ch.name;
+          btn.setAttribute("aria-pressed", String(state.filter === ch.id));
+          btn.addEventListener("click", () => {
+            state.filter = ch.id;
+            if (state.current && ch.id !== "all" && state.current.channelId !== ch.id) {
+              closePlayer();
+            }
+            renderChips();
+            renderList();
+            listEl.scrollTop = 0;
+          });
+          chipsEl.appendChild(btn);
+        }
+      };
+
+      const renderList = () => {
+        const videos = visibleVideos();
+        listEl.innerHTML = "";
+        if (state.current) {
+          const label = document.createElement("p");
+          label.className = "list-label";
+          label.textContent =
+            state.filter === "all" ? "다른 허용 영상" : channelName(state.filter) + "의 다른 영상";
+          listEl.appendChild(label);
+        }
+        if (!videos.length) {
+          const p = document.createElement("p");
+          p.className = "status";
+          p.textContent = "이 채널의 영상이 아직 없어요. 목록이 곧 갱신될 수 있어요.";
+          listEl.appendChild(p);
+          return;
+        }
+        for (const v of videos) {
+          if (state.current && v.id === state.current.id) continue;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "card";
+          btn.setAttribute("aria-label", v.title);
+
+          const thumb = document.createElement("div");
+          thumb.className = "thumb";
+          const img = document.createElement("img");
+          img.alt = "";
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.src = "https://i.ytimg.com/vi/" + encodeURIComponent(v.id) + "/hqdefault.jpg";
+          thumb.appendChild(img);
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          const title = document.createElement("div");
+          title.className = "v-title";
+          title.textContent = v.title;
+          const sub = document.createElement("div");
+          sub.className = "v-sub";
+          sub.textContent = channelName(v.channelId) + " · " + fmtDate(v.published);
+          meta.appendChild(title);
+          meta.appendChild(sub);
+
+          btn.appendChild(thumb);
+          btn.appendChild(meta);
+          btn.addEventListener("click", () => openPlayer(v));
+          listEl.appendChild(btn);
+        }
+        if (state.updatedAt && !state.current) {
+          const u = document.createElement("p");
+          u.className = "updated";
+          u.textContent = "목록 업데이트 " + fmtUpdated(state.updatedAt);
+          listEl.appendChild(u);
+        }
+      };
+
+      const openPlayer = (video) => {
+        state.current = video;
+        shell.classList.add("is-watch");
+        const src =
+          "https://www.youtube-nocookie.com/embed/" +
+          encodeURIComponent(video.id) +
+          "?rel=0&modestbranding=1&playsinline=1&autoplay=1";
+        player.innerHTML = "";
+        const iframe = document.createElement("iframe");
+        iframe.src = src;
+        iframe.title = video.title;
+        iframe.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+        iframe.allowFullscreen = true;
+        iframe.setAttribute(
+          "sandbox",
+          "allow-scripts allow-same-origin allow-presentation"
+        );
+        iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        player.appendChild(iframe);
+
+        nowEl.hidden = false;
+        nowEl.innerHTML = "";
+        const h = document.createElement("h2");
+        h.textContent = video.title;
+        const p = document.createElement("p");
+        p.textContent = channelName(video.channelId) + " · " + fmtDate(video.published);
+        nowEl.appendChild(h);
+        nowEl.appendChild(p);
+
+        renderList();
+        listEl.scrollTop = 0;
+        window.scrollTo(0, 0);
+      };
+
+      const closePlayer = () => {
+        state.current = null;
+        shell.classList.remove("is-watch");
+        player.innerHTML = "";
+        nowEl.hidden = true;
+        nowEl.innerHTML = "";
+        renderList();
+      };
+
+      backBtn.addEventListener("click", closePlayer);
+
+      const fail = (msg) => {
+        listEl.innerHTML = "";
+        const p = document.createElement("p");
+        p.className = "status error";
+        p.textContent = msg;
+        listEl.appendChild(p);
+      };
+
+      Promise.all([
+        fetch("channels.json", { cache: "no-store" }).then((r) => {
+          if (!r.ok) throw new Error("channels");
+          return r.json();
+        }),
+        fetch("videos.json", { cache: "no-store" }).then((r) => {
+          if (!r.ok) throw new Error("videos");
+          return r.json();
+        }),
+      ])
+        .then(([chData, vData]) => {
+          const allowed = new Set();
+          state.channels = Array.isArray(chData.channels) ? chData.channels : [];
+          state.channelMap = new Map();
+          for (const ch of state.channels) {
+            if (!ch || !ch.id) continue;
+            allowed.add(ch.id);
+            state.channelMap.set(ch.id, ch);
+          }
+          const videos = Array.isArray(vData.videos) ? vData.videos : [];
+          state.videos = videos.filter((v) => v && v.id && allowed.has(v.channelId));
+          state.updatedAt = vData.updatedAt || "";
+          renderChips();
+          renderList();
+        })
+        .catch(() => {
+          fail("목록을 불러오지 못했어요. 잠시 후 다시 열어 보세요.");
+        });
+    })();
+  </script>
+</body>
+</html>

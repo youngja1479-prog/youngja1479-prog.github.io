@@ -1,0 +1,39 @@
+name: Update YouTube feed
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - "study/youtube/channels.json"
+      - "study/youtube/update_feed.py"
+      - ".github/workflows/youtube-feed.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youtube-feed
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Fetch allowed-channel RSS
+        run: python3 study/youtube/update_feed.py
+      - name: Commit videos.json if changed
+        run: |
+          git config user.name "youngja1479-prog"
+          git config user.email "youngja1479-prog@users.noreply.github.com"
+          git add study/youtube/videos.json
+          if git diff --staged --quiet; then
+            echo "No feed changes"
+          else
+            git commit -m "Update YouTube feed"
+            git push
+          fi
