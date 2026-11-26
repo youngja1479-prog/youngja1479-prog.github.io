@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#09090b" />
+  <meta name="theme-color" content="#121214" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -64,7 +67,24 @@
       background: var(--bg);
       border-bottom: 1px solid var(--line);
     }
-    .titles { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .titles { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .install {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg-chip);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .install:active { background: var(--bg-elev); }
+    .install[hidden] { display: none; }
     h1 {
       margin: 0;
       font-size: 1.2rem;
@@ -457,6 +477,7 @@
       <div class="brand">
         <div class="titles">
           <h1>SY</h1>
+          <button class="install" id="installBtn" type="button" hidden>앱 설치</button>
         </div>
         <p class="sub">허용한 채널만 볼 수 있어요</p>
       </div>
@@ -1214,6 +1235,46 @@
         .catch(() => {
           fail("목록을 불러오지 못했어요. 잠시 후 다시 열어 보세요.");
         });
+    })();
+  </script>
+  <script>
+    (function () {
+      const installBtn = document.getElementById("installBtn");
+      const noop = () => {};
+      const isStandalone = () =>
+        (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+        window.navigator.standalone === true;
+
+      let installEvent = null;
+
+      if (installBtn) {
+        window.addEventListener("beforeinstallprompt", (e) => {
+          e.preventDefault();
+          installEvent = e;
+          if (!isStandalone()) installBtn.hidden = false;
+        });
+        installBtn.addEventListener("click", () => {
+          installBtn.hidden = true;
+          if (!installEvent) return;
+          const used = installEvent;
+          installEvent = null;
+          const p = used.prompt();
+          if (p && typeof p.then === "function") p.then(noop, noop);
+        });
+        window.addEventListener("appinstalled", () => {
+          installEvent = null;
+          installBtn.hidden = true;
+        });
+      }
+
+      if ("serviceWorker" in navigator) {
+        const secure = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        if (secure) {
+          window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(noop);
+          });
+        }
+      }
     })();
   </script>
 </body>

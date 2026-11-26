@@ -49,6 +49,18 @@ python3 -m venv /tmp/ytdlp-venv && /tmp/ytdlp-venv/bin/pip install -U yt-dlp
   - `--max-videos`(한 번에 처리할 영상 수), `--time-budget`(초), `--only {videoId}`(특정 영상만) 옵션이 있습니다.
   - 수집된 영상 목록은 `comments/index.json`에 남고, 사이트는 이 목록으로 댓글 유무를 먼저 확인합니다.
 
+## 앱으로 설치 (PWA)
+
+안드로이드 크롬에서 주소창 메뉴 → `앱 설치`(또는 페이지 상단의 `앱 설치` 버튼)로 홈 화면에 앱처럼 설치됩니다.
+
+- `manifest.json` — 이름·아이콘·`start_url`(`/study/youtube/`)·`scope`·`display: standalone`·테마색.
+- `sw.js` — 서비스 워커. 데이터(`videos.json`, `channels.json`, `comments/*`, `index/*`)는 네트워크 우선 + 캐시 fallback,
+  앱 셸(`index.html`, 아이콘, manifest)은 stale-while-revalidate, 화면 이동은 네트워크 우선 + 오프라인 시 캐시된 `index.html`.
+  설치 직후 오프라인에서도 목록이 보이도록 `videos.json`·`channels.json`·`comments/index.json`·`index/manifest.json`만 미리 담아 둡니다.
+- `icons/` — `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`. 다시 만들려면 `python3 study/youtube/icons/make_icons.py`(Pillow 필요).
+
+서비스 워커를 고칠 때는 `sw.js`의 `VERSION`을 올리세요. activate 때 예전 캐시가 지워집니다.
+
 ## 자동 갱신 (GitHub Actions)
 
 `.github/workflows/youtube-feed.yml`이 약 3시간마다 최근 목록(`videos.json`), 검색 인덱스(`index/`), 최근 영상 댓글(`comments/`)을 갱신합니다. 자정(UTC) 회차와 수동 실행의 `full` 옵션은 채널 전체를 다시 수집합니다. 같은 내용의 사본이 `github-action-youtube-feed.yml`에도 있습니다.
