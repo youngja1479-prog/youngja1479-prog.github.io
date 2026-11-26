@@ -153,11 +153,40 @@
       gap: 8px;
       overflow-x: auto;
       overscroll-behavior-x: contain;
-      padding: 10px var(--pad) 12px;
+      padding: 8px var(--pad) 12px;
       scrollbar-width: none;
       flex: 0 0 auto;
     }
     .chips::-webkit-scrollbar { display: none; }
+
+    .filters { flex: 0 0 auto; }
+    .shell.is-watch .filters { display: none; }
+
+    .kinds {
+      display: flex;
+      gap: 6px;
+      padding: 10px var(--pad) 0;
+    }
+    .kind {
+      flex: 1 1 0;
+      min-height: 36px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--bg-elev);
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+    }
+    .kind[aria-selected="true"] {
+      background: var(--bg-chip);
+      border-color: #4a4a52;
+      color: var(--text);
+    }
+    .kind:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     .chip {
       flex: 0 0 auto;
       min-height: 40px;
@@ -214,6 +243,19 @@
       object-fit: cover;
       display: block;
     }
+    .thumb .badge {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(9, 9, 11, 0.82);
+      box-shadow: inset 0 0 0 1px #3f3f46;
+      color: #e4e4e7;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
     .meta { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 2px 0; }
     .v-title {
       font-size: 0.92rem;
@@ -261,6 +303,13 @@
       aspect-ratio: 16 / 9;
       background: #000;
     }
+    .player.is-short {
+      width: auto;
+      max-width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: 58dvh;
+      margin: 0 auto;
+    }
     .player iframe {
       position: absolute;
       inset: 0;
@@ -285,6 +334,90 @@
       color: var(--muted);
       font-size: 0.8rem;
     }
+    .now .tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+      vertical-align: 2px;
+    }
+
+    /* 댓글 */
+    .comments {
+      margin: 2px 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg-elev);
+      overflow: hidden;
+    }
+    .comments[hidden] { display: none; }
+    .c-head {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      width: 100%;
+      min-height: 44px;
+      padding: 0 14px;
+      border: 0;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+    .c-head[aria-expanded="true"] { border-bottom-color: var(--line); }
+    .c-head .c-count { color: var(--muted); font-weight: 650; }
+    .c-head .c-toggle { margin-left: auto; color: var(--muted); font-size: 0.76rem; font-weight: 650; }
+    .c-body { padding: 6px 14px 12px; }
+    .c-body[hidden] { display: none; }
+    .c-note {
+      margin: 8px 0 6px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.55;
+    }
+    .comment { padding: 10px 0 0; }
+    .comment + .comment { border-top: 1px solid #232327; margin-top: 10px; }
+    .c-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+    .c-author {
+      color: #d4d4d8;
+      font-size: 0.78rem;
+      font-weight: 650;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .c-author.is-creator { color: var(--accent); }
+    .c-likes { margin-left: auto; white-space: nowrap; }
+    .c-text {
+      margin: 4px 0 0;
+      font-size: 0.84rem;
+      line-height: 1.55;
+      color: #e4e4e7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .c-replies {
+      margin: 8px 0 0 10px;
+      padding-left: 10px;
+      border-left: 1px solid #2a2a30;
+    }
+    .c-replies .c-text { font-size: 0.8rem; color: #d4d4d8; }
 
     .more {
       display: block;
@@ -339,23 +472,38 @@
     </div>
     <div class="now" id="now" hidden></div>
 
-    <div class="chips" id="chips" role="tablist" aria-label="채널 고르기"></div>
+    <div class="filters" id="filters">
+      <div class="kinds" id="kinds" role="tablist" aria-label="영상 종류"></div>
+      <div class="chips" id="chips" role="tablist" aria-label="채널 고르기"></div>
+    </div>
 
     <main class="list" id="list">
-      <p class="status">목록을 불러오는 중…</p>
+      <section class="comments" id="comments" hidden></section>
+      <div id="listBody">
+        <p class="status">목록을 불러오는 중…</p>
+      </div>
     </main>
   </div>
 
   <script>
     (function () {
       const chipsEl = document.getElementById("chips");
-      const listEl = document.getElementById("list");
+      const kindsEl = document.getElementById("kinds");
+      const listEl = document.getElementById("listBody");
+      const scrollEl = document.getElementById("list");
+      const commentsEl = document.getElementById("comments");
       const shell = document.getElementById("shell");
       const player = document.getElementById("player");
       const nowEl = document.getElementById("now");
       const backBtn = document.getElementById("back");
       const qEl = document.getElementById("q");
       const qClear = document.getElementById("qClear");
+
+      const KINDS = [
+        { id: "all", label: "전체" },
+        { id: "video", label: "일반" },
+        { id: "short", label: "쇼츠" },
+      ];
 
       const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 
@@ -373,11 +521,16 @@
         manifest: null,
         updatedAt: "",
         filter: "all",
+        kind: "all",
         query: "",
         current: null,
         hits: null,
         hitsKey: "",
         renderLimit: PAGE_SIZE,
+        commentsManifest: null,
+        commentsCache: new Map(),
+        commentsOpen: true,
+        commentsSeq: 0,
       };
 
       let searchTimer = 0;
@@ -471,6 +624,12 @@
 
       const channelName = (id) => (state.channelMap.get(id) || {}).name || "허용 채널";
 
+      const kindMatches = (v) => {
+        if (state.kind === "all") return true;
+        if (state.kind === "short") return v.isShort === true;
+        return v.isShort !== true;
+      };
+
       const neededChannelIds = () => {
         if (state.filter === "all") return state.channels.map((c) => c.id);
         return [state.filter];
@@ -486,13 +645,14 @@
 
       const getHits = () => {
         const q = state.query.trim();
-        const key = state.filter + "\n" + q + "\n" + (q && indexReady() ? "i" : "v");
+        const key = state.filter + "\n" + state.kind + "\n" + q + "\n" + (q && indexReady() ? "i" : "v");
         if (state.hits && state.hitsKey === key) return state.hits;
         const prepared = prepareQuery(q);
         const source = prepared && indexReady() ? state.index : state.videos;
         let list;
         if (state.filter === "all") list = source.slice();
         else list = source.filter((v) => v.channelId === state.filter);
+        if (state.kind !== "all") list = list.filter(kindMatches);
         if (prepared) {
           list = list.filter((v) => titleMatches(v, prepared));
           if (indexReady()) {
@@ -525,9 +685,30 @@
             } else {
               renderList();
             }
-            listEl.scrollTop = 0;
+            scrollEl.scrollTop = 0;
           });
           chipsEl.appendChild(btn);
+        }
+      };
+
+      const renderKinds = () => {
+        kindsEl.innerHTML = "";
+        for (const kind of KINDS) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "kind";
+          btn.textContent = kind.label;
+          btn.setAttribute("role", "tab");
+          btn.setAttribute("aria-selected", String(state.kind === kind.id));
+          btn.addEventListener("click", () => {
+            if (state.kind === kind.id) return;
+            state.kind = kind.id;
+            invalidateHits();
+            renderKinds();
+            renderList();
+            scrollEl.scrollTop = 0;
+          });
+          kindsEl.appendChild(btn);
         }
       };
 
@@ -545,6 +726,12 @@
         img.decoding = "async";
         img.src = "https://i.ytimg.com/vi/" + encodeURIComponent(v.id) + "/hqdefault.jpg";
         thumb.appendChild(img);
+        if (v.isShort === true) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = "쇼츠";
+          thumb.appendChild(badge);
+        }
 
         const meta = document.createElement("div");
         meta.className = "meta";
@@ -609,7 +796,9 @@
           if (!q) {
             const p = document.createElement("p");
             p.className = "status";
-            p.textContent = "이 채널의 영상이 아직 없어요. 목록이 곧 갱신될 수 있어요.";
+            if (state.kind === "short") p.textContent = "이 채널에는 모아 둔 쇼츠가 없어요.";
+            else if (state.kind === "video") p.textContent = "이 채널에는 일반 영상이 없어요.";
+            else p.textContent = "이 채널의 영상이 아직 없어요. 목록이 곧 갱신될 수 있어요.";
             listEl.appendChild(p);
           } else if (state.indexError && !indexReady()) {
             const p = document.createElement("p");
@@ -619,7 +808,12 @@
           } else {
             const p = document.createElement("p");
             p.className = "status";
-            p.textContent = "허용한 채널 안에서 맞는 제목이 없어요.";
+            p.textContent =
+              state.kind === "short"
+                ? "허용한 채널 안에서 맞는 쇼츠가 없어요."
+                : state.kind === "video"
+                  ? "허용한 채널 안에서 맞는 일반 영상이 없어요."
+                  : "허용한 채널 안에서 맞는 제목이 없어요.";
             listEl.appendChild(p);
           }
           return;
@@ -643,9 +837,9 @@
           more.textContent = "더 보기 · " + remaining.toLocaleString("ko-KR") + "개 남음";
           more.addEventListener("click", () => {
             state.renderLimit += PAGE_SIZE;
-            const keep = listEl.scrollTop;
+            const keep = scrollEl.scrollTop;
             renderList();
-            listEl.scrollTop = keep;
+            scrollEl.scrollTop = keep;
           });
           listEl.appendChild(more);
         }
@@ -658,9 +852,174 @@
         }
       };
 
+      const commentsView = { status: "idle", data: null };
+
+      const ensureCommentsManifest = () => {
+        if (state.commentsManifest) return Promise.resolve(state.commentsManifest);
+        return fetch("comments/index.json", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : { videoIds: [] }))
+          .then((m) => {
+            state.commentsManifest = m && Array.isArray(m.videoIds) ? m : { videoIds: [] };
+            return state.commentsManifest;
+          })
+          .catch(() => {
+            state.commentsManifest = { videoIds: [] };
+            return state.commentsManifest;
+          });
+      };
+
+      const makeCommentEl = (c, isReply) => {
+        const wrap = document.createElement("article");
+        wrap.className = "comment" + (isReply ? " reply" : "");
+
+        const meta = document.createElement("div");
+        meta.className = "c-meta";
+        const author = document.createElement("span");
+        author.className = "c-author" + (c.isCreator ? " is-creator" : "");
+        author.textContent = (c.isCreator ? "✔ " : "") + (c.author || "익명");
+        const sub = document.createElement("span");
+        sub.textContent = c.published || "";
+        meta.appendChild(author);
+        meta.appendChild(sub);
+        if (c.likes > 0) {
+          const likes = document.createElement("span");
+          likes.className = "c-likes";
+          likes.textContent = "좋아요 " + c.likes.toLocaleString("ko-KR");
+          meta.appendChild(likes);
+        }
+
+        const text = document.createElement("p");
+        text.className = "c-text";
+        text.textContent = c.text || "";
+
+        wrap.appendChild(meta);
+        wrap.appendChild(text);
+
+        if (!isReply && Array.isArray(c.replies) && c.replies.length) {
+          const box = document.createElement("div");
+          box.className = "c-replies";
+          for (const reply of c.replies) box.appendChild(makeCommentEl(reply, true));
+          wrap.appendChild(box);
+        } else if (!isReply && c.replyCount > 0) {
+          const more = document.createElement("div");
+          more.className = "c-meta";
+          more.textContent = "답글 " + c.replyCount.toLocaleString("ko-KR") + "개";
+          wrap.appendChild(more);
+        }
+        return wrap;
+      };
+
+      const commentsNote = (body, message) => {
+        const p = document.createElement("p");
+        p.className = "c-note";
+        p.textContent = message;
+        body.appendChild(p);
+      };
+
+      const renderCommentsPanel = () => {
+        if (!state.current) {
+          commentsEl.hidden = true;
+          commentsEl.innerHTML = "";
+          return;
+        }
+        commentsEl.hidden = false;
+        commentsEl.innerHTML = "";
+
+        const head = document.createElement("button");
+        head.type = "button";
+        head.className = "c-head";
+        head.setAttribute("aria-expanded", String(state.commentsOpen));
+        const title = document.createElement("span");
+        title.textContent = "댓글";
+        const count = document.createElement("span");
+        count.className = "c-count";
+        if (commentsView.status === "ready" && commentsView.data) {
+          const n = commentsView.data.total || (commentsView.data.comments || []).length;
+          if (n > 0) count.textContent = n.toLocaleString("ko-KR") + "개";
+        }
+        const toggle = document.createElement("span");
+        toggle.className = "c-toggle";
+        toggle.textContent = state.commentsOpen ? "접기" : "펼치기";
+        head.appendChild(title);
+        head.appendChild(count);
+        head.appendChild(toggle);
+        head.addEventListener("click", () => {
+          state.commentsOpen = !state.commentsOpen;
+          renderCommentsPanel();
+        });
+        commentsEl.appendChild(head);
+
+        const body = document.createElement("div");
+        body.className = "c-body";
+        body.hidden = !state.commentsOpen;
+        commentsEl.appendChild(body);
+        if (!state.commentsOpen) return;
+
+        if (commentsView.status === "loading") {
+          commentsNote(body, "댓글을 불러오는 중…");
+          return;
+        }
+        if (commentsView.status === "missing" || commentsView.status === "error") {
+          commentsNote(body, "아직 수집된 댓글이 없어요 (최신 영상부터 순차 수집돼요)");
+          return;
+        }
+        const data = commentsView.data;
+        if (!data) return;
+        if (data.disabled) {
+          commentsNote(body, "이 영상은 댓글이 꺼져 있어요.");
+          return;
+        }
+        const list = data.comments || [];
+        if (!list.length) {
+          commentsNote(body, "아직 댓글이 없어요.");
+          return;
+        }
+        for (const c of list) body.appendChild(makeCommentEl(c, false));
+      };
+
+      const loadComments = (video) => {
+        const seq = (state.commentsSeq = (state.commentsSeq || 0) + 1);
+        commentsView.status = "loading";
+        commentsView.data = null;
+        renderCommentsPanel();
+
+        const apply = (status, data) => {
+          if (seq !== state.commentsSeq || !state.current || state.current.id !== video.id) return;
+          commentsView.status = status;
+          commentsView.data = data;
+          renderCommentsPanel();
+        };
+
+        const cached = state.commentsCache.get(video.id);
+        if (cached) {
+          apply(cached.disabled || (cached.comments || []).length ? "ready" : "ready", cached);
+          return;
+        }
+
+        ensureCommentsManifest()
+          .then((manifest) => {
+            if (!manifest.videoIds.includes(video.id)) {
+              apply("missing", null);
+              return null;
+            }
+            return fetch("comments/" + encodeURIComponent(video.id) + ".json", { cache: "no-store" })
+              .then((r) => {
+                if (!r.ok) throw new Error("comments " + r.status);
+                return r.json();
+              })
+              .then((data) => {
+                state.commentsCache.set(video.id, data);
+                apply("ready", data);
+              })
+              .catch(() => apply("missing", null));
+          })
+          .catch(() => apply("error", null));
+      };
+
       const openPlayer = (video) => {
         state.current = video;
         shell.classList.add("is-watch");
+        player.classList.toggle("is-short", video.isShort === true);
         const src =
           "https://www.youtube-nocookie.com/embed/" +
           encodeURIComponent(video.id) +
@@ -680,6 +1039,12 @@
         nowEl.innerHTML = "";
         const h = document.createElement("h2");
         h.textContent = video.title;
+        if (video.isShort === true) {
+          const tag = document.createElement("span");
+          tag.className = "tag";
+          tag.textContent = "쇼츠";
+          h.appendChild(tag);
+        }
         const p = document.createElement("p");
         const date = fmtDate(video.published);
         p.textContent = date ? channelName(video.channelId) + " · " + date : channelName(video.channelId);
@@ -687,16 +1052,23 @@
         nowEl.appendChild(p);
 
         renderList();
-        listEl.scrollTop = 0;
+        loadComments(video);
+        scrollEl.scrollTop = 0;
         window.scrollTo(0, 0);
       };
 
       const closePlayer = () => {
         state.current = null;
+        state.commentsSeq = (state.commentsSeq || 0) + 1;
         shell.classList.remove("is-watch");
+        player.classList.remove("is-short");
         player.innerHTML = "";
         nowEl.hidden = true;
         nowEl.innerHTML = "";
+        commentsEl.hidden = true;
+        commentsEl.innerHTML = "";
+        commentsView.status = "idle";
+        commentsView.data = null;
         renderList();
       };
 
@@ -743,6 +1115,7 @@
                       title: row[1] || "",
                       channelId: cid,
                       published: row[2] || "",
+                      isShort: row[3] === 1 || row[3] === true,
                     });
                   }
                   return enrichChunk(list, 0).then(() => {
@@ -833,6 +1206,7 @@
             .filter((v) => v && v.id && state.allowed.has(v.channelId))
             .map(enrich);
           state.updatedAt = vData.updatedAt || "";
+          renderKinds();
           renderChips();
           renderList();
           setTimeout(() => ensureIndex(), 400);
