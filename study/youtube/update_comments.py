@@ -39,6 +39,7 @@ MAX_REPLY_THREADS = 3
 MAX_REPLIES_EACH = 3
 
 _lock = threading.Lock()
+_abort = threading.Event()
 _stats = {"fetched": 0, "written": 0, "failed": 0, "skipped": 0}
 
 
@@ -380,12 +381,19 @@ def write_comment_file(data: dict) -> bool:
 
 def write_manifest(videos: list[dict]) -> None:
     ids = sorted(p.stem for p in COMMENTS_DIR.glob("*.json") if p.name != "index.json")
+    path = COMMENTS_DIR / "index.json"
+    if path.is_file():
+        try:
+            old = json.loads(path.read_text(encoding="utf-8"))
+            if old.get("videoIds") == ids:
+                return  # 목록이 그대로면 파일을 다시 쓰지 않습니다(불필요한 커밋 방지)
+        except (OSError, ValueError):
+            pass
     payload = {
         "updatedAt": utc_now(),
         "count": len(ids),
         "videoIds": ids,
     }
-    path = COMMENTS_DIR / "index.json"
     path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
@@ -468,7 +476,7 @@ def main() -> int:
     started = time.time()
 
     def work(video: dict) -> None:
-        if time.time() - started > args.time_budget:
+        if _abort.is_set() or time.time() - started > args.time_budget:
             with _lock:
                 _stats["skipped"] += 1
             return
@@ -477,6 +485,9 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             with _lock:
                 _stats["failed"] += 1
+                # 첫 요청부터 모두 막히면(차단·장애) 남은 영상은 다음 실행으로 넘깁니다.
+                if _stats["fetched"] == 0 and _stats["failed"] >= 5:
+                    _abort.set()
             print(f"  FAIL {video.get('id')}: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
             return
         if data is None:
@@ -508,6 +519,10 @@ def main() -> int:
         f" {int(time.time() - started)}s",
         flush=True,
     )
+    if _abort.is_set():
+        print("댓글 수집이 일찍 멈췄습니다(요청 차단 추정). 기존 파일은 그대로 두었습니다.", file=sys.stderr)
+    if _stats["fetched"] == 0 and _stats["failed"]:
+        return 1
     return 0
 
 
