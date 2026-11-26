@@ -1,0 +1,36 @@
+{
+  "id": "/study/outline/",
+  "name": "목차 학습",
+  "short_name": "목차 학습",
+  "description": "목차 → 세부목차 → 세부내용으로 손으로 쓰는 GKC 학습노트",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/study/outline/",
+  "scope": "/study/outline/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
