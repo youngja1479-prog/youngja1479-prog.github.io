@@ -83,11 +83,13 @@ input, select, textarea {
 .brand-text { font-size: 14.5px; font-weight: 650; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-meta { font: 500 10.5px/1 var(--mono); letter-spacing: .06em; color: var(--text4); white-space: nowrap; }
 .install-chip {
-  height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 4px;
-  background: var(--surface); color: var(--text2); border: 1px solid var(--border2);
-  border-radius: 999px; font-size: 10.5px; font-weight: 650; white-space: nowrap;
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--text); color: #fff; border: 1px solid var(--text);
+  border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: -.01em;
+  white-space: nowrap; box-shadow: 0 1px 3px rgba(24,24,27,.18);
 }
-.install-chip:hover { color: var(--text); border-color: var(--text3); }
+.install-chip:hover { background: #000; border-color: #000; }
+.install-chip .ar { font-size: 12.5px; line-height: 1; margin-top: -1px; }
 
 .tabs {
   display: grid; grid-template-columns: repeat(4, 1fr);
@@ -209,6 +211,53 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .banner .b-ico { font: 650 9px/1 var(--mono); letter-spacing: .1em; border: 1px solid rgba(255,255,255,.55); border-radius: 3px; padding: 4px; flex-shrink: 0; margin-top: 1px; }
 .banner b { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 2px; }
 .banner p { font-size: 11.5px; line-height: 1.55; color: rgba(255,255,255,.82); word-break: keep-all; }
+
+/* ===== Today's coaching ===== */
+.coach { border-color: var(--border2); }
+.c-sec { padding: 11px 0 0; margin-top: 11px; border-top: 1px solid var(--surface3); }
+.c-sec:first-child { padding-top: 0; margin-top: 0; border-top: 0; }
+.c-k { font: 650 9.5px/1 var(--mono); letter-spacing: .13em; color: var(--text3); margin-bottom: 7px; }
+.c-main { display: flex; gap: 9px; align-items: flex-start; }
+.c-num {
+  font: 650 10px/17px var(--mono); width: 17px; height: 17px; border-radius: 3px;
+  background: var(--text); color: #fff; text-align: center; flex-shrink: 0; margin-top: 1px;
+}
+.c-main b { font-size: 13.5px; font-weight: 650; letter-spacing: -.015em; line-height: 1.4; word-break: keep-all; overflow-wrap: break-word; }
+.c-main p { font-size: 12px; color: var(--text2); line-height: 1.55; word-break: keep-all; margin-top: 3px; }
+.c-next { margin-top: 8px; font-size: 11.5px; color: var(--text3); line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
+.c-next span { color: var(--text2); }
+.c-line { font-size: 12px; color: var(--text2); line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
+.c-line b { color: var(--text); font-weight: 650; }
+.c-line b.c-warn { color: var(--warn); }
+.c-line b.c-bad { color: var(--danger); }
+.c-empty b { font-size: 13px; font-weight: 650; display: block; margin-bottom: 4px; }
+.c-empty p { font-size: 12px; color: var(--text2); line-height: 1.6; word-break: keep-all; }
+.coach-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--surface3); }
+#coach-report-wrap { margin-top: 9px; }
+#coach-report-text {
+  width: 100%; height: 140px; font: 500 11px/1.55 var(--mono); color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;
+  background: var(--surface2); resize: vertical;
+}
+
+/* ===== 사진 → PDF ===== */
+.pdf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (min-width: 520px) { .pdf-grid { grid-template-columns: repeat(4, 1fr); } }
+.pdf-item { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface2); position: relative; }
+.pdf-item img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: contain; background: #fff; }
+.pdf-item .n {
+  position: absolute; left: 4px; top: 4px; z-index: 1;
+  font: 650 9.5px/17px var(--mono); min-width: 17px; height: 17px; border-radius: 3px;
+  background: var(--text); color: #fff; text-align: center; padding: 0 4px;
+}
+.pdf-item .ops { display: flex; border-top: 1px solid var(--border); background: var(--surface); }
+.pdf-item .ops button { flex: 1; height: 27px; font-size: 12px; color: var(--text2); border-left: 1px solid var(--border); }
+.pdf-item .ops button:first-child { border-left: 0; }
+.pdf-item .ops button:hover:not(:disabled) { background: var(--surface2); color: var(--text); }
+.pdf-item .ops .del2:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
+.pdf-empty { grid-column: 1 / -1; font-size: 12px; color: var(--text4); padding: 16px 0; text-align: center; line-height: 1.6; }
+.pdf-status { font-size: 11.5px; color: var(--text3); margin-top: 9px; min-height: 16px; line-height: 1.5; word-break: keep-all; }
+.pdf-note { font-size: 11px; color: var(--text4); line-height: 1.6; margin-top: 9px; word-break: keep-all; }
 
 /* ===== Task list ===== */
 .task-list { list-style: none; }
@@ -369,7 +418,7 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
       <span class="brand-mark">GKC</span>
       <span class="brand-text">스터디 플래너</span>
     </div>
-    <button class="install-chip" id="install-chip" hidden>앱으로 설치</button>
+    <button class="install-chip" id="install-chip" data-act="install" hidden><span class="ar">↓</span> 앱 설치</button>
     <span class="top-meta" id="top-date"></span>
   </header>
 
@@ -388,6 +437,21 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
         <div class="kicker" id="today-kicker"></div>
         <h2 id="today-headline">오늘의 두 덩어리</h2>
         <p id="today-summary"></p>
+      </div>
+
+      <div class="card coach" id="coach-card">
+        <div class="card-h">
+          <h3>오늘의 학습 처방</h3>
+          <span class="card-sub">AUTO COACHING</span>
+        </div>
+        <div id="coach-body" aria-live="polite"></div>
+        <div class="coach-actions">
+          <button class="btn sm" id="btn-coach-copy">피자 코칭용 리포트 복사</button>
+        </div>
+        <div id="coach-report-wrap" hidden>
+          <p class="card-note" style="margin:9px 0 5px">자동 복사가 막혔어요. 아래 글을 길게 눌러 복사해 주세요.</p>
+          <textarea id="coach-report-text" readonly aria-label="피자 코칭용 리포트"></textarea>
+        </div>
       </div>
 
       <div class="banner" id="interleave" hidden>
@@ -462,6 +526,26 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
           <select class="input sel" id="routine-subject" aria-label="루틴 과목"></select>
           <button class="btn primary" type="submit">추가</button>
         </form>
+      </div>
+
+      <div class="card" id="pdf-card">
+        <div class="card-h">
+          <h3>사진 → PDF 묶기</h3>
+          <button class="btn sm" id="pdf-toggle" aria-expanded="false" aria-controls="pdf-body">열기</button>
+        </div>
+        <p class="card-note">필기·문제 사진을 여러 장 골라 A4 PDF 한 개로 묶습니다. 사진은 서버로 올라가지 않고 이 브라우저 안에서만 처리돼요.</p>
+        <div id="pdf-body" hidden>
+          <div class="row-actions">
+            <label class="btn primary file-label">사진 고르기
+              <input type="file" id="pdf-input" accept="image/*" multiple aria-label="PDF로 묶을 사진 선택">
+            </label>
+            <button class="btn" id="pdf-clear" disabled>전부 지우기</button>
+          </div>
+          <div class="pdf-grid" id="pdf-grid" style="margin-top:11px"></div>
+          <div class="pdf-status" id="pdf-status"></div>
+          <button class="btn primary lg" id="pdf-make" style="margin-top:4px" disabled>PDF로 만들기</button>
+          <p class="pdf-note">A4 세로 · 사진 1장당 1쪽 · 긴 변 1600px로 줄여 담습니다. 파일 이름은 study-날짜-시각.pdf</p>
+        </div>
       </div>
 
       <p class="foot">
@@ -573,6 +657,15 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
       </div>
 
       <div class="card">
+        <div class="card-h"><h3>홈 화면 앱 설치</h3><span class="card-sub">PWA</span></div>
+        <p class="card-note">설치하면 주소창 없이 앱처럼 열리고, 비행기 모드에서도 기록이 열립니다.</p>
+        <div class="row-actions">
+          <button class="btn primary" data-act="install">↓ 앱 설치</button>
+        </div>
+        <p class="card-note" style="margin:10px 0 0">버튼이 설치 창을 안 열면 크롬에서 <b>⋮ → 앱 설치</b>(또는 <b>홈 화면에 추가</b>)를 눌러 주세요. 이미 설치했다면 홈 화면의 <b>스터디 플래너</b> 아이콘으로 열면 됩니다.</p>
+      </div>
+
+      <div class="card">
         <div class="card-h"><h3>데이터</h3></div>
         <p class="card-note">이 기기의 브라우저에 자동 저장됩니다. 백업 파일로 옮길 수 있습니다.</p>
         <div class="row-actions">
@@ -592,6 +685,7 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
           기기 간 동기화는 <b>플래너 전용 키</b>로 암호화해 저장합니다. 목차 학습 노트의 동기화 데이터와는
           키가 완전히 분리되어 서로 덮어쓰지 않습니다.
         </p>
+        <p class="card-note">같은 동기화 코드를 피자에게 알려두면, 피자가 이 기록을 직접 읽고 코칭할 수 있어요.</p>
         <div class="pw-row">
           <input class="input" id="sync-pw" type="password" placeholder="동기화 비밀번호" autocomplete="new-password" aria-label="동기화 비밀번호">
           <button class="btn" id="btn-sync-on">켜기</button>
@@ -837,6 +931,8 @@ function addTask(track, title, subject) {
   });
   save();
   renderTasks();
+  renderSummary();
+  renderCoach();
   return true;
 }
 function toggleTask(id) {
@@ -852,6 +948,8 @@ function toggleTask(id) {
   }
   save();
   renderTasks();
+  renderSummary();
+  renderCoach();
 }
 function delTask(id) {
   const i = S.tasks.findIndex(x => x.id === id);
@@ -859,6 +957,8 @@ function delTask(id) {
   S.tasks.splice(i, 1);
   save();
   renderTasks();
+  renderSummary();
+  renderCoach();
   toast('삭제했어요');
 }
 
@@ -944,6 +1044,8 @@ function finishTimer(silent) {
   renderStudyChart();
   renderStats();
   renderInterleave();
+  renderSummary();
+  renderCoach();
 }
 function discardTimer() {
   S.timer = null;
@@ -1334,6 +1436,8 @@ function rateCard(rating) {
   save();
   renderReview();
   renderStats();
+  renderSummary();
+  renderCoach();
   toast(illusion ? '메타인지 착각으로 기록 · 최우선 복습' : '기록 · 다음 복습 ' + intervalLabel(next.interval, next.dueAt));
 }
 function addCard(subject, title, memo) {
@@ -1347,6 +1451,8 @@ function addCard(subject, title, memo) {
   });
   save();
   renderReview();
+  renderSummary();
+  renderCoach();
   return true;
 }
 
@@ -1387,6 +1493,7 @@ function addStuck(subject, cause, memo) {
   save();
   renderStuck();
   renderStats();
+  renderCoach();
   return true;
 }
 
@@ -1394,15 +1501,10 @@ function addStuck(subject, cause, memo) {
    9. 통계
    ============================================================ */
 function renderStats() {
-  const total = S.reviews.length;
-  const q = { hit: 0, illusion: 0, under: 0, accurate: 0 };
-  S.reviews.forEach(r => {
-    if (r.conf === 'high' && r.rating === 1) q.illusion++;
-    else if (r.conf === 'high') q.hit++;
-    else if (r.conf === 'low' && r.rating === 1) q.accurate++;
-    else q.under++;
-  });
-  const acc = total ? Math.round((q.hit + q.accurate) / total * 100) : null;
+  const m = metaStats();
+  const total = m.total;
+  const q = m.q;
+  const acc = m.acc;
   $('#meta-accuracy').textContent = acc == null ? '—' : acc + '%';
   $('#meta-total').textContent = total ? total + '회 기록' : '기록 없음';
   $('#meta-note').textContent = total
@@ -1478,6 +1580,435 @@ function countChart(map, order, total) {
       '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
       '<span class="chart-val">' + r.n + ' · ' + share + '%</span></div>';
   }).join('');
+}
+
+/* ============================================================
+   9.5 오늘의 학습 처방 (지금 기록을 그대로 읽는 규칙 기반 코칭)
+   ============================================================ */
+const CAUSE_PLAN = {
+  '개념 빈틈': '그 단원의 정의·공식을 교재에서 다시 찾고, 책을 덮은 채 소리 내어 한 번 인출하세요. 강의를 새로 듣기보다 "왜 그런지"를 한 줄로 적는 쪽이 남습니다.',
+  '조건 놓침': '문제를 풀기 전에 주어진 값·구하는 값·범위에 3초 밑줄 긋는 루틴을 넣으세요. 틀린 문제는 "내가 놓친 조건"만 따로 한 줄씩 모으면 패턴이 보입니다.',
+  '이유 연결 실패': '답만 외우지 말고 "A이므로 B, B이므로 C"를 소리 내어 이어 보세요. 끊기는 연결 고리 하나만 골라 그 부분의 예시를 직접 만들어 보면 이어집니다.',
+  '시간 부족': '같은 유형을 시간 재고 풀어 어디서 멈추는지 찾으세요. 25분 집중·5분 점검으로 끊고, 계산이 긴 문제는 손으로 구조부터 잡아 두면 시간이 줄어듭니다.',
+  '계산/실수': '풀이 마지막 10초를 검산 전용으로 두고 부호·단위·이항만 다시 보세요. 실수한 지점만 오답 노트에 표시해 두면 같은 실수가 줄어듭니다.'
+};
+
+function metaStats() {
+  const q = { hit: 0, illusion: 0, under: 0, accurate: 0 };
+  S.reviews.forEach(r => {
+    if (r.conf === 'high' && r.rating === 1) q.illusion++;
+    else if (r.conf === 'high') q.hit++;
+    else if (r.conf === 'low' && r.rating === 1) q.accurate++;
+    else q.under++;
+  });
+  const total = S.reviews.length;
+  return { total: total, q: q, acc: total ? Math.round((q.hit + q.accurate) / total * 100) : null };
+}
+function coachSnapshot() {
+  const now = Date.now();
+  const todayMap = msBySubject(startOfDay(now), now);
+  const todayTotal = SUBJECTS.reduce((a, s) => a + todayMap[s], 0);
+  const r7 = from7(now);
+  const weekMap = msBySubject(r7.from, r7.to);
+  const weekTotal = SUBJECTS.reduce((a, s) => a + weekMap[s], 0);
+  const recentStuck = S.stucks.filter(x => x.at >= r7.from);
+  const causeRows = CAUSES.map(c => ({ c: c, n: recentStuck.filter(x => x.cause === c).length }))
+    .filter(r => r.n > 0).sort((a, b) => b.n - a.n);
+  const mains = mainItems();
+  const mainPend = mains.filter(t => !t.done);
+  const carry = mainPend.filter(t => t.date < todayKey());
+  const routines = tasksOf('routine');
+  const routinePend = routines.filter(r => !routineDoneToday(r));
+  return {
+    todayMap: todayMap, todayTotal: todayTotal, weekMap: weekMap, weekTotal: weekTotal,
+    recentStuck: recentStuck, causeRows: causeRows,
+    mains: mains, mainPend: mainPend, carry: carry,
+    routines: routines, routinePend: routinePend,
+    due: dueCards(), illusions: S.cards.filter(c => c.illusion), meta: metaStats()
+  };
+}
+function subjectTimeText(map, min) {
+  return SUBJECTS.filter(s => (map[s] || 0) > 0)
+    .sort((a, b) => map[b] - map[a])
+    .map(s => s + ' ' + fmtMin(map[s])).join(' · ');
+}
+/* 1순위: 착각 카드 → 오늘 복습 → 어제 이월 메인 → 오늘 메인 → 루틴 */
+function coachPriorities(d) {
+  const list = [];
+  if (d.illusions.length) {
+    const c = d.illusions[0];
+    list.push({
+      tag: '착각',
+      title: '「' + c.title + '」 백지 인출' + (d.illusions.length > 1 ? ' 외 ' + (d.illusions.length - 1) + '개' : ''),
+      body: '자신 있다고 넘겼는데 막힌 카드예요. 교재를 덮고 설명해 본 뒤 복습 탭에서 다시 채점하면 아는 줄 알았던 빈틈이 가장 먼저 메워집니다.'
+    });
+  }
+  if (d.due.length) {
+    list.push({
+      tag: '복습',
+      title: '오늘 복습 ' + d.due.length + '개',
+      body: '기억이 흐려지기 전에 꺼내는 게 가장 남는 공부예요. 한 장 3~5분이면 끝나고, 어려움으로 채점하면 내일 다시 올라옵니다.'
+    });
+  }
+  if (d.carry.length) {
+    list.push({
+      tag: '이월',
+      title: '어제 이월 메인 ' + d.carry.length + '건 마무리',
+      body: '「' + d.carry[0].title + '」' + (d.carry.length > 1 ? ' 외 ' + (d.carry.length - 1) + '건' : '') +
+        '이 오늘까지 따라왔어요. 미루면 오늘 메인이 두 배가 되니 25분만 먼저 붙여 보세요.'
+    });
+  }
+  if (!list.length && d.mainPend.length) {
+    list.push({
+      tag: '메인',
+      title: '「' + d.mainPend[0].title + '」 먼저',
+      body: (d.mainPend.length === 1 ? '오늘 메인은 이 하나예요. ' : '오늘 메인 ' + d.mainPend.length + '개 중 가장 무거운 하나입니다. ') +
+        '스톱워치를 켜고 끝날 때까지 다른 탭은 닫아 두세요.'
+    });
+  }
+  if (!list.length && d.routinePend.length) {
+    list.push({
+      tag: '루틴',
+      title: '루틴 ' + d.routinePend.length + '개 체크',
+      body: '오늘 메인은 다 끝났어요. 남은 루틴을 채우면 하루가 닫힙니다.'
+    });
+  }
+  return list;
+}
+function coachBalanceHTML(d) {
+  if (d.weekTotal < 20 * 60000) {
+    return '<div class="c-line">최근 7일 순공이 ' + fmtMin(d.weekTotal) + '이라 편중을 판단하기엔 적어요. 20분만 더 쌓이면 과목 균형을 진단해 드립니다.</div>';
+  }
+  const rows = SUBJECTS.map(s => ({ s: s, ms: d.weekMap[s] || 0 })).filter(r => r.ms > 0).sort((a, b) => b.ms - a.ms);
+  const top = rows[0];
+  const share = Math.round(top.ms / d.weekTotal * 100);
+  if (rows.length === 1 || share >= 60) {
+    const low = rows.length > 1 ? rows[rows.length - 1].s : (SUBJECTS.filter(s => s !== top.s)[0] || '국어');
+    return '<div class="c-line"><b class="c-warn">' + esc(top.s) + ' ' + share + '%</b> — 최근 7일 순공 ' +
+      fmtMin(d.weekTotal) + ' 중 ' + fmtMin(top.ms) + '이 한 과목에 몰려 있어요. 내일은 <b>' + esc(low) +
+      ' 40분</b>을 먼저 앉히고 시작하세요. 한 과목을 길게 이어 가면 구별력이 떨어집니다.</div>';
+  }
+  if (share >= 45) {
+    return '<div class="c-line"><b>' + esc(top.s) + ' ' + share + '%</b> — 조금 치우쳤지만 괜찮은 편이에요. ' +
+      '집중이 흐려질 때 ' + esc(rows[rows.length - 1].s) + ' 20~30분을 끼워 넣으면 균형이 맞습니다.</div>';
+  }
+  return '<div class="c-line"><b>고르게 분포</b> — 최근 7일 ' + fmtMin(d.weekTotal) + '을 ' + rows.length +
+    '과목에 나눠 담았어요(가장 많은 ' + esc(top.s) + ' ' + share + '%). 지금 배분을 유지하세요.</div>';
+}
+function coachWeakHTML(d) {
+  if (!d.causeRows.length) {
+    return '<div class="c-line">최근 7일 막힘 기록이 없어요. 막힌 순간을 한 줄 남기면 원인별 처방이 시작됩니다.</div>';
+  }
+  const top = d.causeRows[0];
+  const rest = d.causeRows.slice(1, 3).map(r => r.c + ' ' + r.n).join(' · ');
+  return '<div class="c-line"><b>' + esc(top.c) + '</b> ' + top.n + '건 — 최근 7일 막힘 ' + d.recentStuck.length +
+    '건 중 가장 큰 원인이에요.' + (rest ? ' 다음은 ' + esc(rest) + '.' : '') + '</div>' +
+    '<div class="c-line" style="margin-top:5px">' + esc(CAUSE_PLAN[top.c] || '') + '</div>';
+}
+function coachMetaHTML(d) {
+  const m = d.meta;
+  if (!m.total) {
+    return '<div class="c-line">복습에서 확신도를 먼저 찍으면, "읽으면 아는 느낌"과 실제 기억을 숫자로 갈라 볼 수 있습니다.</div>';
+  }
+  if (m.acc < 70) {
+    return '<div class="c-line"><b class="c-bad">정확도 ' + m.acc + '%</b> (' + m.total + '회) — 자신 있다고 한 것 중 ' +
+      m.q.illusion + '개가 막혔어요. 유창성 착각은 교재를 다시 읽는 것으로는 안 지워집니다. 확신이 들 때일수록 책을 덮고 백지에 먼저 쓰세요.</div>';
+  }
+  return '<div class="c-line"><b>정확도 ' + m.acc + '%</b> (' + m.total + '회) — 확신과 실제가 잘 맞습니다. 이 페이스면 복습 간격을 조금 늘려도 됩니다.</div>';
+}
+function renderCoach() {
+  const box = $('#coach-body');
+  if (!box) return;
+  const d = coachSnapshot();
+  const hasData = d.weekTotal > 0 || d.todayTotal > 0 || S.tasks.length || S.cards.length || S.stucks.length || S.sessions.length;
+  if (!hasData) {
+    box.innerHTML = '<div class="c-empty"><b>아직 처방할 기록이 없어요.</b>' +
+      '<p>① 순공 타이머로 25분을 재고 ② 복습 카드를 한 장 만들면, 내일부터 이 자리에 내 기록에 맞는 1순위 행동이 뜹니다.</p></div>';
+    return;
+  }
+  const pri = coachPriorities(d);
+  const first = pri[0];
+  let html = '<div class="c-sec"><div class="c-k">1순위 행동</div>';
+  html += first
+    ? '<div class="c-main"><span class="c-num">1</span><div><b>' + esc(first.title) + '</b><p>' + esc(first.body) + '</p></div></div>'
+    : '<div class="c-main"><span class="c-num">1</span><div><b>다음 단원 하나 정하기</b><p>메인·루틴·복습이 모두 비어 있어요. 지금 가장 무거운 덩어리를 메인에 올리고 25분 타이머를 켜세요.</p></div></div>';
+  if (pri.length > 1) {
+    html += '<div class="c-next">다음 순서 · ' + pri.slice(1).map(p => '<span>' + esc(p.title) + '</span>').join(' · ') + '</div>';
+  }
+  html += '</div>';
+  html += '<div class="c-sec"><div class="c-k">균형 · 교차 학습 (최근 7일)</div>' + coachBalanceHTML(d) + '</div>';
+  html += '<div class="c-sec"><div class="c-k">약점 패턴 처방</div>' + coachWeakHTML(d) + '</div>';
+  html += '<div class="c-sec"><div class="c-k">메타인지 교정</div>' + coachMetaHTML(d) + '</div>';
+  box.innerHTML = html;
+}
+function coachReport() {
+  const d = coachSnapshot();
+  const now = new Date();
+  const L = [];
+  L.push('[스터디 플래너 리포트] ' + ymd(now) + ' (' + weekdayName(now.getTime()) + ')');
+  L.push('· 오늘 순공: ' + fmtMin(d.todayTotal) + (d.todayTotal > 0 ? ' (' + subjectTimeText(d.todayMap) + ')' : ''));
+  L.push('· 최근 7일: ' + fmtMin(d.weekTotal) + (d.weekTotal > 0 ? ' (' + subjectTimeText(d.weekMap) + ')' : ''));
+  L.push('· 할 일: 메인 ' + (d.mains.length - d.mainPend.length) + '/' + d.mains.length +
+    ' · 루틴 ' + (d.routines.length - d.routinePend.length) + '/' + d.routines.length +
+    (d.carry.length ? ' · 이월 ' + d.carry.length : '') +
+    (d.mainPend.length ? ' · 남은 메인: ' + d.mainPend.slice(0, 3).map(t => t.title).join(', ') : ''));
+  L.push('· 복습: 오늘 예정 ' + d.due.length + '개 · 착각 카드 ' + d.illusions.length + '개' +
+    (d.meta.acc == null ? ' · 메타인지 기록 없음' : ' · 정확도 ' + d.meta.acc + '% (' + d.meta.total + '회)'));
+  L.push('· 막힘(최근 7일): ' + (d.causeRows.length
+    ? d.causeRows.slice(0, 3).map(r => r.c + ' ' + r.n).join(' · ') + ' (총 ' + d.recentStuck.length + '건)'
+    : '기록 없음'));
+  const pri = coachPriorities(d);
+  if (pri[0]) L.push('· 지금 1순위: ' + pri[0].title);
+  L.push('이 리포트로 약점과 우선순위를 코칭해 줘.');
+  return L.join('\n');
+}
+async function copyCoachReport(btn) {
+  const text = coachReport();
+  const wrap = $('#coach-report-wrap');
+  const ta = $('#coach-report-text');
+  ta.value = text;
+  let ok = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) {
+    try {
+      ta.focus(); ta.select();
+      ok = document.execCommand('copy');
+    } catch (e) { ok = false; }
+  }
+  wrap.hidden = ok;
+  if (!ok) { try { ta.focus(); ta.select(); } catch (e) {} }
+  if (btn) btn.textContent = ok ? '복사됨 ✓' : '피자 코칭용 리포트 복사';
+  if (btn) setTimeout(() => { btn.textContent = '피자 코칭용 리포트 복사'; }, 2200);
+  toast(ok ? '리포트를 복사했어요 · 채팅에 붙여넣기' : '복사가 막혔어요 · 아래 글을 길게 눌러 복사해 주세요');
+  return ok;
+}
+
+/* ============================================================
+   9.6 사진 → PDF 묶기 (외부 라이브러리 없이 브라우저에서 조립)
+   ============================================================ */
+const PDF_MAX_ITEMS = 30;      // 한 번에 묶는 사진 수 상한(모바일 메모리 보호)
+const PDF_LONG_EDGE = 1600;    // 저장 전 긴 변 픽셀(인쇄해도 선명한 선에서 용량 절감)
+const PDF_A4 = { w: 595.28, h: 841.89, margin: 18 };
+let pdfItems = [];
+let pdfBusy = false;
+let pdfSeq = 0;
+
+function pdfFileName(d) {
+  const x = d || new Date();
+  return 'study-' + x.getFullYear() + pad2(x.getMonth() + 1) + pad2(x.getDate()) +
+    '-' + pad2(x.getHours()) + pad2(x.getMinutes()) + '.pdf';
+}
+function renderPdf(keepStatus) {
+  const grid = $('#pdf-grid');
+  if (!grid) return;
+  grid.innerHTML = pdfItems.length ? pdfItems.map((it, i) =>
+    '<div class="pdf-item" data-id="' + it.id + '">' +
+    '<span class="n">' + (i + 1) + '</span>' +
+    '<img src="' + it.url + '" alt="' + esc(it.name) + ' 미리보기">' +
+    '<div class="ops">' +
+    '<button data-act="pdf-up" data-id="' + it.id + '" aria-label="앞으로"' + (i === 0 || pdfBusy ? ' disabled' : '') + '>←</button>' +
+    '<button data-act="pdf-down" data-id="' + it.id + '" aria-label="뒤로"' + (i === pdfItems.length - 1 || pdfBusy ? ' disabled' : '') + '>→</button>' +
+    '<button class="del2" data-act="pdf-del" data-id="' + it.id + '" aria-label="삭제"' + (pdfBusy ? ' disabled' : '') + '>×</button>' +
+    '</div></div>').join('')
+    : '<div class="pdf-empty">아직 고른 사진이 없어요. 위에서 사진을 여러 장 선택하세요.</div>';
+  $('#pdf-make').disabled = pdfItems.length === 0 || pdfBusy;
+  $('#pdf-clear').disabled = pdfItems.length === 0 || pdfBusy;
+  if (!pdfBusy && !keepStatus) {
+    $('#pdf-status').textContent = pdfItems.length ? pdfItems.length + '장 준비됨 · 고른 순서대로 A4 한 쪽에 하나씩' : '';
+  }
+}
+function loadImgEl(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); resolve(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+    im.src = url;
+  });
+}
+/* EXIF 회전을 반영해 그리고, 긴 변을 PDF_LONG_EDGE로 줄인 JPEG data URL을 만든다. */
+function pdfNormalize(file) {
+  return new Promise((resolve, reject) => {
+    const fail = () => reject(new Error('decode'));
+    const paint = (src, w0, h0) => {
+      if (!w0 || !h0) return fail();
+      const scale = Math.min(1, PDF_LONG_EDGE / Math.max(w0, h0));
+      const w = Math.max(1, Math.round(w0 * scale));
+      const h = Math.max(1, Math.round(h0 * scale));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      if (!ctx) return fail();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      try { ctx.drawImage(src, 0, 0, w, h); } catch (e) { return fail(); }
+      if (src && typeof src.close === 'function') { try { src.close(); } catch (e) {} }
+      let url = '';
+      try { url = cv.toDataURL('image/jpeg', 0.82); } catch (e) { return fail(); }
+      if (!url || url.indexOf('data:image/jpeg') !== 0) return fail();
+      resolve({ url: url, w: w, h: h });
+    };
+    const viaImg = () => {
+      loadImgEl(file).then(im => paint(im, im.naturalWidth || im.width, im.naturalHeight || im.height)).catch(fail);
+    };
+    if (window.createImageBitmap) {
+      createImageBitmap(file, { imageOrientation: 'from-image' })
+        .then(bmp => paint(bmp, bmp.width, bmp.height))
+        .catch(() => createImageBitmap(file)
+          .then(bmp => paint(bmp, bmp.width, bmp.height))
+          .catch(viaImg));
+    } else {
+      viaImg();
+    }
+  });
+}
+async function pdfAddFiles(fileList) {
+  const files = Array.prototype.slice.call(fileList || []);
+  if (!files.length || pdfBusy) return;
+  const room = PDF_MAX_ITEMS - pdfItems.length;
+  if (room <= 0) { toast('사진은 최대 ' + PDF_MAX_ITEMS + '장까지 묶을 수 있어요'); return; }
+  const take = files.slice(0, room);
+  if (files.length > room) toast('최대 ' + PDF_MAX_ITEMS + '장까지예요 · ' + room + '장만 담았어요');
+  pdfBusy = true;
+  renderPdf(true);
+  let failed = 0;
+  for (let i = 0; i < take.length; i++) {
+    $('#pdf-status').textContent = '사진 준비 중 ' + (i + 1) + '/' + take.length + '…';
+    try {
+      const got = await pdfNormalize(take[i]);
+      pdfItems.push({ id: 'p' + (++pdfSeq), name: take[i].name || 'photo', url: got.url, w: got.w, h: got.h });
+    } catch (e) { failed++; }
+    renderPdf(true);
+  }
+  pdfBusy = false;
+  renderPdf();
+  if (failed) toast(failed + '장은 이 브라우저에서 열지 못했어요 (HEIC 등)');
+  else if (take.length) toast(take.length + '장 준비 완료');
+}
+function pdfMove(id, dir) {
+  if (pdfBusy) return;
+  const i = pdfItems.findIndex(x => x.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= pdfItems.length) return;
+  const t = pdfItems[i]; pdfItems[i] = pdfItems[j]; pdfItems[j] = t;
+  renderPdf();
+}
+function pdfRemove(id) {
+  if (pdfBusy) return;
+  pdfItems = pdfItems.filter(x => x.id !== id);
+  renderPdf();
+}
+function dataUrlToBytes(url) {
+  const b64 = url.slice(url.indexOf(',') + 1);
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function pdfNum(n) { return String(Math.round(n * 1000) / 1000); }
+/* 순수 바이너리 PDF 1.4 조립 — 페이지마다 JPEG(DCTDecode) 한 장을 여백 맞춤으로 가운데 놓는다. */
+function buildPdf(images) {
+  const te = new TextEncoder();
+  const chunks = [];
+  let len = 0;
+  const put = (u8) => { chunks.push(u8); len += u8.length; };
+  const putStr = (s) => put(te.encode(s));
+  const n = images.length;
+  if (!n) throw new Error('empty');
+  const total = 2 + n * 3;            // catalog, pages, page/img/content × n
+  const off = new Array(total + 1).fill(0);
+  const startObj = (id) => { off[id] = len; putStr(id + ' 0 obj\n'); };
+
+  putStr('%PDF-1.4\n');
+  put(new Uint8Array([0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+
+  startObj(1);
+  putStr('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+  const kids = [];
+  for (let i = 0; i < n; i++) kids.push((3 + i) + ' 0 R');
+  startObj(2);
+  putStr('<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>\nendobj\n');
+
+  const PW = PDF_A4.w, PH = PDF_A4.h, mg = PDF_A4.margin;
+  const aw = PW - mg * 2, ah = PH - mg * 2;
+  for (let i = 0; i < n; i++) {
+    const pageId = 3 + i, imgId = 3 + n + i, contId = 3 + 2 * n + i;
+    const im = images[i];
+    const s = Math.min(aw / im.w, ah / im.h);
+    const dw = im.w * s, dh = im.h * s;
+    const x = mg + (aw - dw) / 2, y = mg + (ah - dh) / 2;
+
+    startObj(pageId);
+    putStr('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pdfNum(PW) + ' ' + pdfNum(PH) +
+      '] /Resources << /XObject << /Im0 ' + imgId + ' 0 R >> >> /Contents ' + contId + ' 0 R >>\nendobj\n');
+
+    startObj(imgId);
+    putStr('<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h +
+      ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.jpeg.length + ' >>\nstream\n');
+    put(im.jpeg);
+    putStr('\nendstream\nendobj\n');
+
+    const body = 'q\n' + pdfNum(dw) + ' 0 0 ' + pdfNum(dh) + ' ' + pdfNum(x) + ' ' + pdfNum(y) + ' cm\n/Im0 Do\nQ\n';
+    const bb = te.encode(body);
+    startObj(contId);
+    putStr('<< /Length ' + bb.length + ' >>\nstream\n');
+    put(bb);
+    putStr('endstream\nendobj\n');
+  }
+
+  const xref = len;
+  let table = 'xref\n0 ' + (total + 1) + '\n0000000000 65535 f \n';
+  for (let i = 1; i <= total; i++) table += String(off[i]).padStart(10, '0') + ' 00000 n \n';
+  putStr(table);
+  putStr('trailer\n<< /Size ' + (total + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+
+  const out = new Uint8Array(len);
+  let p = 0;
+  chunks.forEach(c => { out.set(c, p); p += c.length; });
+  return out;
+}
+async function makePdf() {
+  if (!pdfItems.length || pdfBusy) return;
+  pdfBusy = true;
+  renderPdf(true);
+  const btn = $('#pdf-make');
+  const label = btn.textContent;
+  btn.textContent = 'PDF 만드는 중…';
+  $('#pdf-status').textContent = 'PDF 만드는 중… (' + pdfItems.length + '쪽)';
+  let okText = '';
+  try {
+    const imgs = pdfItems.map(it => ({ w: it.w, h: it.h, jpeg: dataUrlToBytes(it.url) }));
+    const bytes = buildPdf(imgs);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const name = pdfFileName();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { URL.revokeObjectURL(a.href); } catch (e) {} a.remove(); }, 5000);
+    okText = name + ' · ' + imgs.length + '쪽 · ' + Math.max(1, Math.round(blob.size / 1024)) + 'KB';
+    toast(imgs.length + '쪽 PDF를 만들었어요');
+  } catch (e) {
+    okText = 'PDF를 만들지 못했어요 — 사진을 다시 골라 주세요';
+    toast('PDF를 만들지 못했어요');
+  } finally {
+    pdfBusy = false;
+    btn.textContent = label;
+    renderPdf(true);
+    $('#pdf-status').textContent = okText;
+  }
+}
+function togglePdf(force) {
+  const body = $('#pdf-body');
+  const btn = $('#pdf-toggle');
+  const open = typeof force === 'boolean' ? force : body.hidden;
+  body.hidden = !open;
+  btn.textContent = open ? '접기' : '열기';
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 /* ============================================================
@@ -1699,6 +2230,12 @@ function renderAll() {
   renderStuck();
   renderStats();
   renderInterleave();
+  renderSummary();
+  renderCoach();
+  renderPdf();
+}
+/* 상단 요약(마스트헤드) — 할 일을 추가·체크할 때도 바로 다시 그린다. */
+function renderSummary() {
   const now = new Date();
   $('#top-date').textContent = fmtDate(now.getTime());
   $('#today-kicker').textContent = now.getFullYear() + '. ' + pad2(now.getMonth() + 1) + '. ' + pad2(now.getDate()) + ' ' + weekdayName(now) + '요일';
@@ -1824,6 +2361,23 @@ function initEvents() {
     renderStuck();
   });
 
+  // 오늘의 학습 처방
+  $('#btn-coach-copy').addEventListener('click', (e) => copyCoachReport(e.currentTarget));
+
+  // 사진 → PDF
+  $('#pdf-toggle').addEventListener('click', () => togglePdf());
+  $('#pdf-input').addEventListener('change', (e) => {
+    pdfAddFiles(e.target.files);
+    e.target.value = '';
+  });
+  $('#pdf-clear').addEventListener('click', () => {
+    if (pdfBusy || !pdfItems.length) return;
+    pdfItems = [];
+    renderPdf();
+    toast('고른 사진을 비웠어요');
+  });
+  $('#pdf-make').addEventListener('click', makePdf);
+
   // 데이터
   $('#btn-export').addEventListener('click', exportJSON);
   $('#file-import').addEventListener('change', (e) => {
@@ -1855,10 +2409,18 @@ function initEvents() {
     else if (act === 'close-review') { reviewUI = { cardId: null, step: 1, conf: null, result: null }; renderReviewPanel(); }
     else if (act === 'del-card') {
       const i = S.cards.findIndex(x => x.id === id);
-      if (i >= 0) { S.cards.splice(i, 1); save(); renderReview(); renderStats(); toast('카드를 삭제했어요'); }
+      if (i >= 0) { S.cards.splice(i, 1); save(); renderReview(); renderStats(); renderSummary(); renderCoach(); toast('카드를 삭제했어요'); }
     } else if (act === 'del-stuck') {
       const i = S.stucks.findIndex(x => x.id === id);
-      if (i >= 0) { S.stucks.splice(i, 1); save(); renderStuck(); renderStats(); toast('기록을 삭제했어요'); }
+      if (i >= 0) { S.stucks.splice(i, 1); save(); renderStuck(); renderStats(); renderCoach(); toast('기록을 삭제했어요'); }
+    } else if (act === 'install') {
+      promptInstall();
+    } else if (act === 'pdf-up') {
+      pdfMove(id, -1);
+    } else if (act === 'pdf-down') {
+      pdfMove(id, 1);
+    } else if (act === 'pdf-del') {
+      pdfRemove(id);
     }
   });
 
@@ -1896,28 +2458,49 @@ function renderStuckChips() {
   ).join('');
 }
 
-/* PWA */
+/* PWA — 설치 버튼은 beforeinstallprompt를 받았을 때만, standalone·설치 완료에서는 숨김 */
 let installEvt = null;
+function standaloneMode() {
+  try {
+    if (window.navigator.standalone === true) return true;
+    return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  } catch (e) { return false; }
+}
+function syncInstallUI() {
+  const chip = $('#install-chip');
+  if (chip) chip.hidden = !installEvt || standaloneMode();
+}
+async function promptInstall() {
+  if (standaloneMode()) { toast('이미 앱으로 실행 중이에요'); return false; }
+  if (!installEvt) { toast('크롬 ⋮ 메뉴 → 앱 설치(홈 화면에 추가)를 눌러 주세요'); return false; }
+  const evt = installEvt;
+  let outcome = '';
+  try {
+    evt.prompt();
+    const choice = await evt.userChoice;
+    outcome = choice && choice.outcome;
+  } catch (e) {}
+  installEvt = null;
+  syncInstallUI();
+  toast(outcome === 'accepted' ? '앱 설치를 시작했어요' : (outcome ? '설치를 취소했어요' : '설치 창을 닫았어요'));
+  return true;
+}
 function initPWA() {
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
     });
   }
-  const chip = $('#install-chip');
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     installEvt = e;
-    chip.hidden = false;
+    syncInstallUI();
   });
-  chip.addEventListener('click', async () => {
-    if (!installEvt) return;
-    installEvt.prompt();
-    try { await installEvt.userChoice; } catch (e) {}
+  window.addEventListener('appinstalled', () => {
     installEvt = null;
-    chip.hidden = true;
+    syncInstallUI();
   });
-  window.addEventListener('appinstalled', () => { chip.hidden = true; });
+  syncInstallUI();
 }
 
 function init() {
@@ -1944,6 +2527,11 @@ function init() {
     get due() { return dueCards().map(c => ({ id: c.id, title: c.title, dueAt: c.dueAt, illusion: c.illusion })); },
     nextSchedule: nextSchedule,
     stretch: continuousStretch,
+    coach: coachReport,
+    priorities: function () { return coachPriorities(coachSnapshot()); },
+    pdfItems: function () { return pdfItems.map(x => ({ id: x.id, name: x.name, w: x.w, h: x.h })); },
+    buildPdf: buildPdf,
+    standalone: standaloneMode,
     // 동기화 암호화 왕복 시험 (네트워크 없이 이 기기에서만 확인) — 비밀번호는 저장하지 않음
     syncRoundTrip: async function (pw) {
       const env = await encryptState(S, pw || 'gkc-test');
