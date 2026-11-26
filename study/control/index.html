@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="생활 통제 — 오늘의 체크리스트, 수면·컨디션 기록, 연속 달성">
+<meta name="theme-color" content="#fafafa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="생활 통제">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+<title>생활 통제 — 오늘 체크 · 연속 기록</title>
+<style>
+:root {
+  /* Monotone Minimal — paper, ink, hairline (스터디 플래너 · 목차 노트와 같은 톤) */
+  --bg: #fafafa;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --surface2: #f4f4f5;
+  --surface3: #ececee;
+  --border: #e4e4e7;
+  --border2: #d4d4d8;
+  --text: #18181b;
+  --text2: #52525b;
+  --text3: #71717a;
+  --text4: #a1a1aa;
+  --danger: #a12b20;
+  --danger-soft: #faf2f1;
+  --shadow: 0 1px 2px rgba(24,24,27,.05);
+  --radius: 6px;
+  --radius-lg: 10px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  min-height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -.005em;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; color: inherit; font-size: 16px; /* iOS: 16px 미만이면 포커스 때 확대됨 */ }
+::selection { background: #18181b; color: #fff; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+/* ===== Shell ===== */
+#app { display: flex; flex-direction: column; min-height: 100dvh; }
+.head { position: sticky; top: 0; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--border); }
+.topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 9px; background: var(--bg); }
+.brand { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
+.brand-mark {
+  font: 600 9.5px/1 var(--mono); letter-spacing: .1em; color: var(--text);
+  padding: 5px 5px 4px; border: 1px solid var(--text); border-radius: 3px; flex-shrink: 0;
+}
+.brand-text { font-size: 14.5px; font-weight: 650; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-meta { font: 500 10.5px/1 var(--mono); letter-spacing: .06em; color: var(--text4); white-space: nowrap; }
+.install-chip {
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--text); color: #fff; border: 1px solid var(--text);
+  border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: -.01em;
+  white-space: nowrap; box-shadow: 0 1px 3px rgba(24,24,27,.18);
+}
+.install-chip:hover { background: #000; border-color: #000; }
+.install-chip .ar { font-size: 12.5px; line-height: 1; margin-top: -1px; }
+
+.tabs { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--bg); border-bottom: 1px solid var(--border); }
+.tab {
+  position: relative; height: 46px; font-size: 13.5px; font-weight: 600; color: var(--text3);
+  letter-spacing: -.01em; display: flex; align-items: center; justify-content: center; transition: color .12s;
+}
+.tab:hover { color: var(--text); }
+.tab.on { color: var(--text); }
+.tab.on::after { content: ""; position: absolute; left: 24%; right: 24%; bottom: -1px; height: 2px; background: var(--text); border-radius: 2px 2px 0 0; }
+
+main { flex: 1; width: 100%; max-width: 660px; margin: 0 auto; padding: 0 16px calc(40px + var(--safe-b)); }
+@media (min-width: 760px) {
+  .topbar { padding-left: calc((100% - 660px) / 2 + 16px); padding-right: calc((100% - 660px) / 2 + 16px); }
+  .tabs { max-width: 660px; margin: 0 auto; width: 100%; }
+  .head { box-shadow: 0 1px 0 var(--border); }
+  main { padding-bottom: calc(56px + var(--safe-b)); }
+}
+.view { display: none; }
+.view.on { display: block; animation: fade .18s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+/* ===== Masthead ===== */
+.masthead { padding: 18px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.masthead .kicker { font: 500 9.5px/1 var(--mono); letter-spacing: .2em; color: var(--text4); margin-bottom: 9px; }
+.masthead h2 { font-size: 20px; font-weight: 650; letter-spacing: -.035em; line-height: 1.3; word-break: keep-all; }
+.masthead h2.sum { font-size: 17.5px; letter-spacing: -.03em; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.masthead p { margin-top: 7px; font-size: 12.5px; color: var(--text3); line-height: 1.6; word-break: keep-all; font-variant-numeric: tabular-nums; }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 15px 14px; margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card-h { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.card-h h3 { font-size: 14px; font-weight: 650; letter-spacing: -.02em; flex: 1; min-width: 0; }
+.card-sub { font: 500 11px/1.2 var(--mono); color: var(--text3); letter-spacing: .02em; white-space: nowrap; }
+.card-note { font-size: 11.5px; color: var(--text3); line-height: 1.55; margin: 8px 0 0; word-break: keep-all; }
+
+/* ===== Buttons ===== */
+.btn {
+  min-height: 38px; padding: 0 13px; border-radius: var(--radius);
+  font-size: 12.5px; font-weight: 650; letter-spacing: .005em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  transition: background .12s, border-color .12s, color .12s; white-space: nowrap;
+}
+.btn:hover { background: var(--surface2); border-color: var(--border2); }
+.btn.primary { background: var(--text); border-color: var(--text); color: #fff; }
+.btn.primary:hover { background: #000; border-color: #000; }
+.btn.danger { background: transparent; border-color: #e7cfcb; color: var(--danger); }
+.btn.danger:hover { background: var(--danger-soft); }
+.btn.sm { min-height: 32px; padding: 0 11px; font-size: 11.5px; }
+.link { font-size: 11.5px; color: var(--text3); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border2); padding: 4px 2px; }
+.link:hover { color: var(--text); text-decoration-color: var(--text); }
+
+.chip {
+  min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 600;
+  transition: background .12s, border-color .12s, color .12s; white-space: nowrap;
+}
+.chip:hover { border-color: var(--text3); color: var(--text); }
+.chip.on { background: var(--text); border-color: var(--text); color: #fff; }
+
+/* ===== Checklist ===== */
+.rule-list { list-style: none; }
+.rule { border-bottom: 1px solid var(--surface3); }
+.rule:last-child { border-bottom: 0; }
+.rule-btn { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 2px; text-align: left; min-height: 50px; }
+.tick {
+  width: 23px; height: 23px; border-radius: 6px; border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  color: transparent; font-size: 12.5px; font-weight: 800; line-height: 1;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.rule-btn:hover .tick { border-color: var(--text3); }
+.rule-btn[aria-pressed="true"] .tick { background: var(--text); border-color: var(--text); color: #fff; }
+.t { flex: 1; min-width: 0; font-size: 14px; line-height: 1.45; letter-spacing: -.015em; word-break: keep-all; overflow-wrap: break-word; }
+.rule-btn[aria-pressed="true"] .t { color: var(--text3); text-decoration: line-through; text-decoration-color: var(--border2); }
+
+.rule.edit { display: flex; align-items: center; gap: 6px; padding: 7px 0; }
+.rule.edit .rule-input {
+  flex: 1; min-width: 0; height: 40px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: var(--radius); padding: 0 10px; font-size: 15px;
+}
+.rule.edit .rule-input:focus { border-color: var(--text3); outline: none; box-shadow: 0 0 0 3px var(--surface2); }
+.ops { display: flex; gap: 2px; flex-shrink: 0; }
+.mini {
+  width: 30px; height: 34px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: var(--radius); font-size: 13px; color: var(--text2); display: flex; align-items: center; justify-content: center;
+}
+.mini:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.mini:disabled { opacity: .32; cursor: not-allowed; }
+.mini.del:hover { background: var(--danger-soft); border-color: #e7cfcb; color: var(--danger); }
+
+.add-row { display: flex; gap: 6px; margin-top: 10px; }
+.input {
+  height: 42px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius);
+  padding: 0 10px; font-size: 15px; color: var(--text); width: 100%;
+}
+.input::placeholder { color: var(--text4); }
+.input:focus { border-color: var(--text3); outline: none; box-shadow: 0 0 0 3px var(--surface2); }
+
+/* ===== 수면 · 컨디션 ===== */
+.kv-row { display: flex; align-items: center; gap: 6px; padding: 5px 0; }
+.kv-row .k { width: 44px; flex-shrink: 0; font-size: 12.5px; color: var(--text2); }
+.time {
+  width: 92px; flex-shrink: 0; height: 38px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 0 9px; font: 600 14px/1 var(--mono);
+  color: var(--text); letter-spacing: .02em; font-variant-numeric: tabular-nums; text-align: center;
+}
+.time::placeholder { color: var(--text4); font-weight: 500; letter-spacing: .04em; }
+.time:focus { border-color: var(--text3); outline: none; box-shadow: 0 0 0 3px var(--surface2); }
+.chip.sm { min-height: 30px; padding: 0 9px; font-size: 11.5px; }
+.mood-wrap { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
+.mood-wrap .k { width: 44px; flex-shrink: 0; font-size: 12.5px; color: var(--text2); }
+.mood-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex: 1; }
+.mood-chips .chip { padding: 0 4px; font-size: 11.5px; }
+
+/* ===== 기록 그리드 ===== */
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg-b { height: 26px; padding: 0 11px; font-size: 11px; font-weight: 650; color: var(--text3); }
+.seg-b.on { background: var(--text); color: #fff; }
+
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.day {
+  position: relative; height: 54px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--paper); display: flex; flex-direction: column; align-items: flex-start;
+  padding: 6px 6px 0; overflow: hidden; text-align: left; transition: border-color .12s;
+}
+.day:hover { border-color: var(--border2); }
+.day .n { font: 600 11px/1 var(--mono); color: var(--text2); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.day .w { margin-top: 3px; font-size: 9.5px; line-height: 1; color: var(--text4); }
+.day .bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--text); border-radius: 0 2px 2px 0; }
+.day.full { background: var(--text); border-color: var(--text); }
+.day.full .n { color: #fff; }
+.day.full .w { color: rgba(255,255,255,.55); }
+.day.full .bar { display: none; }
+.day.today { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.day.today::after { content: ""; position: absolute; right: 5px; top: 6px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .5; }
+.day.today.full::after { background: #fff; opacity: .8; }
+.day.picked { box-shadow: inset 0 0 0 1px var(--text), 0 0 0 1px var(--text); }
+.grid-note { font-size: 11px; color: var(--text4); line-height: 1.55; margin-top: 10px; min-height: 15px; font-variant-numeric: tabular-nums; }
+
+.rec-list { list-style: none; margin-top: 2px; }
+.rec { display: grid; grid-template-columns: 56px 1fr auto; gap: 9px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--surface3); }
+.rec:last-child { border-bottom: 0; }
+.rec .d { font: 600 11.5px/1.3 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; }
+.rec .d i { display: block; font: 500 9.5px/1.3 var(--font); color: var(--text4); font-style: normal; letter-spacing: .02em; }
+.rec .m { min-width: 0; }
+.rec .m b { display: block; font: 500 11.5px/1.4 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec .m span { display: block; font-size: 10.5px; line-height: 1.4; color: var(--text4); }
+.rec .c { font: 600 11.5px/1 var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 7px; }
+.foot-note { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--border); font-size: 11px; line-height: 1.7; color: var(--text4); word-break: keep-all; }
+.foot-note b { color: var(--text3); font-weight: 650; }
+
+/* toast */
+#toast {
+  position: fixed; left: 50%; bottom: calc(20px + var(--safe-b)); transform: translate(-50%, 12px);
+  background: var(--text); color: #fff; font-size: 12.5px; font-weight: 600; letter-spacing: -.01em;
+  padding: 11px 15px; border-radius: 8px; box-shadow: 0 6px 24px rgba(24,24,27,.22);
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 90;
+  max-width: calc(100% - 32px); text-align: center; line-height: 1.45;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="head">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">CTL</span>
+        <span class="brand-text">생활 통제</span>
+      </div>
+      <button class="install-chip" id="install-chip" data-act="install" hidden><span class="ar">↓</span> 앱 설치</button>
+      <span class="top-meta" id="top-date"></span>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="화면 전환">
+      <button class="tab on" data-tab="today" role="tab" aria-selected="true">오늘</button>
+      <button class="tab" data-tab="log" role="tab" aria-selected="false">기록</button>
+    </nav>
+  </div>
+
+  <main>
+    <!-- ============ 오늘 ============ -->
+    <section class="view on" id="view-today" role="tabpanel" aria-label="오늘">
+      <div class="masthead">
+        <div class="kicker" id="today-kicker">TODAY</div>
+        <h2 class="sum" id="today-summary">오늘 0/0 완료 · 연속 0일 달성</h2>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h3>오늘의 통제</h3>
+          <span class="card-sub" id="rule-count">0/0</span>
+          <button class="link" id="edit-toggle" data-act="edit">편집</button>
+        </div>
+        <ul class="rule-list" id="rule-list"></ul>
+        <form class="add-row" id="add-form" autocomplete="off" hidden>
+          <input class="input" id="add-input" placeholder="새 통제 항목 (예: 23:00 폰 끄기)" maxlength="40" aria-label="새 통제 항목">
+          <button class="btn primary" type="submit">추가</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h3>수면 · 컨디션</h3>
+          <span class="card-sub" id="sleep-total">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="k">기상</span>
+          <input class="time" type="text" id="wake" inputmode="numeric" placeholder="07:00" maxlength="5" autocomplete="off" enterkeyhint="done" aria-label="기상 시각 (예: 07:00)">
+          <button class="chip sm" data-act="wake-now">지금</button>
+          <button class="chip sm" data-act="wake-0700">07:00</button>
+        </div>
+        <div class="kv-row">
+          <span class="k">취침</span>
+          <input class="time" type="text" id="sleep" inputmode="numeric" placeholder="24:00" maxlength="5" autocomplete="off" enterkeyhint="done" aria-label="취침 시각 (예: 24:00)">
+          <button class="chip sm" data-act="sleep-now">지금</button>
+          <button class="chip sm" data-act="sleep-2400">24:00</button>
+        </div>
+        <div class="mood-wrap">
+          <span class="k">컨디션</span>
+          <div class="mood-chips" id="mood-chips" role="group" aria-label="오늘 컨디션">
+            <button class="chip" data-mood="good" aria-pressed="false">좋음</button>
+            <button class="chip" data-mood="ok" aria-pressed="false">보통</button>
+            <button class="chip" data-mood="bad" aria-pressed="false">더부룩·피곤</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="foot-note">
+        <b>앱으로 설치</b> — 크롬 <b>⋮</b> 메뉴 → <b>앱 설치</b>(또는 <b>홈 화면에 추가</b>). 한 번 설치하면 인터넷 없어도 열려.
+      </p>
+    </section>
+
+    <!-- ============ 기록 ============ -->
+    <section class="view" id="view-log" role="tabpanel" aria-label="기록">
+      <div class="masthead">
+        <div class="kicker" id="log-kicker">RECORD</div>
+        <h2 id="log-summary">최근 14일 중 0일 달성</h2>
+        <p id="log-note">—</p>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h3>달성 기록</h3>
+          <span class="seg" role="group" aria-label="기간">
+            <button class="seg-b" data-seg="7">7일</button>
+            <button class="seg-b on" data-seg="14">14일</button>
+          </span>
+        </div>
+        <div class="grid" id="grid"></div>
+        <p class="grid-note" id="grid-note">칸을 누르면 그날 기록이 나와.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h3>최근 기록</h3>
+          <span class="card-sub">7일</span>
+        </div>
+        <ul class="rec-list" id="rec-list"></ul>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <h3>데이터</h3>
+          <span class="card-sub">이 기기에만</span>
+        </div>
+        <div class="tools">
+          <button class="btn sm" data-act="export">JSON 내보내기</button>
+          <button class="btn sm" data-act="import">불러오기</button>
+          <button class="btn sm danger" data-act="reset">초기화</button>
+        </div>
+        <p class="card-note">브라우저 데이터를 지우거나 기기를 바꾸기 전에 내보내 두면 돼.</p>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   생활 통제 — 오늘 체크 · 수면/컨디션 · 연속 달성
+   저장: localStorage "gkc-control-v1" 하나만 씁니다.
+   ========================================================= */
+
+const KEY = 'gkc-control-v1';
+const DEFAULT_RULES = [
+  { id: 'r-wake',  label: '07:00 기상' },
+  { id: 'r-sleep', label: '24:00 취침 (폰 내려놓기)' },
+  { id: 'r-phone', label: '공부 중 폰 멀리 두기' },
+  { id: 'r-food',  label: '과식·야식 안 하기 (80% 식사)' },
+];
+const MOODS = [
+  { k: 'good', t: '좋음' },
+  { k: 'ok',   t: '보통' },
+  { k: 'bad',  t: '더부룩·피곤' },
+];
+const WD = ['일', '월', '화', '수', '목', '금', '토'];
+const $ = (sel) => document.querySelector(sel);
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function ymd(d) { const x = d || new Date(); return x.getFullYear() + '-' + pad2(x.getMonth() + 1) + '-' + pad2(x.getDate()); }
+function todayKey() { return ymd(); }
+function dayFromKey(k) { const p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function shiftYmd(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function addDaysKey(k, n) { return ymd(shiftYmd(dayFromKey(k), n)); }
+
+function freshState() {
+  return { v: 1, rules: DEFAULT_RULES.map((r) => ({ id: r.id, label: r.label })), days: {}, seg: 14, editing: false };
+}
+
+/* ---------- state ---------- */
+let S = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      if (o && o.v === 1 && Array.isArray(o.rules) && o.days && typeof o.days === 'object') {
+        const rules = o.rules
+          .filter((r) => r && typeof r.id === 'string' && typeof r.label === 'string')
+          .map((r) => ({ id: r.id, label: r.label.slice(0, 40) }));
+        const st = freshState();
+        st.rules = rules.length ? rules : st.rules;
+        st.days = o.days;
+        st.seg = o.seg === 7 ? 7 : 14;
+        return st;
+      }
+    }
+  } catch (e) { /* 깨진 값이면 기본값으로 시작 */ }
+  return freshState();
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, rules: S.rules, days: S.days, seg: S.seg }));
+  } catch (e) { /* 저장 실패(사생활 모드 등)는 조용히 넘어감 */ }
+}
+
+function dayOf(k, create) {
+  let d = S.days[k];
+  if (!d && create) { d = S.days[k] = { done: {}, total: S.rules.length }; }
+  if (d) {
+    if (!d.done || typeof d.done !== 'object') d.done = {};
+    if (typeof d.total !== 'number' || d.total < 1) d.total = S.rules.length;
+  }
+  return d;
+}
+
+function doneCount(d) {
+  if (!d || !d.done) return 0;
+  let n = 0;
+  for (const k in d.done) if (d.done[k]) n++;
+  return n;
+}
+function ruleTotal(d) { return (d && d.total) || S.rules.length || 1; }
+function isComplete(d) { return !!d && ruleTotal(d) > 0 && doneCount(d) >= ruleTotal(d); }
+
+function streak() {
+  let n = 0;
+  let cur = new Date();
+  if (!isComplete(S.days[ymd(cur)])) cur = shiftYmd(cur, -1);
+  for (let i = 0; i < 4000; i++) {
+    if (!isComplete(S.days[ymd(cur)])) break;
+    n++;
+    cur = shiftYmd(cur, -1);
+  }
+  return n;
+}
+
+/* ---------- formatting ---------- */
+function fmtHM(str) { return str || ''; }
+function timeToMin(str) {
+  if (!str || str.indexOf(':') < 0) return null;
+  const p = str.split(':');
+  const h = Number(p[0]), m = Number(p[1]);
+  if (!isFinite(h) || !isFinite(m)) return null;
+  return (h * 60 + m) % 1440;
+}
+function sleepMinutes(d) {
+  const w = timeToMin(d && d.wake), s = timeToMin(d && d.sleep);
+  if (w == null || s == null) return null;
+  const sleepAbs = s > w ? s - 1440 : s;   // 23:00 취침 → 다음 날 07:00 기상
+  const dur = w - sleepAbs;
+  return dur > 0 && dur <= 16 * 60 ? dur : null;
+}
+function fmtDur(min) {
+  if (min == null) return '—';
+  const h = Math.floor(min / 60), m = min % 60;
+  return h + '시간 ' + m + '분';
+}
+function fmtDayLabel(k) {
+  const d = dayFromKey(k);
+  return (d.getMonth() + 1) + '.' + pad2(d.getDate());
+}
+function moodLabel(k) {
+  const m = MOODS.find((x) => x.k === k);
+  return m ? m.t : '';
+}
+function nowHM() { const d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+/* ---------- render ---------- */
+let pickedDay = null;
+let lastKey = todayKey();
+
+function renderAll() {
+  renderToday();
+  renderLog();
+  $('#top-date').textContent = fmtDayLabel(todayKey()) + ' ' + WD[dayFromKey(todayKey()).getDay()];
+}
+
+function renderToday() {
+  const k = todayKey();
+  const d = S.days[k] || { done: {}, total: S.rules.length };
+  const total = S.rules.length;
+  const done = S.rules.filter((r) => d.done[r.id]).length;
+  const st = streak();
+
+  const dt = dayFromKey(k);
+  $('#today-kicker').textContent = 'TODAY · ' + dt.getFullYear() + '.' + pad2(dt.getMonth() + 1) + '.' + pad2(dt.getDate()) + ' ' + WD[dt.getDay()] + '요일';
+  $('#today-summary').textContent = '오늘 ' + done + '/' + total + ' 완료 · 연속 ' + st + '일 달성';
+  $('#rule-count').textContent = done + '/' + total;
+
+  const list = $('#rule-list');
+  if (S.editing) {
+    list.innerHTML = S.rules.map((r, i) => `
+      <li class="rule edit" data-id="${esc(r.id)}">
+        <input class="rule-input" data-edit="${esc(r.id)}" value="${esc(r.label)}" maxlength="40" aria-label="항목 이름">
+        <span class="ops">
+          <button class="mini" data-act="up" data-id="${esc(r.id)}" aria-label="위로" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="mini" data-act="down" data-id="${esc(r.id)}" aria-label="아래로" ${i === S.rules.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="mini del" data-act="del" data-id="${esc(r.id)}" aria-label="삭제">✕</button>
+        </span>
+      </li>`).join('');
+  } else {
+    list.innerHTML = S.rules.map((r) => {
+      const on = !!d.done[r.id];
+      return `
+      <li class="rule">
+        <button class="rule-btn" data-act="toggle" data-id="${esc(r.id)}" aria-pressed="${on ? 'true' : 'false'}">
+          <span class="tick" aria-hidden="true">✓</span>
+          <span class="t">${esc(r.label)}</span>
+        </button>
+      </li>`;
+    }).join('');
+  }
+
+  $('#edit-toggle').textContent = S.editing ? '닫기' : '편집';
+  $('#add-form').hidden = !S.editing;
+
+  const wake = $('#wake'), sleep = $('#sleep');
+  if (document.activeElement !== wake) wake.value = d.wake || '';
+  if (document.activeElement !== sleep) sleep.value = d.sleep || '';
+  $('#sleep-total').textContent = d.wake && d.sleep ? '수면 ' + fmtDur(sleepMinutes(d)) : '—';
+
+  Array.prototype.forEach.call($('#mood-chips').children, (b) => {
+    const on = d.mood === b.dataset.mood;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+function renderLog() {
+  const n = S.seg;
+  const keys = [];
+  for (let i = n - 1; i >= 0; i--) keys.push(addDaysKey(todayKey(), -i));
+
+  const complete = keys.filter((k) => isComplete(S.days[k])).length;
+  const avgDone = keys.reduce((a, k) => a + Math.min(doneCount(S.days[k]), ruleTotal(S.days[k])), 0) / n;
+  const sleeps = keys.map((k) => sleepMinutes(S.days[k])).filter((x) => x != null);
+  const avgSleep = sleeps.length ? Math.round(sleeps.reduce((a, b) => a + b, 0) / sleeps.length) : null;
+
+  $('#log-kicker').textContent = 'RECORD · 최근 ' + n + '일';
+  $('#log-summary').textContent = n + '일 중 ' + complete + '일 달성';
+  $('#log-note').textContent = '연속 ' + streak() + '일 · 하루 평균 ' + avgDone.toFixed(1) + '/' + S.rules.length +
+    (avgSleep != null ? ' · 수면 평균 ' + Math.floor(avgSleep / 60) + '시간 ' + (avgSleep % 60) + '분' : '');
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-seg]'), (b) => {
+    b.classList.toggle('on', Number(b.dataset.seg) === n);
+  });
+
+  const grid = $('#grid');
+  grid.innerHTML = keys.map((k) => {
+    const d = S.days[k];
+    const done = Math.min(doneCount(d), ruleTotal(d));
+    const pct = d ? Math.round((done / ruleTotal(d)) * 100) : 0;
+    const dt = dayFromKey(k);
+    const cls = ['day'];
+    if (isComplete(d)) cls.push('full');
+    if (k === todayKey()) cls.push('today');
+    if (k === pickedDay) cls.push('picked');
+    const label = (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일 ' + WD[dt.getDay()] + '요일, ' + done + '/' + ruleTotal(d) + ' 완료';
+    return `<button class="${cls.join(' ')}" data-act="daypick" data-day="${k}" aria-label="${label}">
+      <span class="n">${pad2(dt.getDate())}</span>
+      <span class="w">${WD[dt.getDay()]}</span>
+      ${pct > 0 && pct < 100 ? `<span class="bar" style="width:${pct}%"></span>` : ''}
+    </button>`;
+  }).join('');
+
+  renderDayNote();
+  renderRecent(keys.slice(-7));
+}
+
+function renderDayNote() {
+  const el = $('#grid-note');
+  if (!pickedDay) { el.textContent = '칸을 누르면 그날 기록이 나와.'; return; }
+  const d = S.days[pickedDay];
+  const dt = dayFromKey(pickedDay);
+  const head = fmtDayLabel(pickedDay) + ' ' + WD[dt.getDay()] + ' · ' + (d ? Math.min(doneCount(d), ruleTotal(d)) + '/' + ruleTotal(d) + ' 완료' : '기록 없음');
+  const bits = [];
+  if (d && d.wake) bits.push('기상 ' + fmtHM(d.wake));
+  if (d && d.sleep) bits.push('취침 ' + fmtHM(d.sleep));
+  if (d && d.mood) bits.push('컨디션 ' + moodLabel(d.mood));
+  el.textContent = head + (bits.length ? ' · ' + bits.join(' · ') : '');
+}
+
+function renderRecent(keys) {
+  const list = $('#rec-list');
+  const rows = keys.slice().reverse().map((k) => {
+    const d = S.days[k];
+    const done = Math.min(doneCount(d), ruleTotal(d));
+    const dt = dayFromKey(k);
+    const times = d && (d.wake || d.sleep)
+      ? [d.wake ? '기상 ' + d.wake : '', d.sleep ? '취침 ' + d.sleep : ''].filter(Boolean).join(' · ')
+      : '수면 기록 없음';
+    const mood = d && d.mood ? moodLabel(d.mood) : '';
+    return `<li class="rec">
+      <span class="d">${fmtDayLabel(k)}<i>${WD[dt.getDay()]}${k === todayKey() ? ' · 오늘' : ''}</i></span>
+      <span class="m"><b>${times}</b>${mood ? `<span>${mood}</span>` : ''}</span>
+      <span class="c">${d ? done + '/' + ruleTotal(d) : '—'}</span>
+    </li>`;
+  });
+  list.innerHTML = rows.join('');
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ---------- actions ---------- */
+function toggleRule(id) {
+  const k = todayKey();
+  const d = dayOf(k, true);
+  const wasComplete = isComplete(d);
+  if (d.done[id]) delete d.done[id]; else d.done[id] = true;
+  d.total = S.rules.length;
+  save();
+  renderAll();
+  if (!wasComplete && isComplete(d)) toast('오늘 통제 완료! 연속 ' + streak() + '일 달성');
+}
+
+function setMood(m) {
+  const d = dayOf(todayKey(), true);
+  d.mood = d.mood === m ? '' : m;
+  if (!d.mood) delete d.mood;
+  save();
+  renderAll();
+}
+
+function setTime(field, val) {
+  const d = dayOf(todayKey(), true);
+  if (val) d[field] = val; else delete d[field];
+  save();
+  renderAll();
+}
+
+/* "7", "0708", "7:5", "24:00" 같은 입력을 HH:MM로 맞춥니다 */
+function parseTimeText(v) {
+  const s = String(v || '').trim().replace(/[^\d:]/g, '');
+  if (!s) return '';
+  let h = 0, m = 0;
+  if (s.indexOf(':') >= 0) {
+    const p = s.split(':');
+    h = parseInt(p[0], 10);
+    m = parseInt(p[1] || '0', 10);
+  } else if (s.length <= 2) {
+    h = parseInt(s, 10);
+  } else {
+    h = parseInt(s.slice(0, s.length - 2), 10);
+    m = parseInt(s.slice(-2), 10);
+    // "075"처럼 세 자리면 07:05로 읽는다 (앞자리가 시, 뒷두 자리가 분)
+    if (s.length === 3 && m > 59) { h = parseInt(s.slice(0, 2), 10); m = parseInt(s.slice(2), 10); }
+  }
+  if (!isFinite(h) || !isFinite(m)) return null;
+  if (h === 24 && m === 0) return '24:00';
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return pad2(h) + ':' + pad2(m);
+}
+
+function commitTime(field, raw) {
+  const el = field === 'wake' ? $('#wake') : $('#sleep');
+  const s = String(raw || '').trim();
+  if (!s) { setTime(field, ''); if (el) el.value = ''; return; }
+  const t = parseTimeText(s);
+  if (!t) {
+    toast('시각은 07:00 처럼 적어줘');
+    const d = S.days[todayKey()];
+    if (el) el.value = (d && d[field]) || '';
+    return;
+  }
+  setTime(field, t);
+  if (el && el.value !== t) el.value = t;
+}
+
+function addRule(label) {
+  const text = String(label || '').trim().slice(0, 40);
+  if (!text) { toast('항목 이름을 적어줘'); return; }
+  S.rules.push({ id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: text });
+  const d = S.days[todayKey()];
+  if (d) { d.total = S.rules.length; }
+  save();
+  renderAll();
+  toast('항목을 추가했어');
+}
+
+function delRule(id) {
+  const r = S.rules.find((x) => x.id === id);
+  if (!r) return;
+  S.rules = S.rules.filter((x) => x.id !== id);
+  for (const k in S.days) {
+    const d = S.days[k];
+    if (d && d.done) delete d.done[id];
+    if (d && typeof d.total === 'number') d.total = Math.max(1, Math.min(d.total, S.rules.length));
+  }
+  save();
+  renderAll();
+  toast('삭제했어 · ' + r.label);
+}
+
+function moveRule(id, dir) {
+  const i = S.rules.findIndex((x) => x.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= S.rules.length) return;
+  const t = S.rules[i];
+  S.rules[i] = S.rules[j];
+  S.rules[j] = t;
+  save();
+  renderAll();
+}
+
+function renameRule(id, label) {
+  const r = S.rules.find((x) => x.id === id);
+  if (!r) return;
+  const text = String(label || '').trim().slice(0, 40);
+  if (!text) { renderToday(); return; }
+  if (r.label !== text) { r.label = text; save(); }
+  renderToday();
+}
+
+/* ---------- 백업 ---------- */
+function exportJSON() {
+  const data = { v: 1, exportedAt: new Date().toISOString(), rules: S.rules, days: S.days };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '생활통제-' + todayKey() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('JSON으로 내보냈어');
+}
+
+function importFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const o = JSON.parse(String(reader.result));
+      if (!o || !Array.isArray(o.rules) || !o.days || typeof o.days !== 'object') throw new Error('bad');
+      const rules = o.rules
+        .filter((r) => r && typeof r.id === 'string' && typeof r.label === 'string')
+        .map((r) => ({ id: r.id, label: r.label.slice(0, 40) }));
+      if (!rules.length) throw new Error('bad');
+      if (!window.confirm('지금 기록을 불러온 파일로 바꿀까? 지금 기록은 사라져.')) return;
+      S.rules = rules;
+      S.days = o.days;
+      save();
+      renderAll();
+      toast('기록을 불러왔어');
+    } catch (e) {
+      toast('파일을 읽지 못했어 (생활 통제 JSON이 맞는지 확인)');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  if (!window.confirm('모든 기록을 지우고 기본 항목 4개로 돌아갈까?')) return;
+  S = freshState();
+  pickedDay = null;
+  save();
+  renderAll();
+  toast('초기화했어');
+}
+
+/* ---------- toast ---------- */
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------- tabs ---------- */
+function setTab(name) {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'), (b) => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  $('#view-today').classList.toggle('on', name === 'today');
+  $('#view-log').classList.toggle('on', name === 'log');
+  if (name === 'log') renderLog();
+}
+
+/* ---------- events ---------- */
+function bind() {
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-tab]');
+    if (tab) { setTab(tab.dataset.tab); return; }
+
+    const seg = e.target.closest('[data-seg]');
+    if (seg) {
+      S.seg = Number(seg.dataset.seg) === 7 ? 7 : 14;
+      save();
+      renderLog();
+      return;
+    }
+
+    const mood = e.target.closest('[data-mood]');
+    if (mood) { setMood(mood.dataset.mood); return; }
+
+    const t = e.target.closest('[data-act]');
+    if (!t) return;
+    const act = t.dataset.act;
+    const id = t.dataset.id;
+
+    if (act === 'toggle') { toggleRule(id); return; }
+    if (act === 'edit') { S.editing = !S.editing; renderToday(); return; }
+    if (act === 'up') { moveRule(id, -1); return; }
+    if (act === 'down') { moveRule(id, 1); return; }
+    if (act === 'del') { delRule(id); return; }
+    if (act === 'daypick') {
+      pickedDay = pickedDay === t.dataset.day ? null : t.dataset.day;
+      renderLog();
+      return;
+    }
+    if (act === 'wake-now') { setTime('wake', nowHM()); toast('기상 ' + nowHM() + ' 기록'); return; }
+    if (act === 'sleep-now') { setTime('sleep', nowHM()); toast('취침 ' + nowHM() + ' 기록'); return; }
+    if (act === 'wake-0700') { setTime('wake', '07:00'); toast('기상 07:00 기록'); return; }
+    if (act === 'sleep-2400') { setTime('sleep', '24:00'); toast('취침 24:00 기록'); return; }
+    if (act === 'export') { exportJSON(); return; }
+    if (act === 'import') { $('#import-file').click(); return; }
+    if (act === 'reset') { resetAll(); return; }
+    if (act === 'install') { promptInstall(); return; }
+  });
+
+  $('#wake').addEventListener('change', (e) => commitTime('wake', e.target.value));
+  $('#sleep').addEventListener('change', (e) => commitTime('sleep', e.target.value));
+  Array.prototype.forEach.call(document.querySelectorAll('.time'), (el) => {
+    el.addEventListener('focus', () => { try { el.select(); } catch (err) {} });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  });
+
+  $('#add-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#add-input');
+    addRule(input.value);
+    input.value = '';
+    input.focus();
+  });
+
+  document.addEventListener('change', (e) => {
+    const el = e.target.closest('[data-edit]');
+    if (el) renameRule(el.dataset.edit, el.value);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !e.target.matches('[data-edit]')) return;
+    e.preventDefault();
+    e.target.blur();
+  });
+
+  $('#import-file').addEventListener('change', (e) => {
+    importFile(e.target.files && e.target.files[0]);
+    e.target.value = '';
+  });
+
+  // 하루가 바뀌면 화면도 새 날짜로
+  setInterval(() => {
+    const k = todayKey();
+    if (k !== lastKey) { lastKey = k; pickedDay = null; renderAll(); }
+  }, 20000);
+}
+
+/* ---------- PWA ---------- */
+let installEvt = null;
+function standaloneMode() {
+  try {
+    if (window.navigator.standalone === true) return true;
+    return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  } catch (e) { return false; }
+}
+function syncInstallUI() {
+  const chip = $('#install-chip');
+  if (chip) chip.hidden = !installEvt || standaloneMode();
+}
+async function promptInstall() {
+  if (standaloneMode()) { toast('이미 앱으로 실행 중이에요'); return false; }
+  if (!installEvt) { toast('크롬 ⋮ 메뉴 → 앱 설치(홈 화면에 추가)를 눌러 줘'); return false; }
+  const evt = installEvt;
+  let outcome = '';
+  try {
+    evt.prompt();
+    const choice = await evt.userChoice;
+    outcome = choice && choice.outcome;
+  } catch (e) { /* 무시 */ }
+  installEvt = null;
+  syncInstallUI();
+  toast(outcome === 'accepted' ? '앱 설치를 시작했어' : (outcome ? '설치를 취소했어' : '설치 창을 닫았어'));
+  return true;
+}
+function initPWA() {
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+    });
+  }
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvt = e;
+    syncInstallUI();
+  });
+  window.addEventListener('appinstalled', () => {
+    installEvt = null;
+    syncInstallUI();
+  });
+  syncInstallUI();
+}
+
+/* ---------- init ---------- */
+function init() {
+  bind();
+  renderAll();
+  setTab('today');
+  initPWA();
+
+  // 확인·검증용 (읽기 전용 + 테스트가 쓰는 최소 동작)
+  window.__control = {
+    get state() { return S; },
+    summary: () => $('#today-summary').textContent,
+    streak,
+    toggle: toggleRule,
+    setTab,
+    todayKey,
+    standalone: standaloneMode,
+    hasInstallEvent: () => !!installEvt,
+  };
+}
+
+init();
+</script>
+</body>
+</html>

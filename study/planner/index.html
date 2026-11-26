@@ -267,6 +267,18 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pw-row { display: flex; gap: 6px; margin-top: 8px; }
 .pw-row .input { flex: 1; }
+.pw-field { position: relative; flex: 1; min-width: 0; display: flex; }
+.pw-field .input { flex: 1; padding-right: 42px; }
+.pw-eye {
+  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  color: var(--text3);
+}
+.pw-eye:hover { color: var(--text); background: var(--surface2); }
+.pw-eye:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+.pw-eye .eye-off { display: none; }
+.pw-eye[aria-pressed="true"] .eye-on { display: none; }
+.pw-eye[aria-pressed="true"] .eye-off { display: block; }
 .sync-status { font-size: 11.5px; color: var(--text3); margin-top: 8px; min-height: 16px; line-height: 1.5; word-break: keep-all; }
 .sync-status.err { color: var(--danger); }
 .sync-status.ok { color: var(--ok); }
@@ -444,7 +456,13 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
         </p>
         <p class="card-note">같은 동기화 코드를 피자에게 알려두면, 피자가 이 기록을 직접 읽고 코칭할 수 있어요.</p>
         <div class="pw-row">
-          <input class="input" id="sync-pw" type="password" placeholder="동기화 비밀번호" autocomplete="new-password" aria-label="동기화 비밀번호">
+          <span class="pw-field">
+            <input class="input" id="sync-pw" type="password" placeholder="동기화 비밀번호" autocomplete="new-password" aria-label="동기화 비밀번호">
+            <button class="pw-eye" id="btn-sync-eye" type="button" aria-label="비밀번호 보기" aria-pressed="false" title="비밀번호 보기">
+              <svg class="eye-on" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.7-6.6 10-6.6S22 12 22 12s-3.7 6.6-10 6.6S2 12 2 12z"/><circle cx="12" cy="12" r="2.7"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.7-6.6 10-6.6S22 12 22 12s-3.7 6.6-10 6.6S2 12 2 12z"/><circle cx="12" cy="12" r="2.7"/><path d="M3.5 3.5l17 17"/></svg>
+            </button>
+          </span>
           <button class="btn" id="btn-sync-on">켜기</button>
         </div>
         <div class="row-actions" style="margin-top:8px">
@@ -1408,6 +1426,19 @@ async function pullSync(manual) {
     syncBusy = false; syncEnabledUI();
   }
 }
+function setPwVisible(show) {
+  const inp = $('#sync-pw'), btn = $('#btn-sync-eye');
+  if (!inp || !btn) return;
+  inp.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  btn.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 보기');
+  btn.title = show ? '비밀번호 숨기기' : '비밀번호 보기';
+}
+function togglePwView() {
+  const inp = $('#sync-pw');
+  if (!inp) return;
+  setPwVisible(inp.type === 'password');
+}
 function syncOn(pw) {
   pw = (pw || '').trim();
   if (pw.length < 4) { toast('비밀번호를 4자 이상으로 정해 주세요'); return; }
@@ -1415,6 +1446,7 @@ function syncOn(pw) {
   syncPw = pw;
   try { localStorage.setItem(SYNC_PW_KEY, pw); } catch (e) {}
   $('#sync-pw').value = '';
+  setPwVisible(false);
   syncEnabledUI();
   setSyncStatus('ok', '켜졌어요 · 플래너 전용 키로 암호화합니다 (학습노트와 분리)');
   toast('동기화를 켰어요');
@@ -1551,6 +1583,7 @@ function initEvents() {
 
   // 동기화
   $('#btn-sync-on').addEventListener('click', () => syncOn($('#sync-pw').value));
+  $('#btn-sync-eye').addEventListener('click', togglePwView);
   $('#btn-sync-off').addEventListener('click', syncOff);
   $('#btn-sync-push').addEventListener('click', () => pushSync(true));
   $('#btn-sync-pull').addEventListener('click', () => pullSync(true));
