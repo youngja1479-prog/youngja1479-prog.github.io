@@ -1,7 +1,7 @@
 {
   "id": "/study/outline/",
-  "name": "목차 학습",
-  "short_name": "목차 학습",
+  "name": "Study Notes",
+  "short_name": "Study Notes",
   "description": "목차 → 세부목차 → 세부내용으로 손으로 쓰는 GKC 학습노트",
   "lang": "ko",
   "dir": "ltr",
