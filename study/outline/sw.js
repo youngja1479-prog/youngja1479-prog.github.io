@@ -1,4 +1,4 @@
-/* 목차 학습 서비스 워커
+/* Study Notes 서비스 워커
  * - 화면(index.html)은 항상 최신을 먼저 받아 오고(네트워크 우선), 오프라인일 때만 저장해 둔 화면을 씁니다.
  * - manifest·아이콘 같은 앱 셸은 stale-while-revalidate로 즉시 보여 주고 뒤에서 갱신합니다.
  * - vendor/(PDF 리더·QR)는 한 번 받은 뒤 캐시 우선(용량이 커서 매번 다시 받지 않도록).
@@ -6,7 +6,7 @@
  * 캐시 버전을 올리면 activate 때 예전 캐시를 지웁니다.
  */
 
-const VERSION = "1";
+const VERSION = "2";
 const SHELL_CACHE = "outline-shell-v" + VERSION;
 const RUNTIME_CACHE = "outline-runtime-v" + VERSION;
 
@@ -27,7 +27,7 @@ const SHELL_ASSETS = [
 const OFFLINE_HTML =
   '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
   '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
-  '<meta name="theme-color" content="#fafafa"><title>목차 학습</title><style>' +
+  '<meta name="theme-color" content="#fafafa"><title>Study Notes</title><style>' +
   'html,body{margin:0;height:100%;background:#fafafa;color:#18181b;' +
   'font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",sans-serif}' +
   'main{display:flex;flex-direction:column;align-items:center;justify-content:center;' +
@@ -36,7 +36,7 @@ const OFFLINE_HTML =
   'p{margin:0;color:#71717a;font-size:.85rem;line-height:1.65}' +
   'button{margin-top:12px;min-height:40px;padding:0 16px;border:1px solid #d4d4d8;border-radius:6px;' +
   'background:#fff;color:#18181b;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}' +
-  '</style></head><body><main><h1>목차 학습</h1>' +
+  '</style></head><body><main><h1>Study Notes</h1>' +
   '<p>오프라인 상태예요.<br>연결되면 노트를 그대로 다시 불러옵니다.</p>' +
   '<button onclick="location.reload()">다시 시도</button></main></body></html>';
 
