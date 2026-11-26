@@ -1,0 +1,36 @@
+{
+  "id": "/study/planner/",
+  "name": "스터디 플래너",
+  "short_name": "스터디 플래너",
+  "description": "투트랙 할 일·과목별 순공 타이머·FSRS 복습·메타인지 착각 탐지·막힘 로그",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/study/planner/",
+  "scope": "/study/planner/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,22 +1,116 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GKC Study Tools</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
-    h1 { font-size: 1.5rem; }
-    ul { padding-left: 1.25rem; }
-    a { color: #0b57d0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fafafa">
+<meta name="description" content="GKC 학습 도구 — 목차 학습 노트, 스터디 플래너, 어휘, 공부 유튜브">
+<link rel="icon" type="image/png" sizes="192x192" href="./planner/icons/icon-192.png">
+<title>GKC 학습 도구</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --paper: #ffffff;
+  --surface2: #f4f4f5;
+  --border: #e4e4e7;
+  --border2: #d4d4d8;
+  --text: #18181b;
+  --text2: #52525b;
+  --text3: #71717a;
+  --text4: #a1a1aa;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  font-size: 14px; line-height: 1.5; letter-spacing: -.005em;
+  min-height: 100dvh; padding: 0 16px calc(40px + env(safe-area-inset-bottom, 0px));
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 640px; margin: 0 auto; }
+header.masthead { padding: 34px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+.kicker { font: 500 9.5px/1 var(--mono); letter-spacing: .2em; color: var(--text4); margin-bottom: 10px; }
+h1 { font-size: 22px; font-weight: 650; letter-spacing: -.035em; }
+.masthead p { margin-top: 8px; font-size: 12.5px; color: var(--text3); line-height: 1.6; word-break: keep-all; }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.card {
+  display: flex; align-items: center; gap: 13px;
+  background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 15px 15px; color: inherit; text-decoration: none;
+  box-shadow: 0 1px 2px rgba(24,24,27,.05);
+  transition: border-color .12s, background .12s, transform .12s;
+}
+.card:hover { border-color: var(--border2); background: #fff; transform: translateY(-1px); }
+.card:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.mark {
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--text); color: #fff; font: 650 9.5px/1 var(--mono); letter-spacing: .04em;
+}
+.mark.line { background: transparent; color: var(--text); border: 1px solid var(--text); }
+.mark img { width: 100%; height: 100%; border-radius: 9px; display: block; }
+.body { flex: 1; min-width: 0; }
+.body b { display: block; font-size: 14.5px; font-weight: 650; letter-spacing: -.02em; }
+.body span { display: block; margin-top: 3px; font-size: 11.5px; color: var(--text3); line-height: 1.5; word-break: keep-all; }
+.new {
+  font: 700 9.5px/1 var(--font); letter-spacing: .02em; color: #fff; background: var(--text);
+  border-radius: 3px; padding: 4px 5px; flex-shrink: 0;
+}
+.arrow { color: var(--text4); font-size: 16px; flex-shrink: 0; }
+.foot { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text4); line-height: 1.7; }
+</style>
 </head>
 <body>
-  <h1>GKC Study Tools</h1>
-  <ul>
-    <li><a href="outline/">목차 정리 노트</a></li>
-    <li><a href="voca-2026-03-g1/">영단어 암기 (2026 3월 고1)</a></li>
-    <li><a href="youtube/">SY (허용 채널)</a></li>
-  </ul>
+<main>
+  <header class="masthead">
+    <div class="kicker">GKC · STUDY TOOLS</div>
+    <h1>학습 도구</h1>
+    <p>목차로 정리하고, 오늘 할 일과 순공을 관리하고, 복습과 막힌 곳을 남기는 곳.</p>
+  </header>
+
+  <nav class="list" aria-label="학습 도구 목록">
+    <a class="card" href="planner/">
+      <span class="mark"><img src="planner/icons/icon-192.png" alt=""></span>
+      <span class="body">
+        <b>스터디 플래너</b>
+        <span>투트랙 할 일 · 과목별 순공 타이머 · FSRS 복습 · 막힘 로그</span>
+      </span>
+      <span class="new">NEW</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+
+    <a class="card" href="outline/">
+      <span class="mark line">NOTE</span>
+      <span class="body">
+        <b>목차 정리 노트</b>
+        <span>목차 → 세부목차 → 세부내용으로 손으로 쓰는 학습노트</span>
+      </span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+
+    <a class="card" href="voca-2026-03-g1/">
+      <span class="mark line">VOCA</span>
+      <span class="body">
+        <b>영단어 암기 (2026 3월 고1)</b>
+        <span>학년별 필수 어휘 암기</span>
+      </span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+
+    <a class="card" href="youtube/">
+      <span class="mark line">SY</span>
+      <span class="body">
+        <b>SY (허용 채널)</b>
+        <span>공부용 유튜브 채널 모아 보기</span>
+      </span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+  </nav>
+
+  <p class="foot">GKC 학습 도구 · youngja1479-prog.github.io/study/</p>
+</main>
 </body>
 </html>
