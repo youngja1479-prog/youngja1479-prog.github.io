@@ -2,7 +2,7 @@
   "id": "/study/planner/",
   "name": "스터디 플래너",
   "short_name": "스터디 플래너",
-  "description": "투트랙 할 일·과목별 순공 타이머·FSRS 복습·메타인지 착각 탐지·막힘 로그",
+  "description": "순공 타이머·메인/루틴 할 일·과목별 순공 리포트·사진 PDF",
   "lang": "ko",
   "dir": "ltr",
   "start_url": "/study/planner/",
