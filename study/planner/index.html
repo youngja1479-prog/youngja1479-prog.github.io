@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="투트랙 할 일 · 과목별 순공 타이머 · FSRS 적응형 복습 · 메타인지 착각 탐지 · 1줄 막힘 로그">
+<meta name="description" content="순공 타이머 · 메인/루틴 할 일 · 과목별 순공 리포트 · 사진 PDF">
 <meta name="theme-color" content="#fafafa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -12,7 +12,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
-<title>스터디 플래너 — 투트랙·복습·막힘 로그</title>
+<title>스터디 플래너 — 순공 타이머 · 할 일 · 리포트</title>
 <style>
 :root {
   /* Monotone Minimal — paper, ink, hairline */
@@ -54,7 +54,6 @@ body {
 [hidden] { display: none !important; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 button:disabled { opacity: .38; cursor: not-allowed; }
-button:disabled:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
 input, select, textarea {
   font-family: inherit; color: inherit;
   font-size: 16px; /* iOS: 16px 미만이면 포커스 때 화면이 확대됨 */
@@ -92,30 +91,24 @@ input, select, textarea {
 .install-chip .ar { font-size: 12.5px; line-height: 1; margin-top: -1px; }
 
 .tabs {
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(2, 1fr);
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 @media (min-width: 760px) {
-  .tabs { max-width: 900px; margin: 0 auto; }
+  .tabs { max-width: 900px; margin: 0 auto; width: 100%; }
   .head { box-shadow: 0 1px 0 var(--border); }
 }
 .tab {
-  position: relative; height: 46px; font-size: 13px; font-weight: 600; color: var(--text3);
+  position: relative; height: 46px; font-size: 13.5px; font-weight: 600; color: var(--text3);
   letter-spacing: -.01em; display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: color .12s;
 }
 .tab:hover { color: var(--text); }
 .tab.on { color: var(--text); }
 .tab.on::after {
-  content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 2px;
+  content: ""; position: absolute; left: 24%; right: 24%; bottom: -1px; height: 2px;
   background: var(--text); border-radius: 2px 2px 0 0;
 }
-.tab .dot {
-  min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
-  background: var(--text); color: #fff; font: 650 10px/17px var(--mono); text-align: center;
-}
-.tab .dot.soft { background: var(--surface3); color: var(--text2); }
-.tab .dot[hidden] { display: none; }
 
 main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 @media (min-width: 760px) { main { padding: 0 max(24px, calc((100% - 900px) / 2)) calc(56px + var(--safe-b)); } }
@@ -124,9 +117,10 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 @keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 
 /* ===== Masthead ===== */
-.masthead { padding: 20px 0 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.masthead { padding: 18px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
 .masthead .kicker { font: 500 9.5px/1 var(--mono); letter-spacing: .2em; color: var(--text4); margin-bottom: 9px; }
 .masthead h2 { font-size: 20px; font-weight: 650; letter-spacing: -.035em; line-height: 1.3; word-break: keep-all; }
+.masthead h2.sum { font-size: 17.5px; letter-spacing: -.03em; line-height: 1.45; font-variant-numeric: tabular-nums; }
 .masthead p { margin-top: 7px; font-size: 12.5px; color: var(--text3); line-height: 1.6; word-break: keep-all; }
 
 /* ===== Cards ===== */
@@ -138,8 +132,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .card-h h3 { font-size: 14px; font-weight: 650; letter-spacing: -.02em; flex: 1; min-width: 0; }
 .card-sub { font: 500 11px/1.2 var(--mono); color: var(--text3); letter-spacing: .02em; white-space: nowrap; }
 .card-note { font-size: 11.5px; color: var(--text3); line-height: 1.55; margin: -4px 0 10px; word-break: keep-all; }
-.grid-2 { display: grid; gap: 12px; }
-@media (min-width: 860px) { .grid-2 { grid-template-columns: 1.05fr .95fr; align-items: start; } }
 
 /* ===== Buttons ===== */
 .btn {
@@ -153,8 +145,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .btn:hover { background: var(--surface2); border-color: var(--border2); }
 .btn.primary { background: var(--text); border-color: var(--text); color: #fff; }
 .btn.primary:hover { background: #000; border-color: #000; }
-.btn.ghost { background: transparent; color: var(--text2); }
-.btn.ghost:hover { color: var(--text); }
 .btn.danger { background: transparent; border-color: #e7cfcb; color: var(--danger); }
 .btn.danger:hover { background: var(--danger-soft); }
 .btn.sm { min-height: 30px; padding: 0 9px; font-size: 11.5px; }
@@ -162,11 +152,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .link { font-size: 11.5px; color: var(--text3); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border2); min-height: 24px; }
 .link:hover { color: var(--text); text-decoration-color: var(--text); }
 
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips.grid6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.chips.grid6 .chip { padding: 0 4px; text-align: center; }
-@media (min-width: 760px) { .chips.grid6 { grid-template-columns: repeat(6, 1fr); } }
-.field-label { font: 650 9.5px/1 var(--mono); letter-spacing: .13em; color: var(--text3); margin: 2px 0 -2px; }
 .chip {
   min-height: 32px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--border2);
   background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 600;
@@ -201,44 +186,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 .timer-foot span { font-size: 11px; color: var(--text3); line-height: 1.5; flex: 1; word-break: keep-all; }
 .timer-live { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text); margin-right: 5px; vertical-align: 1px; animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
-
-/* ===== Banner ===== */
-.banner {
-  display: flex; gap: 10px; align-items: flex-start;
-  border: 1px solid var(--text); background: var(--text); color: #fff;
-  border-radius: var(--radius-lg); padding: 12px 13px; margin-bottom: 12px;
-}
-.banner .b-ico { font: 650 9px/1 var(--mono); letter-spacing: .1em; border: 1px solid rgba(255,255,255,.55); border-radius: 3px; padding: 4px; flex-shrink: 0; margin-top: 1px; }
-.banner b { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 2px; }
-.banner p { font-size: 11.5px; line-height: 1.55; color: rgba(255,255,255,.82); word-break: keep-all; }
-
-/* ===== Today's coaching ===== */
-.coach { border-color: var(--border2); }
-.c-sec { padding: 11px 0 0; margin-top: 11px; border-top: 1px solid var(--surface3); }
-.c-sec:first-child { padding-top: 0; margin-top: 0; border-top: 0; }
-.c-k { font: 650 9.5px/1 var(--mono); letter-spacing: .13em; color: var(--text3); margin-bottom: 7px; }
-.c-main { display: flex; gap: 9px; align-items: flex-start; }
-.c-num {
-  font: 650 10px/17px var(--mono); width: 17px; height: 17px; border-radius: 3px;
-  background: var(--text); color: #fff; text-align: center; flex-shrink: 0; margin-top: 1px;
-}
-.c-main b { font-size: 13.5px; font-weight: 650; letter-spacing: -.015em; line-height: 1.4; word-break: keep-all; overflow-wrap: break-word; }
-.c-main p { font-size: 12px; color: var(--text2); line-height: 1.55; word-break: keep-all; margin-top: 3px; }
-.c-next { margin-top: 8px; font-size: 11.5px; color: var(--text3); line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
-.c-next span { color: var(--text2); }
-.c-line { font-size: 12px; color: var(--text2); line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
-.c-line b { color: var(--text); font-weight: 650; }
-.c-line b.c-warn { color: var(--warn); }
-.c-line b.c-bad { color: var(--danger); }
-.c-empty b { font-size: 13px; font-weight: 650; display: block; margin-bottom: 4px; }
-.c-empty p { font-size: 12px; color: var(--text2); line-height: 1.6; word-break: keep-all; }
-.coach-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--surface3); }
-#coach-report-wrap { margin-top: 9px; }
-#coach-report-text {
-  width: 100%; height: 140px; font: 500 11px/1.55 var(--mono); color: var(--text2);
-  border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;
-  background: var(--surface2); resize: vertical;
-}
 
 /* ===== 사진 → PDF ===== */
 .pdf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -283,7 +230,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
   background: var(--surface2); border-radius: 3px; padding: 4px 5px; white-space: nowrap;
 }
 .tag.warn { color: var(--warn); background: #faf6ef; }
-.tag.ink { color: #fff; background: var(--text); }
 .tag.line { background: transparent; border: 1px solid var(--border2); color: var(--text3); }
 .del { width: 30px; height: 30px; flex-shrink: 0; color: var(--text4); font-size: 17px; line-height: 1; border-radius: 5px; }
 .del:hover { background: var(--danger-soft); color: var(--danger); }
@@ -300,100 +246,33 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
 
 /* ===== Charts ===== */
 .chart { display: flex; flex-direction: column; gap: 8px; }
-.chart-row { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 9px; }
+.chart-row { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 9px; }
 .chart-label { font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; display: block; }
 .bar > i { display: block; height: 100%; background: var(--text); border-radius: 99px; min-width: 3px; transition: width .25s ease; }
-.bar.thin { height: 6px; }
 .chart-val { font: 500 11px/1 var(--mono); color: var(--text3); white-space: nowrap; }
-#cause-chart .chart-row { grid-template-columns: 84px 1fr auto; }
-#study-chart .chart-row, #week-subject-chart .chart-row { grid-template-columns: 62px 1fr auto; }
-.chart-foot { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--surface3); display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--text3); }
+.chart-foot { margin-top: 11px; padding-top: 10px; border-top: 1px solid var(--surface3); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; font-size: 11.5px; color: var(--text3); }
 .chart-foot b { color: var(--text); font-weight: 650; }
 
-/* ===== Review ===== */
-.rev-list, .rev-all { list-style: none; }
-.rev-row {
-  display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--surface3);
+/* ===== Report copy ===== */
+.report-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#report-wrap { margin-top: 9px; }
+#report-text {
+  width: 100%; height: 150px; font: 500 11px/1.55 var(--mono); color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;
+  background: var(--surface2); resize: vertical;
 }
-.rev-row:last-child { border-bottom: 0; }
-.rev-row .r-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.rev-row .r-title { font-size: 13.5px; font-weight: 600; letter-spacing: -.015em; word-break: keep-all; overflow-wrap: break-word; }
-.rev-row .r-memo { font-size: 11.5px; color: var(--text3); line-height: 1.5; word-break: keep-all; overflow-wrap: break-word; }
-.rev-row .r-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-.rev-row.illusion { background: #fdf8f7; border-radius: var(--radius); padding-left: 8px; padding-right: 8px; margin: 0 -8px; }
-.badge-illusion {
-  font: 700 9.5px/1 var(--font); letter-spacing: .02em; color: #fff; background: var(--danger);
-  border-radius: 3px; padding: 4px 5px; white-space: nowrap;
-}
-.badge-ok { font: 600 10px/1 var(--font); color: var(--ok); border: 1px solid #cfded3; background: #f5f9f6; border-radius: 3px; padding: 4px 5px; white-space: nowrap; }
-.step-label { font: 650 10px/1.4 var(--mono); letter-spacing: .13em; color: var(--text3); margin: 4px 0 9px; }
-.conf-row, .rate-row { display: grid; gap: 8px; }
-.conf-row { grid-template-columns: 1fr 1fr; }
-.rate-row { grid-template-columns: repeat(3, 1fr); }
-.rate {
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
-  padding: 11px 6px; display: flex; flex-direction: column; gap: 3px; align-items: center;
-  transition: background .12s, border-color .12s;
-}
-.rate b { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
-.rate span { font-size: 10.5px; color: var(--text3); }
-.rate:hover { border-color: var(--text3); background: var(--surface2); }
-.rate-1 { border-color: #e7cfcb; background: var(--danger-soft); }
-.rate-1 b { color: var(--danger); }
-.rate-1:hover { border-color: #d9b7b2; }
-.rev-card-main { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--surface2); margin-bottom: 13px; }
-.rev-meta { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
-.rev-title { font-size: 16px; font-weight: 650; letter-spacing: -.025em; line-height: 1.4; word-break: keep-all; overflow-wrap: break-word; }
-.rev-memo { margin-top: 6px; font-size: 12.5px; color: var(--text2); line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
-.rev-due { font: 500 10.5px/1 var(--mono); color: var(--text3); }
-.step-conf { font-size: 11.5px; color: var(--text3); margin: -4px 0 10px; }
-.step-conf b { color: var(--text); }
-.result { display: flex; flex-direction: column; gap: 10px; }
-.result-next { font-size: 13px; color: var(--text2); }
-.result-next b { font-size: 15px; color: var(--text); }
-.result-row { display: flex; gap: 8px; }
-.result-row .btn { flex: 1; }
-.illusion-note { border: 1px solid #e7cfcb; background: var(--danger-soft); border-radius: var(--radius); padding: 10px; font-size: 11.5px; line-height: 1.55; color: #7c2a21; word-break: keep-all; }
-.stack-form { display: flex; flex-direction: column; gap: 8px; }
 
-/* ===== Stuck ===== */
-.cause-chips .chip.on { background: var(--text); }
-.stuck-list { list-style: none; }
-.stuck {
-  display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--surface3);
-}
-.stuck:last-child { border-bottom: 0; }
-.stuck-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-.stuck-text { font-size: 13px; line-height: 1.5; word-break: keep-all; overflow-wrap: break-word; }
-.stuck-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-.stuck-time { font: 500 10px/1 var(--mono); color: var(--text4); letter-spacing: .02em; }
-
-/* ===== Stats ===== */
-.big-stat { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-.big-stat b { font: 650 34px/1 var(--mono); letter-spacing: -.04em; }
-.big-stat span { font-size: 12px; color: var(--text3); }
-.quad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.q-cell { border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 10px; }
-.q-cell .q-k { font-size: 10.5px; color: var(--text3); line-height: 1.4; display: block; margin-bottom: 4px; }
-.q-cell .q-v { font: 650 17px/1 var(--mono); }
-.q-cell.bad { border-color: #e7cfcb; background: var(--danger-soft); }
-.q-cell.bad .q-v { color: var(--danger); }
-.q-cell.good { border-color: #d9e4dc; background: #f6faf7; }
-.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.stat-cell { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
-.stat-cell span { display: block; font-size: 10.5px; color: var(--text3); margin-bottom: 5px; }
-.stat-cell b { font: 650 16px/1 var(--mono); letter-spacing: -.02em; }
-.hr { height: 1px; background: var(--surface3); margin: 14px 0; }
-.subhead { font: 650 10px/1 var(--mono); letter-spacing: .13em; color: var(--text3); margin: 0 0 10px; }
+/* ===== Data · sync ===== */
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pw-row { display: flex; gap: 6px; margin-top: 8px; }
 .pw-row .input { flex: 1; }
-.sync-status { font-size: 11.5px; color: var(--text3); margin-top: 8px; min-height: 16px; line-height: 1.5; }
+.sync-status { font-size: 11.5px; color: var(--text3); margin-top: 8px; min-height: 16px; line-height: 1.5; word-break: keep-all; }
 .sync-status.err { color: var(--danger); }
 .sync-status.ok { color: var(--ok); }
 .file-label { position: relative; overflow: hidden; }
 .file-label input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.hr { height: 1px; background: var(--surface3); margin: 12px 0; }
 .foot { margin: 22px 0 0; padding-top: 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text4); line-height: 1.7; }
 .foot a { color: var(--text3); text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px; }
 .foot a:hover { color: var(--text); }
@@ -423,10 +302,8 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
   </header>
 
   <nav class="tabs" role="tablist" aria-label="화면 전환">
-    <button class="tab on" data-tab="today" role="tab" aria-selected="true">오늘 <span class="dot soft" id="dot-today" hidden></span></button>
-    <button class="tab" data-tab="review" role="tab" aria-selected="false">복습 <span class="dot" id="dot-review" hidden></span></button>
-    <button class="tab" data-tab="stuck" role="tab" aria-selected="false">막힘 로그</button>
-    <button class="tab" data-tab="stats" role="tab" aria-selected="false">통계</button>
+    <button class="tab on" data-tab="today" role="tab" aria-selected="true">오늘</button>
+    <button class="tab" data-tab="report" role="tab" aria-selected="false">리포트</button>
   </nav>
   </div>
 
@@ -435,68 +312,30 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
     <section class="view on" id="view-today" role="tabpanel" aria-label="오늘">
       <div class="masthead">
         <div class="kicker" id="today-kicker"></div>
-        <h2 id="today-headline">오늘의 두 덩어리</h2>
-        <p id="today-summary"></p>
+        <h2 class="sum" id="today-summary">오늘 순공 0분 · 메인 0/0 · 루틴 0/0</h2>
       </div>
 
-      <div class="card coach" id="coach-card">
+      <div class="card timer-card">
         <div class="card-h">
-          <h3>오늘의 학습 처방</h3>
-          <span class="card-sub">AUTO COACHING</span>
+          <h3>순공 타이머</h3>
+          <span class="card-sub" id="timer-mode-label">스톱워치</span>
         </div>
-        <div id="coach-body" aria-live="polite"></div>
-        <div class="coach-actions">
-          <button class="btn sm" id="btn-coach-copy">피자 코칭용 리포트 복사</button>
+        <div class="timer-subjects" id="timer-subjects" role="group" aria-label="과목 선택"></div>
+        <div class="timer-display" id="timer-display">00:00</div>
+        <div class="timer-target" id="timer-target"></div>
+        <div class="timer-mode" id="timer-modes" role="group" aria-label="타이머 방식">
+          <button class="chip on" data-mode="stopwatch">스톱워치</button>
+          <button class="chip" data-mode="focus25">25분</button>
+          <button class="chip" data-mode="focus50">50분</button>
         </div>
-        <div id="coach-report-wrap" hidden>
-          <p class="card-note" style="margin:9px 0 5px">자동 복사가 막혔어요. 아래 글을 길게 눌러 복사해 주세요.</p>
-          <textarea id="coach-report-text" readonly aria-label="피자 코칭용 리포트"></textarea>
+        <div class="timer-actions">
+          <button class="btn primary lg" id="timer-start">시작</button>
+          <button class="btn lg" id="timer-pause" hidden>일시정지</button>
+          <button class="btn lg" id="timer-finish" hidden>종료·저장</button>
         </div>
-      </div>
-
-      <div class="banner" id="interleave" hidden>
-        <span class="b-ico">전환</span>
-        <div>
-          <b>교차 전환 추천</b>
-          <p id="interleave-text"></p>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="card timer-card">
-          <div class="card-h">
-            <h3>순공 타이머</h3>
-            <span class="card-sub" id="timer-mode-label">스톱워치</span>
-          </div>
-          <div class="chips timer-subjects" id="timer-subjects" role="group" aria-label="과목 선택"></div>
-          <div class="timer-display" id="timer-display">00:00</div>
-          <div class="timer-target" id="timer-target"></div>
-          <div class="timer-mode" id="timer-modes" role="group" aria-label="타이머 방식">
-            <button class="chip on" data-mode="stopwatch">스톱워치</button>
-            <button class="chip" data-mode="focus25">25분 집중</button>
-            <button class="chip" data-mode="focus50">50분 집중</button>
-          </div>
-          <div class="timer-actions">
-            <button class="btn primary lg" id="timer-start">시작</button>
-            <button class="btn lg" id="timer-pause" hidden>일시정지</button>
-            <button class="btn lg" id="timer-finish" hidden>종료</button>
-          </div>
-          <div class="timer-foot">
-            <span id="timer-note">과목을 고르고 시작하세요. 새로고침해도 시간은 이어집니다.</span>
-            <button class="link" id="timer-reset" hidden>버리기</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h">
-            <h3>과목별 순공</h3>
-            <div class="seg" id="chart-range" role="group" aria-label="기간">
-              <button class="seg-b on" data-range="today">오늘</button>
-              <button class="seg-b" data-range="week">7일</button>
-            </div>
-          </div>
-          <div class="chart" id="study-chart"></div>
-          <div class="chart-foot" id="study-chart-foot"></div>
+        <div class="timer-foot">
+          <span id="timer-note">과목을 고르고 시작하세요. 새로고침해도 시간은 이어집니다.</span>
+          <button class="link" id="timer-reset" hidden>버리기</button>
         </div>
       </div>
 
@@ -553,107 +392,39 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
       </p>
     </section>
 
-    <!-- ============ 복습 ============ -->
-    <section class="view" id="view-review" role="tabpanel" aria-label="복습">
+    <!-- ============ 리포트 ============ -->
+    <section class="view" id="view-report" role="tabpanel" aria-label="리포트">
       <div class="masthead">
-        <div class="kicker">SPACED RETRIEVAL</div>
-        <h2>오늘 복습</h2>
-        <p id="review-summary">기억이 흐려질 때 다시 꺼내는 것이 핵심입니다.</p>
-      </div>
-
-      <div class="card" id="review-panel" hidden></div>
-
-      <div class="card">
-        <div class="card-h">
-          <h3>복습 큐</h3>
-          <span class="card-sub" id="review-count"></span>
-        </div>
-        <ul class="rev-list" id="review-list"></ul>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>새 복습 카드</h3></div>
-        <p class="card-note">단원 하나에 질문 하나. 답이 아니라 '왜'가 담긴 한 줄이 좋습니다.</p>
-        <form class="stack-form" id="card-form" autocomplete="off">
-          <div class="field-label">과목</div>
-          <div class="chips grid6" id="card-subjects" role="group" aria-label="카드 과목"></div>
-          <input class="input" id="card-title" placeholder="단원 / 주제 (예: 지수법칙)" maxlength="60" aria-label="단원 또는 주제">
-          <input class="input" id="card-memo" placeholder="핵심 질문 한 줄 (예: a^m·a^n은 왜 지수를 더하나?)" maxlength="120" aria-label="핵심 질문">
-          <button class="btn primary" type="submit">카드 추가</button>
-        </form>
+        <div class="kicker" id="report-kicker">REPORT</div>
+        <h2>과목별 순공과 코칭 리포트</h2>
+        <p id="report-summary"></p>
       </div>
 
       <div class="card">
         <div class="card-h">
-          <h3>전체 카드</h3>
-          <span class="card-sub" id="cards-all-count"></span>
+          <h3>과목별 순공</h3>
+          <div class="seg" id="chart-range" role="group" aria-label="기간">
+            <button class="seg-b on" data-range="today">오늘</button>
+            <button class="seg-b" data-range="week">최근 7일</button>
+          </div>
         </div>
-        <ul class="rev-all" id="cards-all"></ul>
-      </div>
-    </section>
-
-    <!-- ============ 막힘 로그 ============ -->
-    <section class="view" id="view-stuck" role="tabpanel" aria-label="막힘 로그">
-      <div class="masthead">
-        <div class="kicker">WEAK SPOT LOG</div>
-        <h2>막힘 로그</h2>
-        <p>틀리거나 막힌 순간을 한 줄로. 원인 태그가 쌓이면 약점 패턴이 보입니다.</p>
+        <div class="chart" id="study-chart"></div>
+        <div class="chart-foot" id="study-chart-foot"></div>
       </div>
 
       <div class="card">
-        <div class="card-h"><h3>1초 기록</h3><span class="card-sub" id="stuck-today"></span></div>
-        <form class="stack-form" id="stuck-form" autocomplete="off">
-          <div class="field-label">과목</div>
-          <div class="chips grid6" id="stuck-subjects" role="group" aria-label="막힘 과목"></div>
-          <input class="input" id="stuck-input" placeholder="무엇이 막혔나요? (한 줄)" maxlength="120" aria-label="막힌 내용">
-          <div class="field-label">원인</div>
-          <div class="chips cause-chips" id="stuck-causes" role="group" aria-label="원인 태그"></div>
-          <button class="btn primary" type="submit">막힘 기록</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>최근 기록</h3><span class="card-sub" id="stuck-count"></span></div>
-        <ul class="stuck-list" id="stuck-list"></ul>
-      </div>
-    </section>
-
-    <!-- ============ 통계 ============ -->
-    <section class="view" id="view-stats" role="tabpanel" aria-label="통계와 설정">
-      <div class="masthead">
-        <div class="kicker">CALIBRATION &amp; DATA</div>
-        <h2>통계 · 설정</h2>
-        <p id="stats-summary"></p>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>메타인지 정확도</h3><span class="card-sub" id="meta-total"></span></div>
-        <div class="big-stat"><b id="meta-accuracy">—</b><span>확신과 실제가 맞은 비율</span></div>
-        <p class="card-note" id="meta-note">복습할 때 확신도를 먼저 찍으면, 아는 줄 알았던 것이 드러납니다.</p>
-        <div class="quad" id="meta-quad"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>이번 주 순공</h3><span class="card-sub" id="week-total"></span></div>
-        <div class="subhead">요일별</div>
-        <div class="chart" id="week-chart"></div>
-        <div class="hr"></div>
-        <div class="subhead">과목별 (최근 7일)</div>
-        <div class="chart" id="week-subject-chart"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>막힘 패턴</h3><span class="card-sub" id="stuck-total-7"></span></div>
-        <div class="subhead">원인별</div>
-        <div class="chart" id="cause-chart"></div>
-        <div class="hr"></div>
-        <div class="subhead">과목별</div>
-        <div class="chart" id="stuck-subject-chart"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>복습 현황</h3></div>
-        <div class="stat-grid" id="review-stats"></div>
+        <div class="card-h">
+          <h3>피자 코칭용 리포트</h3>
+          <span class="card-sub">COPY</span>
+        </div>
+        <p class="card-note">오늘·최근 7일 순공, 과목별 시간, 메인·루틴·이월 현황을 한 통으로 복사합니다. 채팅에 붙여넣으면 피자가 이 기록으로 코칭해 줘요.</p>
+        <div class="report-actions">
+          <button class="btn primary lg" id="btn-report-copy">피자 코칭용 리포트 복사</button>
+        </div>
+        <div id="report-wrap" hidden>
+          <p class="card-note" style="margin:10px 0 5px">자동 복사가 막혔어요. 아래 글을 길게 눌러 복사해 주세요.</p>
+          <textarea id="report-text" readonly aria-label="피자 코칭용 리포트"></textarea>
+        </div>
       </div>
 
       <div class="card">
@@ -663,20 +434,6 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
           <button class="btn primary" data-act="install">↓ 앱 설치</button>
         </div>
         <p class="card-note" style="margin:10px 0 0">버튼이 설치 창을 안 열면 크롬에서 <b>⋮ → 앱 설치</b>(또는 <b>홈 화면에 추가</b>)를 눌러 주세요. 이미 설치했다면 홈 화면의 <b>스터디 플래너</b> 아이콘으로 열면 됩니다.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><h3>데이터</h3></div>
-        <p class="card-note">이 기기의 브라우저에 자동 저장됩니다. 백업 파일로 옮길 수 있습니다.</p>
-        <div class="row-actions">
-          <button class="btn" id="btn-export">JSON 내보내기</button>
-          <label class="btn file-label">JSON 불러오기
-            <input type="file" id="file-import" accept="application/json,.json">
-          </label>
-          <button class="btn" id="btn-restore" hidden>이전 데이터 복원</button>
-          <button class="btn danger" id="btn-reset">전체 초기화</button>
-        </div>
-        <div class="sync-status" id="data-status"></div>
       </div>
 
       <div class="card">
@@ -698,9 +455,22 @@ main { flex: 1; padding: 0 16px calc(40px + var(--safe-b)); }
         <div class="sync-status" id="sync-status"></div>
       </div>
 
+      <div class="card">
+        <div class="card-h"><h3>데이터</h3><span class="card-sub">BACKUP</span></div>
+        <p class="card-note">이 브라우저에 자동 저장됩니다. 백업 파일로 기기를 옮길 수 있어요.</p>
+        <div class="row-actions">
+          <button class="btn sm" id="btn-export">JSON 내보내기</button>
+          <label class="btn sm file-label">JSON 불러오기
+            <input type="file" id="file-import" accept="application/json,.json">
+          </label>
+          <button class="btn sm" id="btn-restore" hidden>이전 데이터 복원</button>
+          <button class="btn sm danger" id="btn-reset">전체 초기화</button>
+        </div>
+        <div class="sync-status" id="data-status"></div>
+      </div>
+
       <p class="foot">
-        스터디 플래너 v1 · <a href="../">학습 허브</a> · <a href="../outline/">목차 학습</a><br>
-        FSRS 간소화 수식(Stability·Difficulty) 기반 적응형 복습.
+        스터디 플래너 v2 · <a href="../">학습 허브</a> · <a href="../outline/">목차 학습</a>
       </p>
     </section>
   </main>
@@ -725,14 +495,11 @@ const SUBJECTS = ['국어', '수학', '영어', '통합사회', '통합과학', 
 /* 수능 실전 집중 시간(분). 과목을 고르면 그 과목 실전 시간 버튼이 타이머 방식 줄에 함께 뜬다. */
 const REAL_MINUTES = { '국어': 80, '수학': 100, '영어': 70, '통합사회': 40, '통합과학': 40 };
 const BASE_MODES = ['stopwatch', 'focus25', 'focus50'];
-const CAUSES = ['개념 빈틈', '조건 놓침', '이유 연결 실패', '시간 부족', '계산/실수'];
-const INTERLEAVE_MS = 60 * 60000;   // 한 과목 60분 연속이면 교차 전환 배너
 
 const $ = (s, el) => (el || document).querySelector(s);
 const $$ = (s, el) => Array.prototype.slice.call((el || document).querySelectorAll(s));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const pad2 = (n) => String(n).padStart(2, '0');
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -749,7 +516,6 @@ function toast(msg) {
 function ymd(d) { const x = d || new Date(); return x.getFullYear() + '-' + pad2(x.getMonth() + 1) + '-' + pad2(x.getDate()); }
 function todayKey() { return ymd(); }
 function startOfDay(ts) { const d = new Date(ts || Date.now()); d.setHours(0, 0, 0, 0); return d.getTime(); }
-function endOfDay(ts) { return startOfDay(ts) + DAY; }
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 function weekdayName(ts) { return WD[new Date(ts).getDay()]; }
 function fmtDate(ts) { const d = new Date(ts); return pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -771,12 +537,6 @@ function fmtMinShort(ms) {
   if (ms > 0 && m === 0) return '<1m';
   return m < 60 ? m + '분' : Math.floor(m / 60) + 'h ' + pad2(m % 60) + 'm';
 }
-function daysLabel(ts) {
-  const d = Math.round((ts - Date.now()) / DAY);
-  if (d <= 0) return '오늘';
-  if (d === 1) return '내일';
-  return d + '일 뒤 (' + fmtDate(ts) + ')';
-}
 
 /* ============================================================
    1. 상태 · 저장
@@ -788,6 +548,7 @@ function blankState() {
     tasks: [],
     sessions: [],
     timer: null,
+    /* 화면에서는 더 쓰지 않지만, 옛 기록을 지우지 않도록 그대로 들고 다닌다. */
     cards: [],
     reviews: [],
     stucks: [],
@@ -799,9 +560,10 @@ function normalize(raw) {
   if (!raw || typeof raw !== 'object') return s;
   if (Array.isArray(raw.tasks)) s.tasks = raw.tasks.filter(t => t && typeof t === 'object');
   if (Array.isArray(raw.sessions)) s.sessions = raw.sessions.filter(x => x && x.subject && isFinite(x.start) && isFinite(x.end));
-  if (Array.isArray(raw.cards)) s.cards = raw.cards.filter(c => c && c.id && c.title);
-  if (Array.isArray(raw.reviews)) s.reviews = raw.reviews.filter(r => r && r.cardId);
-  if (Array.isArray(raw.stucks)) s.stucks = raw.stucks.filter(x => x && x.id);
+  // 구버전 필드(복습 카드·막힘 로그)는 읽어서 보관만 한다 — 모르는 필드(blocks 등)는 조용히 무시.
+  if (Array.isArray(raw.cards)) s.cards = raw.cards.filter(c => c && typeof c === 'object');
+  if (Array.isArray(raw.reviews)) s.reviews = raw.reviews.filter(r => r && typeof r === 'object');
+  if (Array.isArray(raw.stucks)) s.stucks = raw.stucks.filter(x => x && typeof x === 'object');
   if (raw.timer && raw.timer.subject && raw.timer.mode) s.timer = raw.timer;
   s.updatedAt = Number(raw.updatedAt) || 0;
   if (raw.prefs && typeof raw.prefs === 'object') {
@@ -815,19 +577,6 @@ function normalize(raw) {
     s.timer.mode = coerceMode(s.timer.mode, s.timer.subject);
     s.timer.targetMs = modeTarget(s.timer.mode);
   }
-  // 카드 필드 보정
-  s.cards.forEach(c => {
-    c.subject = SUBJECTS.indexOf(c.subject) >= 0 ? c.subject : '기타';
-    c.dueAt = Number(c.dueAt) || Number(c.createdAt) || Date.now();
-    c.createdAt = Number(c.createdAt) || Date.now();
-    c.S = Number(c.S) || 0;
-    c.D = Number(c.D) || 5;
-    c.reps = Number(c.reps) || 0;
-    c.lapses = Number(c.lapses) || 0;
-    c.lastReview = Number(c.lastReview) || 0;
-    c.illusion = !!c.illusion;
-    c.illusionCount = Number(c.illusionCount) || 0;
-  });
   return s;
 }
 
@@ -853,9 +602,10 @@ function save(opts) {
 /* ============================================================
    2. 탭 · 화면 전환
    ============================================================ */
+const TABS = ['today', 'report'];
 let activeTab = 'today';
 function switchTab(name) {
-  if (!name) name = 'today';
+  if (TABS.indexOf(name) < 0) name = 'today';
   activeTab = name;
   $$('.tab').forEach(b => {
     const on = b.dataset.tab === name;
@@ -868,11 +618,11 @@ function switchTab(name) {
 function initTabs() {
   $$('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   const h = (location.hash || '').replace('#', '');
-  if (['today', 'review', 'stuck', 'stats'].indexOf(h) >= 0) switchTab(h);
+  if (TABS.indexOf(h) >= 0) switchTab(h);
 }
 
 /* ============================================================
-   3. 할 일 (투트랙)
+   3. 할 일 (메인 · 루틴)
    ============================================================ */
 function fillSubjectSelect(sel) {
   sel.innerHTML = SUBJECTS.map(s => '<option value="' + s + '">' + s + '</option>').join('');
@@ -915,10 +665,6 @@ function renderTasks() {
   $('#routine-list').innerHTML = routines.length
     ? routines.map(taskRow).join('')
     : '<li class="empty">루틴을 추가하면 매일 같은 자리에서 체크할 수 있어요.</li>';
-  const pend = main.filter(t => !t.done).length + (routines.length - rDone);
-  const dot = $('#dot-today');
-  dot.hidden = pend === 0;
-  dot.textContent = pend;
 }
 
 function addTask(track, title, subject) {
@@ -932,7 +678,7 @@ function addTask(track, title, subject) {
   save();
   renderTasks();
   renderSummary();
-  renderCoach();
+  renderReport();
   return true;
 }
 function toggleTask(id) {
@@ -949,7 +695,7 @@ function toggleTask(id) {
   save();
   renderTasks();
   renderSummary();
-  renderCoach();
+  renderReport();
 }
 function delTask(id) {
   const i = S.tasks.findIndex(x => x.id === id);
@@ -958,7 +704,7 @@ function delTask(id) {
   save();
   renderTasks();
   renderSummary();
-  renderCoach();
+  renderReport();
   toast('삭제했어요');
 }
 
@@ -976,7 +722,7 @@ function modeMinutes(mode) {
   return m ? Number(m[1]) : 0;
 }
 function modeTarget(mode) { return modeMinutes(mode) * 60000; }
-function modeLabel(mode) { return modeMinutes(mode) ? modeMinutes(mode) + '분 집중' : '스톱워치'; }
+function modeLabel(mode) { return modeMinutes(mode) ? modeMinutes(mode) + '분' : '스톱워치'; }
 /* 과목 실전 집중(mode id는 focus+분). 40·70·80·100분은 과목 실전 시간이다. */
 function realModeFor(subject) {
   const m = REAL_MINUTES[subject];
@@ -1007,13 +753,11 @@ function startTimer() {
   } else if (!S.timer) {
     S.timer = { subject: subject, mode: mode, startedAt: Date.now(), accMs: 0, runSince: Date.now(), targetMs: modeTarget(mode) };
   } else {
-    // 다른 과목/모드로 새 세션
     finishTimer(true);
     S.timer = { subject: subject, mode: mode, startedAt: Date.now(), accMs: 0, runSince: Date.now(), targetMs: modeTarget(mode) };
   }
   save();
   renderTimer();
-  renderInterleave();
   toast(subject + ' 타이머 시작');
 }
 function pauseTimer() {
@@ -1022,7 +766,6 @@ function pauseTimer() {
   S.timer.runSince = null;
   save();
   renderTimer();
-  renderInterleave();
 }
 function finishTimer(silent) {
   const t = S.timer;
@@ -1042,16 +785,13 @@ function finishTimer(silent) {
   }
   renderTimer();
   renderStudyChart();
-  renderStats();
-  renderInterleave();
   renderSummary();
-  renderCoach();
+  renderReport();
 }
 function discardTimer() {
   S.timer = null;
   save();
   renderTimer();
-  renderInterleave();
   toast('이번 세션을 버렸어요');
 }
 
@@ -1128,57 +868,12 @@ function tick() {
       toast(isRealMode(doneMode)
         ? doneSubject + ' 실전 ' + modeMinutes(doneMode) + '분 완료 · 바로 기록했어요'
         : '집중 ' + (target / 60000) + '분 완료 · 5분 쉬어요');
-      renderInterleave();
       return;
     }
     if (modeMinutes(S.timer.mode)) {
       const left = Math.max(0, target - timerElapsed(S.timer));
       $('#timer-target').textContent = '남은 ' + fmtClock(left);
     }
-    renderInterleave();
-  }
-}
-
-/* 교차 연습: 같은 과목이 60분 넘게 연속이면 다른 과목/유형으로 넘어가라고 알림 */
-function continuousStretch() {
-  const now = Date.now();
-  const from = startOfDay(now);
-  const items = S.sessions
-    .filter(x => x.end >= from)
-    .map(x => ({ subject: x.subject, start: Math.max(x.start, from), end: Math.min(x.end, now) }));
-  if (S.timer) {
-    const e = timerElapsed(S.timer, now);
-    if (e > 0) items.push({ subject: S.timer.subject, start: now - e, end: now, live: true });
-  }
-  if (!items.length) return null;
-  items.sort((a, b) => a.end - b.end);
-  const last = items[items.length - 1];
-  let total = 0, cursorEnd = last.end;
-  for (let i = items.length - 1; i >= 0; i--) {
-    const it = items[i];
-    if (it.subject !== last.subject) break;
-    if (cursorEnd - it.end > 20 * 60000) break;   // 20분 넘게 비면 다른 덩어리
-    total += Math.max(0, it.end - it.start);
-    cursorEnd = it.start;
-  }
-  return { subject: last.subject, ms: total, live: !!last.live };
-}
-function renderInterleave() {
-  const box = $('#interleave');
-  // 과목 실전 집중(40·70·80·100분) 세션 중에는 한 과목에 길게 머무는 게 목적이므로 전환 배너를 띄우지 않는다.
-  // 세션을 마치고 기록되면 그때부터 연속 시간으로 자연스럽게 잡힌다.
-  if (S.timer && isRealMode(S.timer.mode)) {
-    box.hidden = true;
-    return;
-  }
-  const st = continuousStretch();
-  if (st && st.ms >= INTERLEAVE_MS) {
-    box.hidden = false;
-    $('#interleave-text').textContent =
-      st.subject + ' ' + Math.round(st.ms / 60000) + '분 연속' + (st.live ? ' 진행 중' : '') +
-      '. 다른 과목이나 다른 유형으로 넘어가면 구별력이 올라갑니다.';
-  } else {
-    box.hidden = true;
   }
 }
 
@@ -1205,6 +900,7 @@ function msBySubject(from, to) {
   }
   return map;
 }
+function totalOf(map) { return SUBJECTS.reduce((a, s) => a + (map[s] || 0), 0); }
 function barChart(map, labels, keepOrder) {
   const keys = labels || Object.keys(map);
   const rows = keys.map(k => ({ k: k, ms: map[k] || 0 })).filter(r => r.ms > 0);
@@ -1222,550 +918,64 @@ function renderStudyChart() {
   const r = rangeOf(kind);
   const map = msBySubject(r.from, r.to);
   $('#study-chart').innerHTML = barChart(map, SUBJECTS);
-  const total = SUBJECTS.reduce((a, s) => a + map[s], 0);
+  const total = totalOf(map);
   const top = SUBJECTS.slice().sort((a, b) => map[b] - map[a])[0];
   $('#study-chart-foot').innerHTML =
     '<span>합계 <b>' + fmtMin(total) + '</b></span>' +
-    '<span>' + (total > 0 ? '가장 많은 과목 <b>' + esc(top) + '</b>' : '오늘의 첫 세션을 만들어 보세요') + '</span>';
+    '<span>' + (total > 0 ? '가장 많은 과목 <b>' + esc(top) + '</b>' : '첫 세션을 만들어 보세요') + '</span>';
   $$('#chart-range .seg-b').forEach(b => b.classList.toggle('on', b.dataset.range === kind));
 }
 
 /* ============================================================
-   6. FSRS 간소화 복습 스케줄러
+   6. 리포트 (화면 요약 + 피자 코칭용 복사)
    ============================================================ */
-/* 난이도(rating): 1 = 어려움(막힘), 2 = 보통, 3 = 쉬움
-   - 안정성 S(일): 다음 복습까지 기억이 버티는 기간. 어려움은 S를 크게 줄이고,
-     보통·쉬움은 (11 - D)와 현재 인출 확률 R로 늘어난 폭을 정한다.
-   - 난이도 D(1~10): 어려움에서 오르고, 쉬움에서 내려간다(평균 회귀 포함). */
-function nextSchedule(card, rating, now) {
-  let S0 = Number(card.S) || 0;
-  let D = Number(card.D) || 5;
-  let reps = Number(card.reps) || 0;
-  let lapses = Number(card.lapses) || 0;
-  const last = Number(card.lastReview) || 0;
-  const elapsed = last ? (now - last) / DAY : 0;
-  const R = last ? Math.exp(-elapsed / (9 * Math.max(0.1, S0))) : 0;
-
-  let S1;
-  if (!last) {
-    // 첫 복습: 등급별 초기 안정성·난이도
-    if (rating === 1) { S1 = 0.6; D = 7.2; }
-    else if (rating === 2) { S1 = 2.6; D = 5.0; }
-    else { S1 = 5.2; D = 3.2; }
-  } else if (rating === 1) {
-    // 망각: 안정성 급감 + 난이도 상승 + 망각 횟수
-    S1 = Math.max(0.35, S0 * 0.35);
-    D = Math.min(10, (D + 1.1) * 0.98 + 0.1);
-    lapses += 1;
-  } else {
-    const gain = 1 + ((11 - D) / 10) * (rating === 3 ? 1.7 : 0.95) * (1 + (1 - R));
-    S1 = Math.max(0.5, S0 * gain);
-    D = clamp(D - (rating === 3 ? 0.8 : 0.25), 1, 10);
-  }
-
-  // 간격: 어려움은 1일 이내(새 카드는 10분 뒤 같은 세션에서 다시), 보통은 2일 이상, 쉬움은 그보다 확실히 길게
-  let interval;
-  if (rating === 1) interval = reps ? clamp(S1, 0.2, 1) : 10 / 1440;
-  else if (rating === 2) interval = Math.max(2, S1);
-  else interval = Math.max(4.5, S1 * 1.35, (reps ? Math.max(2, S0) : 0) * 1.5);
-
-  const dueAt = now + interval * DAY;
-  return {
-    S: Math.round(S1 * 100) / 100,
-    D: Math.round(D * 100) / 100,
-    reps: reps + 1,
-    lapses: lapses,
-    lastReview: now,
-    dueAt: dueAt,
-    interval: interval
-  };
-}
-function intervalLabel(interval, dueAt) {
-  if (interval < 1) {
-    const mins = Math.round(interval * 24 * 60);
-    if (mins < 60) return mins + '분 뒤 (' + fmtHM(dueAt) + ')';
-    const h = Math.round(interval * 24);
-    return h + '시간 뒤 (' + fmtDate(dueAt) + ' ' + fmtHM(dueAt) + ')';
-  }
-  return Math.round(interval) + '일 뒤 (' + fmtDate(dueAt) + ')';
-}
-function dueCards() {
-  const limit = endOfDay();
-  return S.cards.filter(c => c.dueAt <= limit)
-    .sort((a, b) => (b.illusion ? 1 : 0) - (a.illusion ? 1 : 0) || a.dueAt - b.dueAt || a.createdAt - b.createdAt);
-}
-function dueStatus(c) {
-  const now = Date.now();
-  if (c.dueAt <= now) {
-    const d = Math.floor((now - c.dueAt) / DAY);
-    return d >= 1 ? d + '일 지남' : '지금';
-  }
-  if (ymd(new Date(c.dueAt)) === ymd(new Date(now))) return '오늘 ' + fmtHM(c.dueAt);
-  if (c.dueAt - now < 2 * DAY) return '내일';
-  return fmtDate(c.dueAt) + ' 예정';
-}
-
-/* ============================================================
-   7. 복습 화면
-   ============================================================ */
-let reviewUI = { cardId: null, step: 1, conf: null, result: null };
-let cardDraftSubject = '국어';
-
-function renderReview() {
-  const due = dueCards();
-  const illusions = S.cards.filter(c => c.illusion).length;
-  const total = S.cards.length;
-  $('#review-summary').innerHTML = total
-    ? '오늘 복습 <b>' + due.length + '개</b> · 전체 카드 ' + total + '개' +
-      (illusions ? ' · <span class="badge-illusion">착각 ' + illusions + '</span>' : '')
-    : '카드를 등록하면 오늘 할 복습이 여기에 자동으로 뜹니다.';
-  $('#review-count').textContent = due.length ? due.length + '개 예정' : '없음';
-  const dot = $('#dot-review');
-  dot.hidden = due.length === 0;
-  dot.textContent = due.length;
-
-  $('#review-list').innerHTML = due.length ? due.map(c => {
-    return '<li class="rev-row' + (c.illusion ? ' illusion' : '') + '">' +
-      '<div class="r-main">' +
-      '<span class="r-meta"><span class="tag">' + esc(c.subject) + '</span>' +
-      (c.illusion ? '<span class="badge-illusion">메타인지 착각</span>' : '') +
-      '<span class="rev-due">' + dueStatus(c) + '</span></span>' +
-      '<span class="r-title">' + esc(c.title) + '</span>' +
-      (c.memo ? '<span class="r-memo">' + esc(c.memo) + '</span>' : '') +
-      '</div>' +
-      '<button class="btn sm primary" data-act="start-review" data-id="' + c.id + '">복습</button>' +
-      '</li>';
-    }).join('')
-    : '<li class="empty">' + (total ? '오늘 예정된 복습이 없어요. 내일 다시 만나요.' : '복습 카드를 먼저 만들어 보세요.') + '</li>';
-
-  renderReviewPanel();
-
-  const all = S.cards.slice().sort((a, b) => a.dueAt - b.dueAt);
-  $('#cards-all-count').textContent = all.length + '개';
-  $('#cards-all').innerHTML = all.length ? all.map(c => {
-    return '<li class="rev-row">' +
-      '<div class="r-main"><span class="r-meta"><span class="tag">' + esc(c.subject) + '</span>' +
-      '<span class="rev-due">' + dueStatus(c) + '</span>' +
-      (c.reps ? '<span class="tag line">' + c.reps + '회</span>' : '<span class="tag line">새 카드</span>') +
-      (c.S ? '<span class="tag line" title="안정성 S(일)">S ' + c.S + '</span>' : '') +
-      '</span><span class="r-title">' + esc(c.title) + '</span></div>' +
-      '<button class="del" data-act="del-card" data-id="' + c.id + '" aria-label="카드 삭제">×</button>' +
-      '</li>';
-  }).join('') : '<li class="empty">아직 카드가 없어요.</li>';
-}
-
-function renderReviewPanel() {
-  const box = $('#review-panel');
-  if (!reviewUI.cardId) { box.hidden = true; box.innerHTML = ''; return; }
-  const c = S.cards.find(x => x.id === reviewUI.cardId);
-  if (!c) { box.hidden = true; reviewUI = { cardId: null, step: 1, conf: null, result: null }; return; }
-  box.hidden = false;
-
-  const head = '<div class="card-h"><h3>복습 중</h3>' +
-    '<button class="btn ghost sm" data-act="close-review">닫기</button></div>' +
-    '<div class="rev-card-main">' +
-    '<div class="rev-meta"><span class="tag ink">' + esc(c.subject) + '</span>' +
-    (c.illusion ? '<span class="badge-illusion">메타인지 착각</span>' : '') +
-    '<span class="rev-due">' + dueStatus(c) + '</span></div>' +
-    '<div class="rev-title">' + esc(c.title) + '</div>' +
-    (c.memo ? '<div class="rev-memo">' + esc(c.memo) + '</div>' : '') +
-    '</div>';
-
-  if (reviewUI.step === 1) {
-    box.innerHTML = head +
-      '<div class="step-label">1단계 · 지금 이 단원, 얼마나 안다고 느끼나요?</div>' +
-      '<div class="conf-row">' +
-      '<button class="btn lg" data-act="conf" data-conf="high">자신 있음</button>' +
-      '<button class="btn lg" data-act="conf" data-conf="low">애매함</button>' +
-      '</div>' +
-      '<p class="card-note" style="margin-top:10px">확신도를 먼저 찍어야 <b>아는 줄 알았던 것</b>을 잡아냅니다.</p>';
-  } else if (reviewUI.step === 2) {
-    box.innerHTML = head +
-      '<div class="step-label">2단계 · 백지에 인출해 보세요. 결과는?</div>' +
-      '<p class="step-conf">확신도 <b>' + (reviewUI.conf === 'high' ? '자신 있음' : '애매함') + '</b> · ' +
-      '<button class="link" data-act="conf-back">다시 찍기</button></p>' +
-      '<div class="rate-row">' +
-      '<button class="rate rate-1" data-act="rate" data-rate="1"><b>막힘</b><span>어려움</span></button>' +
-      '<button class="rate" data-act="rate" data-rate="2"><b>통과</b><span>보통</span></button>' +
-      '<button class="rate" data-act="rate" data-rate="3"><b>통과</b><span>쉬움</span></button>' +
-      '</div>' +
-      '<p class="card-note" style="margin-top:10px">어려움은 1일 안에, 보통은 2~4일 뒤, 쉬움은 더 길게 벌어집니다.</p>';
-  } else {
-    const r = reviewUI.result || { interval: 1, dueAt: Date.now() };
-    const nextId = dueCards().filter(x => x.id !== c.id)[0];
-    box.innerHTML = head +
-      '<div class="result">' +
-      (r.illusion ? '<div class="illusion-note"><b>메타인지 착각</b> — 자신 있다고 했지만 막혔습니다. 최우선 복습 큐 맨 위로 올렸어요.</div>' : '') +
-      '<div class="result-next">다음 복습 <b>' + intervalLabel(r.interval, r.dueAt) + '</b></div>' +
-      '<div class="result-row">' +
-      (nextId ? '<button class="btn primary" data-act="start-review" data-id="' + nextId.id + '">다음 카드</button>' : '') +
-      '<button class="btn" data-act="close-review">닫기</button>' +
-      '</div></div>';
-  }
-}
-
-function openReview(id) {
-  const c = S.cards.find(x => x.id === id);
-  if (!c) return;
-  reviewUI = { cardId: id, step: 1, conf: null, result: null };
-  switchTab('review');
-  renderReview();
-  const box = $('#review-panel');
-  if (box && !box.hidden && box.scrollIntoView) box.scrollIntoView({ block: 'start', behavior: 'smooth' });
-}
-function pickConf(conf) {
-  reviewUI.conf = conf;
-  reviewUI.step = 2;
-  renderReviewPanel();
-}
-function rateCard(rating) {
-  const c = S.cards.find(x => x.id === reviewUI.cardId);
-  if (!c) return;
-  const now = Date.now();
-  const conf = reviewUI.conf || 'low';
-  const next = nextSchedule(c, rating, now);
-  const illusion = conf === 'high' && rating === 1;
-  c.S = next.S; c.D = next.D; c.reps = next.reps; c.lapses = next.lapses;
-  c.lastReview = next.lastReview; c.dueAt = next.dueAt;
-  c.lastRating = rating; c.lastConf = conf;
-  c.illusion = illusion;
-  if (illusion) c.illusionCount = (c.illusionCount || 0) + 1;
-  S.reviews.push({ id: uid(), cardId: c.id, at: now, conf: conf, rating: rating, illusion: illusion, interval: next.interval });
-  reviewUI.step = 3;
-  reviewUI.result = { interval: next.interval, dueAt: next.dueAt, illusion: illusion };
-  save();
-  renderReview();
-  renderStats();
-  renderSummary();
-  renderCoach();
-  toast(illusion ? '메타인지 착각으로 기록 · 최우선 복습' : '기록 · 다음 복습 ' + intervalLabel(next.interval, next.dueAt));
-}
-function addCard(subject, title, memo) {
-  title = (title || '').trim();
-  if (!title) { toast('단원이나 주제를 적어 주세요'); return false; }
-  S.cards.push({
-    id: uid(), subject: SUBJECTS.indexOf(subject) >= 0 ? subject : '기타',
-    title: title.slice(0, 60), memo: (memo || '').trim().slice(0, 120),
-    createdAt: Date.now(), dueAt: Date.now(),
-    S: 0, D: 5, reps: 0, lapses: 0, lastReview: 0, illusion: false, illusionCount: 0
-  });
-  save();
-  renderReview();
-  renderSummary();
-  renderCoach();
-  return true;
-}
-
-/* ============================================================
-   8. 막힘 로그
-   ============================================================ */
-let stuckDraft = { subject: '국어', cause: null };
-function renderStuck() {
-  $$('#stuck-subjects .chip').forEach(b => {
-    const on = b.dataset.subject === stuckDraft.subject;
-    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
-  });
-  $$('#stuck-causes .chip').forEach(b => {
-    const on = b.dataset.cause === stuckDraft.cause;
-    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
-  });
-  const today = S.stucks.filter(x => ymd(new Date(x.at)) === todayKey()).length;
-  $('#stuck-today').textContent = '오늘 ' + today + '건';
-  $('#stuck-count').textContent = S.stucks.length + '건';
-  const list = S.stucks.slice().sort((a, b) => b.at - a.at);
-  $('#stuck-list').innerHTML = list.length ? list.map(x => {
-    return '<li class="stuck">' +
-      '<div class="stuck-main">' +
-      '<span class="stuck-text">' + esc(x.memo) + '</span>' +
-      '<span class="stuck-meta"><span class="tag">' + esc(x.subject) + '</span>' +
-      '<span class="tag line">' + esc(x.cause) + '</span>' +
-      '<span class="stuck-time">' + fmtDate(x.at) + ' ' + fmtHM(x.at) + '</span></span>' +
-      '</div>' +
-      '<button class="del" data-act="del-stuck" data-id="' + x.id + '" aria-label="기록 삭제">×</button>' +
-      '</li>';
-  }).join('') : '<li class="empty">아직 막힘 기록이 없어요. 막히면 바로 한 줄.</li>';
-}
-function addStuck(subject, cause, memo) {
-  memo = (memo || '').trim();
-  if (!memo) { toast('무엇이 막혔는지 한 줄 적어 주세요'); return false; }
-  if (!cause) { toast('원인 태그를 골라 주세요'); return false; }
-  S.stucks.push({ id: uid(), at: Date.now(), subject: subject || '기타', cause: cause, memo: memo.slice(0, 120) });
-  save();
-  renderStuck();
-  renderStats();
-  renderCoach();
-  return true;
-}
-
-/* ============================================================
-   9. 통계
-   ============================================================ */
-function renderStats() {
-  const m = metaStats();
-  const total = m.total;
-  const q = m.q;
-  const acc = m.acc;
-  $('#meta-accuracy').textContent = acc == null ? '—' : acc + '%';
-  $('#meta-total').textContent = total ? total + '회 기록' : '기록 없음';
-  $('#meta-note').textContent = total
-    ? (q.illusion ? '착각 ' + q.illusion + '건 — 자신 있다고 한 것 중 ' + q.illusion + '개가 막혔어요. 복습 우선순위 맨 위로 올립니다.' : '아직 착각이 없어요. 확신과 실제가 잘 맞고 있습니다.')
-    : '복습할 때 확신도를 먼저 찍으면, 아는 줄 알았던 것이 드러납니다.';
-  $('#meta-quad').innerHTML =
-    '<div class="q-cell good"><span class="q-k">확신 적중<br>자신 있음 · 통과</span><span class="q-v">' + q.hit + '</span></div>' +
-    '<div class="q-cell bad"><span class="q-k">메타인지 착각<br>자신 있음 · 막힘</span><span class="q-v">' + q.illusion + '</span></div>' +
-    '<div class="q-cell"><span class="q-k">과소평가<br>애매함 · 통과</span><span class="q-v">' + q.under + '</span></div>' +
-    '<div class="q-cell"><span class="q-k">정확한 인지<br>애매함 · 막힘</span><span class="q-v">' + q.accurate + '</span></div>';
-
-  // 이번 주(최근 7일)
-  const now = Date.now();
-  const r7 = from7(now);
-  const map = msBySubject(r7.from, r7.to);
-  const weekTotal = SUBJECTS.reduce((a, s) => a + map[s], 0);
-  $('#week-total').textContent = fmtMin(weekTotal);
-  const days = [];
-  const dayMap = {};
-  for (let i = 6; i >= 0; i--) {
-    const d0 = startOfDay(now - i * DAY);
-    const label = (i === 0 ? '오늘' : weekdayName(d0));
-    days.push(label);
-    dayMap[label] = 0;
-  }
-  const dayTotals = {};
-  for (let i = 6; i >= 0; i--) {
-    const d0 = startOfDay(now - i * DAY);
-    const label = (i === 0 ? '오늘' : weekdayName(d0));
-    const map1 = msBySubject(d0, d0 + DAY);
-    dayTotals[label] = SUBJECTS.reduce((a, s) => a + map1[s], 0);
-  }
-  $('#week-chart').innerHTML = barChart(dayTotals, days, true);
-  $('#week-subject-chart').innerHTML = barChart(map, SUBJECTS);
-
-  // 막힘 패턴 (최근 7일)
-  const recent = S.stucks.filter(x => x.at >= r7.from);
-  $('#stuck-total-7').textContent = recent.length + '건 / 7일';
-  const byCause = {}, bySub = {};
-  CAUSES.forEach(c => byCause[c] = 0);
-  SUBJECTS.forEach(s => bySub[s] = 0);
-  recent.forEach(x => {
-    byCause[x.cause] = (byCause[x.cause] || 0) + 1;
-    bySub[x.subject] = (bySub[x.subject] || 0) + 1;
-  });
-  $('#cause-chart').innerHTML = countChart(byCause, CAUSES, recent.length);
-  $('#stuck-subject-chart').innerHTML = countChart(bySub, SUBJECTS, recent.length);
-
-  const due = dueCards();
-  const illusions = S.cards.filter(c => c.illusion).length;
-  $('#review-stats').innerHTML =
-    '<div class="stat-cell"><span>전체 카드</span><b>' + S.cards.length + '</b></div>' +
-    '<div class="stat-cell"><span>오늘 복습</span><b>' + due.length + '</b></div>' +
-    '<div class="stat-cell"><span>착각 카드</span><b>' + illusions + '</b></div>' +
-    '<div class="stat-cell"><span>복습 기록</span><b>' + total + '</b></div>' +
-    '<div class="stat-cell"><span>망각(lapse)</span><b>' + S.cards.reduce((a, c) => a + (c.lapses || 0), 0) + '</b></div>' +
-    '<div class="stat-cell"><span>세션 수</span><b>' + S.sessions.length + '</b></div>';
-
-  const todayMap = msBySubject(startOfDay(now), now);
-  const todayTotal = SUBJECTS.reduce((a, s) => a + todayMap[s], 0);
-  const hs = continuousStretch();
-  $('#stats-summary').textContent = '오늘 ' + fmtMin(todayTotal) + ' 순공 · 최근 7일 ' + fmtMin(weekTotal) +
-    (hs && hs.ms >= INTERLEAVE_MS ? ' · ' + hs.subject + ' 연속 ' + Math.round(hs.ms / 60000) + '분' : '');
-}
-function countChart(map, order, total) {
-  const rows = order.map(k => ({ k: k, n: map[k] || 0 })).filter(r => r.n > 0);
-  if (!rows.length) return '<div class="empty">기록이 없어요.</div>';
-  const max = Math.max.apply(null, rows.map(r => r.n));
-  return rows.sort((a, b) => b.n - a.n).map(r => {
-    const pct = Math.max(3, Math.round(r.n / max * 100));
-    const share = total ? Math.round(r.n / total * 100) : 0;
-    return '<div class="chart-row"><span class="chart-label">' + esc(r.k) + '</span>' +
-      '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
-      '<span class="chart-val">' + r.n + ' · ' + share + '%</span></div>';
-  }).join('');
-}
-
-/* ============================================================
-   9.5 오늘의 학습 처방 (지금 기록을 그대로 읽는 규칙 기반 코칭)
-   ============================================================ */
-const CAUSE_PLAN = {
-  '개념 빈틈': '그 단원의 정의·공식을 교재에서 다시 찾고, 책을 덮은 채 소리 내어 한 번 인출하세요. 강의를 새로 듣기보다 "왜 그런지"를 한 줄로 적는 쪽이 남습니다.',
-  '조건 놓침': '문제를 풀기 전에 주어진 값·구하는 값·범위에 3초 밑줄 긋는 루틴을 넣으세요. 틀린 문제는 "내가 놓친 조건"만 따로 한 줄씩 모으면 패턴이 보입니다.',
-  '이유 연결 실패': '답만 외우지 말고 "A이므로 B, B이므로 C"를 소리 내어 이어 보세요. 끊기는 연결 고리 하나만 골라 그 부분의 예시를 직접 만들어 보면 이어집니다.',
-  '시간 부족': '같은 유형을 시간 재고 풀어 어디서 멈추는지 찾으세요. 25분 집중·5분 점검으로 끊고, 계산이 긴 문제는 손으로 구조부터 잡아 두면 시간이 줄어듭니다.',
-  '계산/실수': '풀이 마지막 10초를 검산 전용으로 두고 부호·단위·이항만 다시 보세요. 실수한 지점만 오답 노트에 표시해 두면 같은 실수가 줄어듭니다.'
-};
-
-function metaStats() {
-  const q = { hit: 0, illusion: 0, under: 0, accurate: 0 };
-  S.reviews.forEach(r => {
-    if (r.conf === 'high' && r.rating === 1) q.illusion++;
-    else if (r.conf === 'high') q.hit++;
-    else if (r.conf === 'low' && r.rating === 1) q.accurate++;
-    else q.under++;
-  });
-  const total = S.reviews.length;
-  return { total: total, q: q, acc: total ? Math.round((q.hit + q.accurate) / total * 100) : null };
-}
-function coachSnapshot() {
+function reportData() {
   const now = Date.now();
   const todayMap = msBySubject(startOfDay(now), now);
-  const todayTotal = SUBJECTS.reduce((a, s) => a + todayMap[s], 0);
   const r7 = from7(now);
   const weekMap = msBySubject(r7.from, r7.to);
-  const weekTotal = SUBJECTS.reduce((a, s) => a + weekMap[s], 0);
-  const recentStuck = S.stucks.filter(x => x.at >= r7.from);
-  const causeRows = CAUSES.map(c => ({ c: c, n: recentStuck.filter(x => x.cause === c).length }))
-    .filter(r => r.n > 0).sort((a, b) => b.n - a.n);
   const mains = mainItems();
-  const mainPend = mains.filter(t => !t.done);
-  const carry = mainPend.filter(t => t.date < todayKey());
   const routines = tasksOf('routine');
-  const routinePend = routines.filter(r => !routineDoneToday(r));
+  const mainPend = mains.filter(t => !t.done);
   return {
-    todayMap: todayMap, todayTotal: todayTotal, weekMap: weekMap, weekTotal: weekTotal,
-    recentStuck: recentStuck, causeRows: causeRows,
-    mains: mains, mainPend: mainPend, carry: carry,
-    routines: routines, routinePend: routinePend,
-    due: dueCards(), illusions: S.cards.filter(c => c.illusion), meta: metaStats()
+    todayMap: todayMap, todayTotal: totalOf(todayMap),
+    weekMap: weekMap, weekTotal: totalOf(weekMap),
+    mains: mains, routines: routines,
+    mainPend: mainPend,
+    mainDone: mains.length - mainPend.length,
+    routineDone: routines.filter(routineDoneToday).length,
+    carry: mainPend.filter(t => t.date < todayKey())
   };
 }
-function subjectTimeText(map, min) {
+function subjectTimeText(map) {
   return SUBJECTS.filter(s => (map[s] || 0) > 0)
     .sort((a, b) => map[b] - map[a])
     .map(s => s + ' ' + fmtMin(map[s])).join(' · ');
 }
-/* 1순위: 착각 카드 → 오늘 복습 → 어제 이월 메인 → 오늘 메인 → 루틴 */
-function coachPriorities(d) {
-  const list = [];
-  if (d.illusions.length) {
-    const c = d.illusions[0];
-    list.push({
-      tag: '착각',
-      title: '「' + c.title + '」 백지 인출' + (d.illusions.length > 1 ? ' 외 ' + (d.illusions.length - 1) + '개' : ''),
-      body: '자신 있다고 넘겼는데 막힌 카드예요. 교재를 덮고 설명해 본 뒤 복습 탭에서 다시 채점하면 아는 줄 알았던 빈틈이 가장 먼저 메워집니다.'
-    });
-  }
-  if (d.due.length) {
-    list.push({
-      tag: '복습',
-      title: '오늘 복습 ' + d.due.length + '개',
-      body: '기억이 흐려지기 전에 꺼내는 게 가장 남는 공부예요. 한 장 3~5분이면 끝나고, 어려움으로 채점하면 내일 다시 올라옵니다.'
-    });
-  }
-  if (d.carry.length) {
-    list.push({
-      tag: '이월',
-      title: '어제 이월 메인 ' + d.carry.length + '건 마무리',
-      body: '「' + d.carry[0].title + '」' + (d.carry.length > 1 ? ' 외 ' + (d.carry.length - 1) + '건' : '') +
-        '이 오늘까지 따라왔어요. 미루면 오늘 메인이 두 배가 되니 25분만 먼저 붙여 보세요.'
-    });
-  }
-  if (!list.length && d.mainPend.length) {
-    list.push({
-      tag: '메인',
-      title: '「' + d.mainPend[0].title + '」 먼저',
-      body: (d.mainPend.length === 1 ? '오늘 메인은 이 하나예요. ' : '오늘 메인 ' + d.mainPend.length + '개 중 가장 무거운 하나입니다. ') +
-        '스톱워치를 켜고 끝날 때까지 다른 탭은 닫아 두세요.'
-    });
-  }
-  if (!list.length && d.routinePend.length) {
-    list.push({
-      tag: '루틴',
-      title: '루틴 ' + d.routinePend.length + '개 체크',
-      body: '오늘 메인은 다 끝났어요. 남은 루틴을 채우면 하루가 닫힙니다.'
-    });
-  }
-  return list;
+function renderReport() {
+  const d = reportData();
+  const now = new Date();
+  $('#report-kicker').textContent = ymd(now) + ' ' + weekdayName(now.getTime()) + '요일';
+  $('#report-summary').textContent = '오늘 ' + fmtMin(d.todayTotal) + ' · 최근 7일 ' + fmtMin(d.weekTotal);
 }
-function coachBalanceHTML(d) {
-  if (d.weekTotal < 20 * 60000) {
-    return '<div class="c-line">최근 7일 순공이 ' + fmtMin(d.weekTotal) + '이라 편중을 판단하기엔 적어요. 20분만 더 쌓이면 과목 균형을 진단해 드립니다.</div>';
-  }
-  const rows = SUBJECTS.map(s => ({ s: s, ms: d.weekMap[s] || 0 })).filter(r => r.ms > 0).sort((a, b) => b.ms - a.ms);
-  const top = rows[0];
-  const share = Math.round(top.ms / d.weekTotal * 100);
-  if (rows.length === 1 || share >= 60) {
-    const low = rows.length > 1 ? rows[rows.length - 1].s : (SUBJECTS.filter(s => s !== top.s)[0] || '국어');
-    return '<div class="c-line"><b class="c-warn">' + esc(top.s) + ' ' + share + '%</b> — 최근 7일 순공 ' +
-      fmtMin(d.weekTotal) + ' 중 ' + fmtMin(top.ms) + '이 한 과목에 몰려 있어요. 내일은 <b>' + esc(low) +
-      ' 40분</b>을 먼저 앉히고 시작하세요. 한 과목을 길게 이어 가면 구별력이 떨어집니다.</div>';
-  }
-  if (share >= 45) {
-    return '<div class="c-line"><b>' + esc(top.s) + ' ' + share + '%</b> — 조금 치우쳤지만 괜찮은 편이에요. ' +
-      '집중이 흐려질 때 ' + esc(rows[rows.length - 1].s) + ' 20~30분을 끼워 넣으면 균형이 맞습니다.</div>';
-  }
-  return '<div class="c-line"><b>고르게 분포</b> — 최근 7일 ' + fmtMin(d.weekTotal) + '을 ' + rows.length +
-    '과목에 나눠 담았어요(가장 많은 ' + esc(top.s) + ' ' + share + '%). 지금 배분을 유지하세요.</div>';
-}
-function coachWeakHTML(d) {
-  if (!d.causeRows.length) {
-    return '<div class="c-line">최근 7일 막힘 기록이 없어요. 막힌 순간을 한 줄 남기면 원인별 처방이 시작됩니다.</div>';
-  }
-  const top = d.causeRows[0];
-  const rest = d.causeRows.slice(1, 3).map(r => r.c + ' ' + r.n).join(' · ');
-  return '<div class="c-line"><b>' + esc(top.c) + '</b> ' + top.n + '건 — 최근 7일 막힘 ' + d.recentStuck.length +
-    '건 중 가장 큰 원인이에요.' + (rest ? ' 다음은 ' + esc(rest) + '.' : '') + '</div>' +
-    '<div class="c-line" style="margin-top:5px">' + esc(CAUSE_PLAN[top.c] || '') + '</div>';
-}
-function coachMetaHTML(d) {
-  const m = d.meta;
-  if (!m.total) {
-    return '<div class="c-line">복습에서 확신도를 먼저 찍으면, "읽으면 아는 느낌"과 실제 기억을 숫자로 갈라 볼 수 있습니다.</div>';
-  }
-  if (m.acc < 70) {
-    return '<div class="c-line"><b class="c-bad">정확도 ' + m.acc + '%</b> (' + m.total + '회) — 자신 있다고 한 것 중 ' +
-      m.q.illusion + '개가 막혔어요. 유창성 착각은 교재를 다시 읽는 것으로는 안 지워집니다. 확신이 들 때일수록 책을 덮고 백지에 먼저 쓰세요.</div>';
-  }
-  return '<div class="c-line"><b>정확도 ' + m.acc + '%</b> (' + m.total + '회) — 확신과 실제가 잘 맞습니다. 이 페이스면 복습 간격을 조금 늘려도 됩니다.</div>';
-}
-function renderCoach() {
-  const box = $('#coach-body');
-  if (!box) return;
-  const d = coachSnapshot();
-  const hasData = d.weekTotal > 0 || d.todayTotal > 0 || S.tasks.length || S.cards.length || S.stucks.length || S.sessions.length;
-  if (!hasData) {
-    box.innerHTML = '<div class="c-empty"><b>아직 처방할 기록이 없어요.</b>' +
-      '<p>① 순공 타이머로 25분을 재고 ② 복습 카드를 한 장 만들면, 내일부터 이 자리에 내 기록에 맞는 1순위 행동이 뜹니다.</p></div>';
-    return;
-  }
-  const pri = coachPriorities(d);
-  const first = pri[0];
-  let html = '<div class="c-sec"><div class="c-k">1순위 행동</div>';
-  html += first
-    ? '<div class="c-main"><span class="c-num">1</span><div><b>' + esc(first.title) + '</b><p>' + esc(first.body) + '</p></div></div>'
-    : '<div class="c-main"><span class="c-num">1</span><div><b>다음 단원 하나 정하기</b><p>메인·루틴·복습이 모두 비어 있어요. 지금 가장 무거운 덩어리를 메인에 올리고 25분 타이머를 켜세요.</p></div></div>';
-  if (pri.length > 1) {
-    html += '<div class="c-next">다음 순서 · ' + pri.slice(1).map(p => '<span>' + esc(p.title) + '</span>').join(' · ') + '</div>';
-  }
-  html += '</div>';
-  html += '<div class="c-sec"><div class="c-k">균형 · 교차 학습 (최근 7일)</div>' + coachBalanceHTML(d) + '</div>';
-  html += '<div class="c-sec"><div class="c-k">약점 패턴 처방</div>' + coachWeakHTML(d) + '</div>';
-  html += '<div class="c-sec"><div class="c-k">메타인지 교정</div>' + coachMetaHTML(d) + '</div>';
-  box.innerHTML = html;
-}
-function coachReport() {
-  const d = coachSnapshot();
+function buildReport() {
+  const d = reportData();
   const now = new Date();
   const L = [];
   L.push('[스터디 플래너 리포트] ' + ymd(now) + ' (' + weekdayName(now.getTime()) + ')');
   L.push('· 오늘 순공: ' + fmtMin(d.todayTotal) + (d.todayTotal > 0 ? ' (' + subjectTimeText(d.todayMap) + ')' : ''));
   L.push('· 최근 7일: ' + fmtMin(d.weekTotal) + (d.weekTotal > 0 ? ' (' + subjectTimeText(d.weekMap) + ')' : ''));
-  L.push('· 할 일: 메인 ' + (d.mains.length - d.mainPend.length) + '/' + d.mains.length +
-    ' · 루틴 ' + (d.routines.length - d.routinePend.length) + '/' + d.routines.length +
+  L.push('· 할 일: 메인 ' + d.mainDone + '/' + d.mains.length +
+    ' · 루틴 ' + d.routineDone + '/' + d.routines.length +
     (d.carry.length ? ' · 이월 ' + d.carry.length : '') +
     (d.mainPend.length ? ' · 남은 메인: ' + d.mainPend.slice(0, 3).map(t => t.title).join(', ') : ''));
-  L.push('· 복습: 오늘 예정 ' + d.due.length + '개 · 착각 카드 ' + d.illusions.length + '개' +
-    (d.meta.acc == null ? ' · 메타인지 기록 없음' : ' · 정확도 ' + d.meta.acc + '% (' + d.meta.total + '회)'));
-  L.push('· 막힘(최근 7일): ' + (d.causeRows.length
-    ? d.causeRows.slice(0, 3).map(r => r.c + ' ' + r.n).join(' · ') + ' (총 ' + d.recentStuck.length + '건)'
-    : '기록 없음'));
-  const pri = coachPriorities(d);
-  if (pri[0]) L.push('· 지금 1순위: ' + pri[0].title);
-  L.push('이 리포트로 약점과 우선순위를 코칭해 줘.');
+  L.push('이 리포트를 보고 오늘 공부 방향을 코칭해 줘.');
   return L.join('\n');
 }
-async function copyCoachReport(btn) {
-  const text = coachReport();
-  const wrap = $('#coach-report-wrap');
-  const ta = $('#coach-report-text');
+async function copyReport(btn) {
+  const text = buildReport();
+  const wrap = $('#report-wrap');
+  const ta = $('#report-text');
   ta.value = text;
   let ok = false;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1786,7 +996,7 @@ async function copyCoachReport(btn) {
 }
 
 /* ============================================================
-   9.6 사진 → PDF 묶기 (외부 라이브러리 없이 브라우저에서 조립)
+   7. 사진 → PDF 묶기 (외부 라이브러리 없이 브라우저에서 조립)
    ============================================================ */
 const PDF_MAX_ITEMS = 30;      // 한 번에 묶는 사진 수 상한(모바일 메모리 보호)
 const PDF_LONG_EDGE = 1600;    // 저장 전 긴 변 픽셀(인쇄해도 선명한 선에서 용량 절감)
@@ -2012,7 +1222,7 @@ function togglePdf(force) {
 }
 
 /* ============================================================
-   10. 데이터 · 동기화
+   8. 데이터 · 동기화
    ============================================================ */
 function exportJSON() {
   const data = JSON.stringify(S, null, 2);
@@ -2023,7 +1233,7 @@ function exportJSON() {
   document.body.appendChild(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  $('#data-status').textContent = '내보냈어요 · 카드 ' + S.cards.length + ' · 기록 ' + (S.tasks.length + S.sessions.length + S.stucks.length) + '개';
+  $('#data-status').textContent = '내보냈어요 · 세션 ' + S.sessions.length + ' · 할 일 ' + S.tasks.length + '개';
   toast('JSON으로 내보냈어요');
 }
 function importJSON(file) {
@@ -2032,7 +1242,7 @@ function importJSON(file) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      if (!parsed || typeof parsed !== 'object' || (!Array.isArray(parsed.tasks) && !Array.isArray(parsed.cards))) {
+      if (!parsed || typeof parsed !== 'object' || (!Array.isArray(parsed.tasks) && !Array.isArray(parsed.sessions))) {
         throw new Error('planner data format');
       }
       try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch (e) {}
@@ -2040,7 +1250,7 @@ function importJSON(file) {
       save();
       renderAll();
       $('#btn-restore').hidden = false;
-      $('#data-status').textContent = '불러왔어요 · 카드 ' + S.cards.length + ' · 세션 ' + S.sessions.length;
+      $('#data-status').textContent = '불러왔어요 · 세션 ' + S.sessions.length + ' · 할 일 ' + S.tasks.length;
       toast('기록을 불러왔어요');
     } catch (e) {
       $('#data-status').textContent = '이 파일은 플래너 백업이 아니에요.';
@@ -2073,7 +1283,6 @@ function resetAll(btn) {
   try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch (e) {}
   try { localStorage.removeItem(KEY); } catch (e) {}
   S = blankState();
-  reviewUI = { cardId: null, step: 1, conf: null, result: null };
   save({ sync: false });
   renderAll();
   $('#btn-restore').hidden = false;
@@ -2220,42 +1429,35 @@ function syncOff() {
 }
 
 /* ============================================================
-   11. 이벤트 · 초기화
+   9. 이벤트 · 초기화
    ============================================================ */
 function renderAll() {
   renderTimer();
   renderTasks();
   renderStudyChart();
-  renderReview();
-  renderStuck();
-  renderStats();
-  renderInterleave();
   renderSummary();
-  renderCoach();
+  renderReport();
   renderPdf();
 }
-/* 상단 요약(마스트헤드) — 할 일을 추가·체크할 때도 바로 다시 그린다. */
+/* 상단 요약 — 할 일을 추가·체크할 때도 바로 다시 그린다. */
 function renderSummary() {
   const now = new Date();
   $('#top-date').textContent = fmtDate(now.getTime());
   $('#today-kicker').textContent = now.getFullYear() + '. ' + pad2(now.getMonth() + 1) + '. ' + pad2(now.getDate()) + ' ' + weekdayName(now) + '요일';
-  const due = dueCards().length;
-  $('#today-headline').textContent = due ? '오늘 복습 ' + due + '개부터' : '오늘의 두 덩어리';
   const tMap = msBySubject(startOfDay(), Date.now());
-  const todayTotal = SUBJECTS.reduce((a, s) => a + tMap[s], 0);
+  const todayTotal = totalOf(tMap);
   const main = mainItems(), routines = tasksOf('routine');
   const mDone = main.filter(t => t.done).length, rDone = routines.filter(routineDoneToday).length;
   $('#today-summary').textContent =
     '오늘 순공 ' + fmtMin(todayTotal) +
     ' · 메인 ' + mDone + '/' + main.length +
-    ' · 루틴 ' + rDone + '/' + routines.length +
-    (due ? ' · 복습 ' + due : '');
+    ' · 루틴 ' + rDone + '/' + routines.length;
 }
 
 function initEvents() {
   initTabs();
 
-  // 타이머
+  // 타이머 — 과목
   $('#timer-subjects').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act="pick-subject"]');
     if (!b) return;
@@ -2269,8 +1471,8 @@ function initEvents() {
     }
     save();
     renderTimer();
-    renderInterleave();
   });
+  // 타이머 — 방식
   $('#timer-modes').addEventListener('click', (e) => {
     const b = e.target.closest('[data-mode]');
     if (!b) return;
@@ -2279,16 +1481,15 @@ function initEvents() {
     setTimerMode(b.dataset.mode);
     save();
     renderTimer();
-    renderInterleave();
   });
   $('#timer-start').addEventListener('click', startTimer);
   $('#timer-pause').addEventListener('click', pauseTimer);
   $('#timer-finish').addEventListener('click', () => finishTimer(false));
-  let resetArmed = 0;
+  let resetTimerArmed = 0;
   $('#timer-reset').addEventListener('click', (e) => {
     const b = e.currentTarget;
-    if (Date.now() - resetArmed > 3000) {
-      resetArmed = Date.now();
+    if (Date.now() - resetTimerArmed > 3000) {
+      resetTimerArmed = Date.now();
       b.textContent = '한 번 더 누르면 버려요';
       setTimeout(() => { b.textContent = '버리기'; }, 3000);
       return;
@@ -2322,47 +1523,8 @@ function initEvents() {
     }
   });
 
-  // 복습 카드
-  $('#card-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (addCard(cardDraftSubject, $('#card-title').value, $('#card-memo').value)) {
-      $('#card-title').value = '';
-      $('#card-memo').value = '';
-      $('#card-title').focus();
-      toast('카드 추가 · 오늘 복습에 올랐어요');
-    }
-  });
-  $('#card-subjects').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-subject]');
-    if (!b) return;
-    cardDraftSubject = b.dataset.subject;
-    renderCardSubjects();
-  });
-
-  // 막힘 로그
-  $('#stuck-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (addStuck(stuckDraft.subject, stuckDraft.cause, $('#stuck-input').value)) {
-      $('#stuck-input').value = '';
-      $('#stuck-input').focus();
-      toast('막힘 기록 · 원인 ' + stuckDraft.cause);
-    }
-  });
-  $('#stuck-subjects').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-subject]');
-    if (!b) return;
-    stuckDraft.subject = b.dataset.subject;
-    renderStuck();
-  });
-  $('#stuck-causes').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-cause]');
-    if (!b) return;
-    stuckDraft.cause = b.dataset.cause;
-    renderStuck();
-  });
-
-  // 오늘의 학습 처방
-  $('#btn-coach-copy').addEventListener('click', (e) => copyCoachReport(e.currentTarget));
+  // 리포트 복사
+  $('#btn-report-copy').addEventListener('click', (e) => copyReport(e.currentTarget));
 
   // 사진 → PDF
   $('#pdf-toggle').addEventListener('click', () => togglePdf());
@@ -2402,34 +1564,19 @@ function initEvents() {
     const id = el.dataset.id;
     if (act === 'toggle-task') toggleTask(id);
     else if (act === 'del-task') delTask(id);
-    else if (act === 'start-review') openReview(id);
-    else if (act === 'conf') pickConf(el.dataset.conf);
-    else if (act === 'conf-back') { reviewUI.step = 1; reviewUI.conf = null; renderReviewPanel(); }
-    else if (act === 'rate') rateCard(Number(el.dataset.rate));
-    else if (act === 'close-review') { reviewUI = { cardId: null, step: 1, conf: null, result: null }; renderReviewPanel(); }
-    else if (act === 'del-card') {
-      const i = S.cards.findIndex(x => x.id === id);
-      if (i >= 0) { S.cards.splice(i, 1); save(); renderReview(); renderStats(); renderSummary(); renderCoach(); toast('카드를 삭제했어요'); }
-    } else if (act === 'del-stuck') {
-      const i = S.stucks.findIndex(x => x.id === id);
-      if (i >= 0) { S.stucks.splice(i, 1); save(); renderStuck(); renderStats(); renderCoach(); toast('기록을 삭제했어요'); }
-    } else if (act === 'install') {
-      promptInstall();
-    } else if (act === 'pdf-up') {
-      pdfMove(id, -1);
-    } else if (act === 'pdf-down') {
-      pdfMove(id, 1);
-    } else if (act === 'pdf-del') {
-      pdfRemove(id);
-    }
+    else if (act === 'install') promptInstall();
+    else if (act === 'pdf-up') pdfMove(id, -1);
+    else if (act === 'pdf-down') pdfMove(id, 1);
+    else if (act === 'pdf-del') pdfRemove(id);
   });
 
   // 새로고침·백그라운드에서도 시간 유지
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       renderTimer();
-      renderInterleave();
       renderStudyChart();
+      renderSummary();
+      renderReport();
       if (S.timer) tick();
     } else {
       if (S.timer) { save(); }
@@ -2442,20 +1589,6 @@ function initEvents() {
   setInterval(() => {
     if (todayKey() !== lastDay) { lastDay = todayKey(); renderAll(); }
   }, 30000);
-}
-
-function renderCardSubjects() {
-  $('#card-subjects').innerHTML = SUBJECTS.map(s =>
-    '<button class="chip' + (s === cardDraftSubject ? ' on' : '') + '" data-subject="' + s + '" aria-pressed="' + (s === cardDraftSubject) + '">' + s + '</button>'
-  ).join('');
-}
-function renderStuckChips() {
-  $('#stuck-subjects').innerHTML = SUBJECTS.map(s =>
-    '<button class="chip' + (s === stuckDraft.subject ? ' on' : '') + '" data-subject="' + s + '" aria-pressed="' + (s === stuckDraft.subject) + '">' + s + '</button>'
-  ).join('');
-  $('#stuck-causes').innerHTML = CAUSES.map(c =>
-    '<button class="chip' + (c === stuckDraft.cause ? ' on' : '') + '" data-cause="' + c + '" aria-pressed="' + (c === stuckDraft.cause) + '">' + c + '</button>'
-  ).join('');
 }
 
 /* PWA — 설치 버튼은 beforeinstallprompt를 받았을 때만, standalone·설치 완료에서는 숨김 */
@@ -2507,13 +1640,6 @@ function init() {
   initEvents();
   fillSubjectSelect($('#main-subject'));
   fillSubjectSelect($('#routine-subject'));
-  renderCardSubjects();
-  renderStuckChips();
-  // 타이머 과목 기본값: 오늘 가장 많이 한 과목이 아니면 저장된 값
-  stuckDraft.subject = S.prefs.timerSubject || '국어';
-  cardDraftSubject = S.prefs.timerSubject || '국어';
-  renderCardSubjects();
-  renderStuckChips();
   syncPw = (function () { try { return localStorage.getItem(SYNC_PW_KEY) || ''; } catch (e) { return ''; } })();
   syncEnabledUI();
   if (hasSync()) setSyncStatus('', '동기화 켜짐 · 플래너 전용 키');
@@ -2524,11 +1650,10 @@ function init() {
   // 디버그/검증용 (읽기 전용 노출)
   window.__planner = {
     get state() { return S; },
-    get due() { return dueCards().map(c => ({ id: c.id, title: c.title, dueAt: c.dueAt, illusion: c.illusion })); },
-    nextSchedule: nextSchedule,
-    stretch: continuousStretch,
-    coach: coachReport,
-    priorities: function () { return coachPriorities(coachSnapshot()); },
+    get tab() { return activeTab; },
+    stretch: function () { return null; },
+    report: buildReport,
+    summary: function () { return $('#today-summary').textContent; },
     pdfItems: function () { return pdfItems.map(x => ({ id: x.id, name: x.name, w: x.w, h: x.h })); },
     buildPdf: buildPdf,
     standalone: standaloneMode,
@@ -2536,7 +1661,7 @@ function init() {
     syncRoundTrip: async function (pw) {
       const env = await encryptState(S, pw || 'gkc-test');
       const back = await decryptState(env, pw || 'gkc-test');
-      return { ok: Array.isArray(back.cards) && back.cards.length === S.cards.length, bytes: env.ct.length };
+      return { ok: Array.isArray(back.sessions) && back.sessions.length === S.sessions.length, bytes: env.ct.length };
     },
     syncKey: async function (pw) { return vaultId(pw || 'gkc-test'); }
   };
