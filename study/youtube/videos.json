@@ -1,6 +1,27 @@
 {
-  "updatedAt": "2026-11-26T09:02:01Z",
+  "updatedAt": "2026-11-26T11:50:47Z",
   "videos": [
+    {
+      "id": "74U1s7zTck4",
+      "title": "올해 영어는 적게 공부하는 사람이 이깁니다.",
+      "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
+      "published": "2026-11-26T10:56:11+00:00",
+      "isShort": false
+    },
+    {
+      "id": "X5VcpWUb4o8",
+      "title": "개념공략법 MAPPING l 한 권으로 개념 총 정리",
+      "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
+      "published": "2026-11-26T10:03:38+00:00",
+      "isShort": false
+    },
+    {
+      "id": "gaLSvvo-MRo",
+      "title": "동창회에 오랜만에 나가면 생기는 일",
+      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
+      "published": "2026-11-26T09:00:39+00:00",
+      "isShort": true
+    },
     {
       "id": "t1mpSSrBu8U",
       "title": "[대성마이맥] 영어 고연승T - 2028학년도 수능 영어 연간 커리큘럼",
@@ -541,13 +562,6 @@
       "isShort": true
     },
     {
-      "id": "V1GQXBUBa44",
-      "title": "EBS에 이런 것들이 나온다니",
-      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
-      "published": "2026-11-19T09:00:26+00:00",
-      "isShort": true
-    },
-    {
       "id": "xJvuDZDYHLU",
       "title": "2028 수능 대비 이현호 사단 커리큘럼",
       "channelId": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -623,13 +637,6 @@
       "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
       "published": "2026-11-16T13:48:00+00:00",
       "isShort": false
-    },
-    {
-      "id": "bTUaNpXC5EI",
-      "title": "수능 적중 DAY12",
-      "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
-      "published": "2026-11-16T13:08:53+00:00",
-      "isShort": true
     },
     {
       "id": "XscZEmXalpE",
@@ -846,13 +853,6 @@
       "title": "D-52, 영어 성적 뒤집어 드리겠습니다.",
       "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
       "published": "2026-09-28T11:19:15+00:00",
-      "isShort": false
-    },
-    {
-      "id": "GLI03MEEeKE",
-      "title": "을 위해 잊지 말아야 할 것들",
-      "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
-      "published": "2026-09-23T10:02:51+00:00",
       "isShort": false
     },
     {
