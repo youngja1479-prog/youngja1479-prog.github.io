@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fafafa">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
 <title>GKC 학습노트 — 목차·세부목차·세부내용</title>
 <style>
 :root {
@@ -119,10 +123,24 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
   padding: 6px 0 18px; margin-bottom: 20px;
   border-bottom: 1px solid var(--border);
 }
-.masthead-kicker {
-  font: 500 9.5px/1 var(--mono); letter-spacing: .22em; color: var(--text4);
+.masthead-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-bottom: 11px;
 }
+.masthead-kicker {
+  font: 500 9.5px/1 var(--mono); letter-spacing: .22em; color: var(--text4);
+}
+/* 앱 설치 — beforeinstallprompt가 올 때만 나타나는 작은 칩 (이미 앱으로 열려 있으면 숨김) */
+.install-chip {
+  flex: 0 0 auto; height: 24px; padding: 0 9px 0 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface); color: var(--text2);
+  border: 1px solid var(--border2); border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .01em; white-space: nowrap;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.install-chip:hover { color: var(--text); border-color: var(--text3); background: var(--surface2); }
+.install-chip[hidden] { display: none; }
 .masthead h2 {
   font-size: 21px; font-weight: 650; letter-spacing: -.035em; line-height: 1.3; color: var(--text);
   word-break: keep-all; overflow-wrap: break-word;
@@ -133,7 +151,7 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
   .masthead { padding: 10px 0 22px; margin-bottom: 24px; }
   .masthead h2 { font-size: 27px; letter-spacing: -.04em; }
   .masthead p { font-size: 13.5px; margin-top: 9px; }
-  .masthead-kicker { margin-bottom: 13px; }
+  .masthead-top { margin-bottom: 13px; }
 }
 
 /* ===== Home — 통합 빠른 검색 ===== */
@@ -794,7 +812,12 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
     </div>
     <div class="view-body">
       <div class="masthead">
-        <div class="masthead-kicker">STUDY NOTES</div>
+        <div class="masthead-top">
+          <div class="masthead-kicker">STUDY NOTES</div>
+          <button type="button" class="install-chip" id="btn-install-app" hidden>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/></svg>앱 설치
+          </button>
+        </div>
         <h2>목차 → 세부목차 → 세부내용</h2>
         <p>손으로 쓰는 학습 노트. 사고 과정과 개념 정리를 체계적으로 정리하세요.</p>
       </div>
@@ -6648,6 +6671,47 @@ window.__gkcNav = {
   subjModel, nbPlace, subjReady, hsQuery,
   initDrawPage, renderTextLayer, setInputMode
 };
+})();
+</script>
+<script>
+/* PWA — '앱 설치' 칩 + 서비스 워커 등록. 학습노트 기능과는 분리된 보조 블록입니다. */
+(function () {
+  const installBtn = document.getElementById('btn-install-app');
+  const noop = () => {};
+  const isStandalone = () =>
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true;
+
+  let installEvent = null;
+  if (installBtn) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      installEvent = e;
+      if (!isStandalone()) installBtn.hidden = false;
+    });
+    installBtn.addEventListener('click', () => {
+      installBtn.hidden = true;
+      if (!installEvent) return;
+      const ev = installEvent;
+      installEvent = null;
+      const p = ev.prompt();
+      if (p && typeof p.then === 'function') p.then(noop, noop);
+      if (ev.userChoice && typeof ev.userChoice.catch === 'function') ev.userChoice.catch(noop);
+    });
+    window.addEventListener('appinstalled', () => {
+      installEvent = null;
+      installBtn.hidden = true;
+    });
+  }
+
+  if ('serviceWorker' in navigator) {
+    const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (secure) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).catch(noop);
+      });
+    }
+  }
 })();
 </script>
 </body>
