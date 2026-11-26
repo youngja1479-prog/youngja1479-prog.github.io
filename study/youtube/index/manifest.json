@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-25T15:27:20Z",
+  "updatedAt": "2026-11-26T01:29:34Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -41,13 +41,13 @@
       "id": "UCEv0kqq3WYMjCnJ6AMKYCpg",
       "name": "이투스 채널",
       "file": "UCEv0kqq3WYMjCnJ6AMKYCpg.json",
-      "count": 4795
+      "count": 4797
     },
     {
       "id": "UCma37fJBlF718VRgGlx4yGA",
       "name": "theMEGASTUDY",
       "file": "UCma37fJBlF718VRgGlx4yGA.json",
-      "count": 15000
+      "count": 15001
     },
     {
       "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
@@ -56,5 +56,5 @@
       "count": 5303
     }
   ],
-  "total": 28553
+  "total": 28556
 }
