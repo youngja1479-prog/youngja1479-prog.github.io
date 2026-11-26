@@ -20,6 +20,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,14 +45,18 @@ jobs:
               python3 study/youtube/update_index.py
             fi
           fi
+      - name: Collect recent comments
+        # 댓글 수집이 막혀도 피드 갱신은 그대로 진행합니다.
+        continue-on-error: true
+        run: python3 study/youtube/update_comments.py --max-videos 60 --time-budget 300
       - name: Commit if changed
         run: |
           git config user.name "youngja1479-prog"
           git config user.email "youngja1479-prog@users.noreply.github.com"
-          git add study/youtube/videos.json study/youtube/index
+          git add study/youtube/videos.json study/youtube/index study/youtube/comments study/youtube/shorts-cache.json
           if git diff --staged --quiet; then
             echo "No feed changes"
           else
-            git commit -m "Update YouTube feed and search index"
+            git commit -m "Update YouTube feed, search index and comments"
             git push
           fi

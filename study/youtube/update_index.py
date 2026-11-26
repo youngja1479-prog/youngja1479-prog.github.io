@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,43 +54,59 @@ def load_json(path: Path, default):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def pack_videos(rows: list[dict]) -> list[list[str]]:
+def pack_videos(rows: list[dict]) -> list[list]:
     rows = sorted(
         rows,
         key=lambda r: (r.get("published") or "", -int(r.get("ord") or 0)),
         reverse=True,
     )
-    packed: list[list[str]] = []
+    packed: list[list] = []
     seen: set[str] = set()
     for r in rows:
         vid = r.get("id") or ""
         if not vid or vid in seen:
             continue
         seen.add(vid)
-        packed.append([vid, r.get("title") or "", r.get("published") or ""])
+        row = [vid, r.get("title") or "", r.get("published") or ""]
+        # 4번째 칸이 1이면 쇼츠. 판별 전(None)이면 칸을 비워 두고 나중에 채웁니다.
+        if r.get("isShort") is not None:
+            row.append(1 if r["isShort"] else 0)
+        packed.append(row)
     return packed
 
 
 def unpack_videos(items: list) -> list[dict]:
     rows: list[dict] = []
     for i, item in enumerate(items or []):
+        is_short = None
         if isinstance(item, dict):
             vid = item.get("id") or ""
             title = item.get("title") or ""
             published = iso_to_day(item.get("published"))
+            if isinstance(item.get("isShort"), bool):
+                is_short = item["isShort"]
         elif isinstance(item, (list, tuple)) and item:
             vid = item[0] if len(item) > 0 else ""
             title = item[1] if len(item) > 1 else ""
             published = iso_to_day(item[2] if len(item) > 2 else "")
+            if len(item) > 3 and item[3] in (0, 1, True, False):
+                is_short = bool(item[3])
         else:
             continue
         if not vid:
             continue
-        rows.append({"id": vid, "title": title, "published": published, "ord": i})
+        rows.append({"id": vid, "title": title, "published": published, "ord": i, "isShort": is_short})
     return rows
 
 
-def merge_row(store: dict[str, dict], video_id: str, title: str, published: str, prefer_date: bool = False) -> None:
+def merge_row(
+    store: dict[str, dict],
+    video_id: str,
+    title: str,
+    published: str,
+    prefer_date: bool = False,
+    is_short: bool | None = None,
+) -> None:
     if not video_id:
         return
     cur = store.get(video_id)
@@ -99,8 +116,13 @@ def merge_row(store: dict[str, dict], video_id: str, title: str, published: str,
             "title": title or "",
             "published": published or "",
             "ord": len(store),
+            "isShort": is_short,
         }
         return
+    if is_short is not None:
+        # 쇼츠로 확인된 사실은 유지하고, 일반 영상 판정은 아직 모를 때만 채웁니다.
+        if is_short or cur.get("isShort") is None:
+            cur["isShort"] = is_short
     if title and (not cur.get("title") or (title != cur["title"] and not title.endswith("..."))):
         # Prefer a non-truncated, usually Korean, title
         if not cur.get("title") or cur["title"].endswith("...") or (prefer_date is False and title):
@@ -125,7 +147,7 @@ def import_yt_dlp():
         raise SystemExit(2)
 
 
-def extract_tab(yt_dlp, url: str, *, lang_ko: bool, dates: bool, playlist_end: int | None) -> list[dict]:
+def extract_tab(yt_dlp, url: str, *, lang_ko: bool, dates: bool, playlist_end: int | None, tab: str = "") -> list[dict]:
     extractor_args: dict = {}
     if lang_ko:
         extractor_args.setdefault("youtube", {})["lang"] = ["ko"]
@@ -166,7 +188,15 @@ def extract_tab(yt_dlp, url: str, *, lang_ko: bool, dates: bool, playlist_end: i
             continue
         title = (entry.get("title") or "").strip()
         published = iso_to_day(entry.get("timestamp")) or iso_to_day(entry.get("upload_date"))
-        rows.append({"id": video_id, "title": title, "published": published})
+        rows.append(
+            {
+                "id": video_id,
+                "title": title,
+                "published": published,
+                # /shorts 탭에서 나온 영상만 쇼츠. /videos·/streams 탭은 일반 영상으로 본다.
+                "isShort": True if tab == "shorts" else (False if tab in ("videos", "streams") else None),
+            }
+        )
     return rows
 
 
@@ -182,7 +212,7 @@ def crawl_channel(yt_dlp, channel_id: str, *, full: bool, incremental_end: int) 
             ("dates", {"lang_ko": False, "dates": True}),
         ):
             try:
-                entries = extract_tab(yt_dlp, url, playlist_end=end, **kwargs)
+                entries = extract_tab(yt_dlp, url, playlist_end=end, tab=tab, **kwargs)
             except Exception as exc:  # noqa: BLE001
                 err = f"{tab}/{label}: {type(exc).__name__}: {exc}"
                 errors.append(err)
@@ -192,7 +222,14 @@ def crawl_channel(yt_dlp, channel_id: str, *, full: bool, incremental_end: int) 
                 pass
             prefer_date = label == "dates"
             for e in entries:
-                merge_row(store, e["id"], e["title"], e["published"], prefer_date=prefer_date)
+                merge_row(
+                    store,
+                    e["id"],
+                    e["title"],
+                    e["published"],
+                    prefer_date=prefer_date,
+                    is_short=e.get("isShort"),
+                )
             print(f"  {tab}/{label}: {len(entries)}개", flush=True)
     return store, errors
 
@@ -210,6 +247,7 @@ def merge_rss(store: dict[str, dict], channel_id: str) -> int:
             item.get("title") or "",
             iso_to_day(item.get("published")),
             prefer_date=True,
+            is_short=item.get("isShort") if isinstance(item.get("isShort"), bool) else None,
         )
         if len(store) > before or True:
             added += 1
@@ -238,12 +276,90 @@ def write_channel(channel_id: str, store: dict[str, dict]) -> int:
     return len(packed)
 
 
+def classify_shorts(only: set[str], workers: int = 16, recheck: bool = False) -> int:
+    """쇼츠 여부를 아직 모르는 인덱스 항목을 썬네일·리다이렉트로 판별해 채워 넣습니다."""
+    sys.path.insert(0, str(HERE))
+    from update_feed import load_short_cache, probe_short, save_short_cache  # noqa: PLC0415
+
+    cache = load_short_cache()
+    data = load_json(CHANNELS_PATH, {})
+    channels = [c for c in data.get("channels") or [] if (c.get("id") or "").strip()]
+
+    stores: dict[str, dict[str, dict]] = {}
+    pending: list[str] = []
+    for ch in channels:
+        cid = ch["id"].strip()
+        if only and cid not in only:
+            continue
+        if not (INDEX_DIR / f"{cid}.json").is_file():
+            continue
+        store = load_existing(cid)
+        stores[cid] = store
+        if recheck:
+            # 이미 쇼츠로 판별된 항목을 다시 확인합니다 (오판이 있었다면 바로잡기)
+            pending.extend(row["id"] for row in store.values() if row.get("isShort") is not False)
+        else:
+            pending.extend(row["id"] for row in store.values() if row.get("isShort") is None)
+
+    pending = list(dict.fromkeys(pending))
+    to_probe = pending if recheck else [vid for vid in pending if vid not in cache]
+    to_probe_set = set(to_probe)
+    print(f"쇼츠 판별: 대상 {len(pending)}개 (새로 확인 {len(to_probe)}개, 동시 {workers})", flush=True)
+    if to_probe:
+        done = 0
+        for start in range(0, len(to_probe), 1000):
+            chunk = to_probe[start : start + 1000]
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                for video_id, flag in zip(chunk, pool.map(probe_short, chunk)):
+                    if flag is not None:
+                        cache[video_id] = flag
+            done += len(chunk)
+            save_short_cache(cache)
+            print(f"  ... {done}/{len(to_probe)} (쇼츠 {sum(1 for v in cache.values() if v == 1)}개)", flush=True)
+
+    changed = 0
+    shorts_total = 0
+    for cid, store in stores.items():
+        touched = False
+        for row in store.values():
+            if recheck:
+                if row["id"] in to_probe_set and row["id"] in cache:
+                    if row.get("isShort") != (cache[row["id"]] == 1):
+                        touched = True
+                    row["isShort"] = cache[row["id"]] == 1
+            elif row.get("isShort") is None and row["id"] in cache:
+                row["isShort"] = cache[row["id"]] == 1
+                touched = True
+            if row.get("isShort"):
+                shorts_total += 1
+        if touched:
+            write_channel(cid, store)
+            changed += 1
+
+    remaining = sum(1 for store in stores.values() for row in store.values() if row.get("isShort") is None)
+    print(f"쇼츠 판별 완료: 파일 {changed}개 갱신, 쇼츠 {shorts_total}개, 미판별 {remaining}개", flush=True)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="허용 채널 전체 영상 검색 인덱스를 만듭니다.")
     parser.add_argument("--full", action="store_true", help="채널의 모든 영상을 다시 수집합니다.")
     parser.add_argument("--end", type=int, default=80, help="증분 갱신 시 탭마다 가져올 최신 영상 수 (기본 80)")
     parser.add_argument("--only", action="append", default=[], help="이 채널 ID만 갱신 (여러 번 지정 가능)")
+    parser.add_argument(
+        "--classify-shorts",
+        action="store_true",
+        help="인덱스의 쇼츠 여부를 썬네일·리다이렉트로 판별해 채워 넣습니다 (크롤링 없이).",
+    )
+    parser.add_argument(
+        "--recheck-shorts",
+        action="store_true",
+        help="--classify-shorts와 함께 쓸 때, 이미 판별된 항목도 다시 확인합니다.",
+    )
     args = parser.parse_args()
+
+    if args.classify_shorts:
+        return classify_shorts(set(args.only), recheck=args.recheck_shorts)
 
     yt_dlp = import_yt_dlp()
     data = load_json(CHANNELS_PATH, {})
