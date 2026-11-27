@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T03:28:17Z",
+  "updatedAt": "2026-11-27T11:52:30Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -32,6 +32,12 @@
       "count": 400
     },
     {
+      "id": "UCul_vrsVKqanG_vsLMkMPHg",
+      "name": "제니 사탐",
+      "file": "UCul_vrsVKqanG_vsLMkMPHg.json",
+      "count": 156
+    },
+    {
       "id": "UCEZgS-_4GOwLfK_UyPs-OPQ",
       "name": "통과생과 이승후",
       "file": "UCEZgS-_4GOwLfK_UyPs-OPQ.json",
@@ -56,5 +62,5 @@
       "count": 5305
     }
   ],
-  "total": 28589
+  "total": 28745
 }
