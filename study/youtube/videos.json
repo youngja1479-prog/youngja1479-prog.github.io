@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T12:06:09Z",
+  "updatedAt": "2026-11-27T16:01:05Z",
   "videos": [
     {
       "id": "3ivvsvttSdU",
@@ -76,13 +76,6 @@
       "title": "[대성마이맥] 국어 김젬마T - 2028 봄봄 개념 : 기출 문학의 패턴",
       "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
       "published": "2026-11-27T08:00:34+00:00",
-      "isShort": false
-    },
-    {
-      "id": "PQ8XaxSovEw",
-      "title": "[메가스터디] 통합과학 박지향쌤 - [통합과학, 누구나 된다] 박지향의 개념끝장 OT",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-27T07:58:16+00:00",
       "isShort": false
     },
     {
@@ -265,6 +258,13 @@
       "title": "[메가스터디] 수학 김성은쌤 - N수 벌써 생각한다면!",
       "channelId": "UCma37fJBlF718VRgGlx4yGA",
       "published": "2026-11-26T02:20:07+00:00",
+      "isShort": false
+    },
+    {
+      "id": "YXMgNlcdH9M",
+      "title": "[메가스터디] 수학 민동휘쌤 - NOBASE REMIX",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-26T02:16:20+00:00",
       "isShort": false
     },
     {

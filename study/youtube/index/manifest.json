@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T11:52:30Z",
+  "updatedAt": "2026-11-27T16:01:59Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -11,13 +11,13 @@
       "id": "UChvD-OcXLp7em-mu4LpWw_A",
       "name": "신영균 국어",
       "file": "UChvD-OcXLp7em-mu4LpWw_A.json",
-      "count": 1756
+      "count": 1757
     },
     {
       "id": "UCwpzqlsnZOOswsRE0xSKhpw",
       "name": "수학강사 강윤구",
       "file": "UCwpzqlsnZOOswsRE0xSKhpw.json",
-      "count": 212
+      "count": 213
     },
     {
       "id": "UCGwOGZs0aoxMLhtY9q1WGRw",
@@ -35,26 +35,26 @@
       "id": "UCEZgS-_4GOwLfK_UyPs-OPQ",
       "name": "통과생과 이승후",
       "file": "UCEZgS-_4GOwLfK_UyPs-OPQ.json",
-      "count": 285
+      "count": 286
     },
     {
       "id": "UCEv0kqq3WYMjCnJ6AMKYCpg",
       "name": "이투스 채널",
       "file": "UCEv0kqq3WYMjCnJ6AMKYCpg.json",
-      "count": 4799
+      "count": 4803
     },
     {
       "id": "UCma37fJBlF718VRgGlx4yGA",
       "name": "theMEGASTUDY",
       "file": "UCma37fJBlF718VRgGlx4yGA.json",
-      "count": 15024
+      "count": 15032
     },
     {
       "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
       "name": "대성마이맥",
       "file": "UCKziRqbw2AvmAJ5wcYXRaMw.json",
-      "count": 5305
+      "count": 5311
     }
   ],
-  "total": 28345
+  "total": 28366
 }
