@@ -719,6 +719,40 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 .ctx-menu button:hover { background: var(--surface2); }
 .ctx-menu button.danger { color: var(--danger); }
 
+/* 지우개 색 필터 팝오버 — 모노톤 미니멀(종이·잉크·헤어라인) 톤 유지 */
+.popover {
+  position: fixed; z-index: 160; width: min(340px, calc(100vw - 16px));
+  background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg);
+  box-shadow: 0 10px 28px rgba(24,24,27,.16); padding: 10px;
+}
+.popover[hidden] { display: none; }
+.pop-title { font: 600 11px/1 var(--font); letter-spacing: .04em; color: var(--text3); margin: 0 2px 8px; }
+.pop-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pop-chip {
+  display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  font: 600 11.5px/1 var(--font); color: var(--text2); white-space: nowrap;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.pop-chip:hover { border-color: var(--text3); color: var(--text); }
+.pop-chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: #fff; }
+.pop-chip[aria-pressed="true"]:hover { background: #000; border-color: #000; color: #fff; }
+.pop-chip .dot { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(24,24,27,.16); flex-shrink: 0; }
+.pop-hint { margin: 8px 2px 0; font-size: 11px; color: var(--text4); }
+.pop-bulk {
+  width: 100%; height: 36px; margin-top: 9px; border: 1px solid var(--border2); border-radius: var(--radius);
+  background: var(--surface); font: 600 12px/1 var(--font); color: var(--danger);
+}
+.pop-bulk:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
+.pop-bulk:disabled { color: var(--text4); opacity: .55; }
+/* 지우개 버튼에 현재 필터 색 배지 */
+.tool-btn .er-badge {
+  position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 50%;
+  border: 1px solid #fff; box-shadow: 0 0 0 1px rgba(24,24,27,.14); display: none;
+}
+.tool-btn.has-filter .er-badge { display: block; }
+.tool-btn .ef-dot { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(24,24,27,.16); }
+
 
 .modal input[type=password], .modal input.pw-input {
   width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border);
@@ -935,7 +969,8 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
         <button class="tool-btn sw" data-tool="pen" data-color="#dc2626" title="빨간 펜" aria-label="빨간 펜"><span class="swatch red"></span></button>
         <button class="tool-btn sw" data-tool="highlighter" data-color="#fef08a" title="형광펜" aria-label="형광펜"><span class="swatch hl"></span></button>
         <button class="tool-btn sw" data-tool="highlighter" data-color="#f472b6" title="분홍 형광펜" aria-label="분홍 형광펜"><span class="swatch hl-pink"></span></button>
-        <button class="tool-btn lbl" data-tool="eraser" title="지우개"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-45 12 12)"><rect x="3.5" y="9.5" width="17" height="5.5" rx="1.2"/><path d="M12 9.5v5.5"/></g><path d="M5 21h14"/></svg><span class="tl">지우개</span></button>
+        <button class="tool-btn lbl" data-tool="eraser" title="지우개 (전체 색)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-45 12 12)"><rect x="3.5" y="9.5" width="17" height="5.5" rx="1.2"/><path d="M12 9.5v5.5"/></g><path d="M5 21h14"/></svg><span class="tl">지우개</span><i class="er-badge" aria-hidden="true"></i></button>
+        <button class="tool-btn lbl" id="btn-eraser-filter" title="지우개 색 — 지울 색 고르기"><span class="ef-dot" aria-hidden="true"></span><span class="tl">지우개 색</span></button>
         <button class="tool-btn lbl" data-tool="lasso" title="올가미 선택 (둘러싸서 이동·삭제·복사)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="9.5" rx="7.5" ry="5"/><path d="M8.5 13.8c-.8 2.2.2 4 2 5.6"/><path d="M10.5 19.6h3"/></svg><span class="tl">올가미</span></button>
         <button class="tool-btn lbl" id="btn-add-img" title="이미지 삽입 (갤러리·카메라)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.3"/><path d="M21 15l-5-5L5 20"/></svg><span class="tl">이미지</span></button>
         <button class="tool-btn lbl" data-tool="image" title="이미지 선택 — 이동·크기·삭제"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 8-6.2 1.6L10 19z"/></svg><span class="tl">선택</span></button>
@@ -993,6 +1028,12 @@ button:focus-visible, .cr-link:focus-visible { outline: 2px solid var(--text); o
 
 <div id="toast" class="toast"></div>
 <div id="modal-root"></div>
+<div id="eraser-filter-pop" class="popover" role="dialog" aria-label="지우개 색" hidden>
+  <div class="pop-title">지우개 색</div>
+  <div class="pop-chips" id="eraser-filter-chips"></div>
+  <div class="pop-hint">고른 색 필기만 문질러서 지워요</div>
+  <button type="button" class="pop-bulk" id="btn-color-bulk" disabled>이 색 모두 지우기</button>
+</div>
 
 <script>
 (function () {
@@ -2578,7 +2619,9 @@ const state = {
   redoStack: [],
   drawing: false,
   currentStroke: null,
-  pointers: new Map()
+  pointers: new Map(),
+  eraserFilter: 'all',   /* 'all' | '#rrggbb' — 지우개가 지울 색 */
+  filterErase: null      /* 색 필터 지우개 진행 상태 */
 };
 
 function getNb() { return DATA.notebooks.find(n => n.id === state.nbId); }
@@ -4111,6 +4154,7 @@ function cancelDrawingForPinch() {
   if (!state.drawing && !state.currentStroke && state.pointers.size === 0) return;
   state.drawing = false;
   state.currentStroke = null;
+  state.filterErase = null;
   state.pointers.clear();
   const w = wrap();
   if (w) w.classList.remove('drawing');
@@ -4529,6 +4573,7 @@ function initDrawPage() {
   setTimeout(() => { renderImages(); applyImgMode(); }, 0);
   state.drawing = false;
   state.currentStroke = null;
+  state.filterErase = null;
   state.pointers.clear();
 
   // sync toolbar
@@ -4548,6 +4593,8 @@ function initDrawPage() {
     if (btn) btn.classList.add('active');
   }
   $$('.thickness-btn').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.w) === state.width));
+  syncEraserFilterUI();
+  closeEraserPop();
   $('#btn-bg-lined').classList.toggle('active', state.bg === 'lined');
   $('#btn-bg-grid').classList.toggle('active', state.bg === 'grid');
   $('#btn-bg-blank').classList.toggle('active', state.bg === 'blank');
@@ -5051,6 +5098,15 @@ function onPointerDown(e) {
 
   const raw = canvasPosFromEvent(e);
   const p = stabilizePoint(raw);
+  if (state.tool === 'eraser' && state.eraserFilter !== 'all') {
+    // 색 필터 지우개: 필기 데이터는 pointerup에서 한 번만 자른다(중간 저장·동기화·Undo 낭비 없이).
+    // 끄는 동안에는 지울 자리를 옅게 표시만 한다.
+    state.currentStroke = null;
+    state.filterErase = { pid: e.pointerId, hex: state.eraserFilter, path: [p], snap: null, snapValid: false };
+    filterErasePaint();
+    e.preventDefault();
+    return;
+  }
   state.currentStroke = {
     tool: state.tool,
     color: state.color,
@@ -5059,6 +5115,26 @@ function onPointerDown(e) {
   };
   if (e.pointerType === 'pen' && state.tool === 'pen') state.currentStroke.pr = 1;
   scheduleLiveInk();
+  e.preventDefault();
+}
+
+/** 색 필터 지우개 경로에 점을 더하고 미리보기를 그린다. */
+function filterEraseMove(e) {
+  const fe = state.filterErase;
+  if (!fe || fe.pid !== e.pointerId) return;
+  if ((e.pointerType === 'pen' || e.pointerType === 'mouse') && e.buttons === 0) { onPointerUp(e); return; }
+  const rect = stageRect();
+  let evs;
+  try { evs = (typeof e.getCoalescedEvents === 'function') ? e.getCoalescedEvents() : null; } catch (_) { evs = null; }
+  if (!evs || !evs.length) evs = [e];
+  let last = fe.path[fe.path.length - 1], moved = false;
+  const add = (q) => {
+    if (Math.hypot(q.x - last.x, q.y - last.y) < 0.5) return;
+    fe.path.push(q); last = q; moved = true;
+  };
+  for (let i = 0; i < evs.length; i++) add(canvasPosFromEvent(evs[i], rect));
+  add(canvasPosFromEvent(e, rect));
+  if (moved) filterErasePaint();
   e.preventDefault();
 }
 
@@ -5078,7 +5154,10 @@ function onPointerMove(e) {
     e.preventDefault();
     return;
   }
-  if (!state.drawing || !state.currentStroke) return;
+  if (!state.drawing || !state.currentStroke) {
+    if (state.filterErase && state.filterErase.pid === e.pointerId) filterEraseMove(e);
+    return;
+  }
   if (!state.pointers.has(e.pointerId)) return;
   // Pen lifted but pointerup was lost → end stroke instead of dragging a line on hover
   if ((e.pointerType === 'pen' || e.pointerType === 'mouse') && e.buttons === 0) {
@@ -5145,6 +5224,28 @@ function onPointerUp(e) {
 
   wrap().classList.remove('drawing');
   state.drawing = false;
+  if (state.filterErase) {
+    const fe = state.filterErase;
+    state.filterErase = null;
+    state.currentStroke = null;
+    resetStrokeSmoothing();
+    if (fe.pid === e.pointerId) {
+      const before = getStrokes();
+      const next = filterEraseApply(before, fe.path, fe.hex, eraserHalfW());
+      if (next) {
+        state.undoStack.push(before.slice());
+        if (state.undoStack.length > 50) state.undoStack.shift();
+        state.redoStack = [];
+        setStrokes(next);
+        scheduleSave();
+      }
+      redrawInk();          // 미리보기 흔적을 지우고 실제 데이터(-잘린 획)만 그린다
+      updateUndoBtns();
+    } else {
+      redrawInk();
+    }
+    return;
+  }
   if (state.currentStroke && state.currentStroke.points.length) {
     const strokes = getStrokes();
     // push undo
@@ -5266,13 +5367,16 @@ function inkVisibleCount(strokes) {
   if (!Array.isArray(strokes) || !strokes.length) return 0;
   const last = strokes[strokes.length - 1], c = inkCountCache.get(strokes);
   if (c && c.n === strokes.length && c.last === last) return c.v;
-  const bc = new Map();
+  const bc = new Map(), seenOg = new Set();
   let v = 0;
   for (let i = 0; i < strokes.length; i++) {
     const st = strokes[i];
     if (!st || st.tool === 'eraser' || !Array.isArray(st.points) || !st.points.length) continue;
     const m = inkVisibleMask(strokes, i, bc);
-    if (m && m.some(Boolean)) v++;
+    if (!(m && m.some(Boolean))) continue;
+    // 색 지우개가 한 획을 두 조각으로 잘라도, 원래 한 번 쓴 획은 한 획으로 센다 (og = 원본 획 id).
+    if (st.og) { if (seenOg.has(st.og)) continue; seenOg.add(st.og); }
+    v++;
   }
   inkCountCache.set(strokes, { n: strokes.length, last, v });
   return v;
@@ -5378,6 +5482,231 @@ function inkVisibleRuns(strokes, i, bc) {
   // drop specks (shorter than ~1px) left at an eraser edge
   return runs.filter(r => r.length >= 2 && r.some(p => Math.hypot(p.x - r[0].x, p.y - r[0].y) >= 1));
 }
+/* ========== 지우개 색 필터 ==========
+   기존 지우개는 destination-out 픽셀 지우개라 그 자리의 모든 색이 함께 지워진다.
+   색을 고른 필터 지우개는 그 색 획만 지우개 경로에 닿은 구간을 잘라낸다(획 분할 —
+   지운 자리는 데이터에서 빠지므로 다른 기기·Undo에도 같은 결과가 남는다). */
+const ERASER_FILTERS = [
+  { hex: 'all', label: '전체' },
+  { hex: '#1a1a1a', label: '검정 펜' },
+  { hex: '#2563eb', label: '파란 펜' },
+  { hex: '#dc2626', label: '빨간 펜' },
+  { hex: '#fef08a', label: '노랑 형광펜' },
+  { hex: '#f472b6', label: '분홍 형광펜' }
+];
+const FILTER_ALL_DOT = 'conic-gradient(#1a1a1a,#2563eb,#dc2626,#fef08a,#f472b6,#1a1a1a)';
+/** hex 색 비교용 정규화(#ABC → #aabbcc, 대소문자·공백 무시) */
+function normHex(c) {
+  let s = String(c == null ? '' : c).trim().toLowerCase();
+  if (!s) return '';
+  if (s.charAt(0) !== '#') s = '#' + s;
+  if (/^#[0-9a-f]{3}$/.test(s)) s = '#' + s[1] + s[1] + s[2] + s[2] + s[3] + s[3];
+  return s;
+}
+function filterLabel(hex) {
+  if (!hex || hex === 'all') return '전체 색';
+  const f = ERASER_FILTERS.find(x => x.hex === normHex(hex));
+  return f ? f.label : '전체 색';
+}
+function eraserHalfW() { return Math.max(1, strokeLineWidth({ tool: 'eraser', width: state.width }) / 2); }
+/** 경로(폴리라인)에서 lim 안쪽인지 판정하는 함수 */
+function pathCoverFn(path, lim) {
+  if (!path || !path.length) return () => false;
+  if (path.length === 1) { const q = path[0]; return (x, y) => Math.hypot(x - q.x, y - q.y) <= lim; }
+  return (x, y) => {
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1], b = path[i];
+      if ((x < a.x - lim && x < b.x - lim) || (x > a.x + lim && x > b.x + lim) ||
+          (y < a.y - lim && y < b.y - lim) || (y > a.y + lim && y > b.y + lim)) continue;
+      if (inkSegDist(x, y, a, b) <= lim) return true;
+    }
+    return false;
+  };
+}
+/** 획에서 지우개가 덮은 구간을 뺀 나머지 점 목록들 (1px 단위로 잘라 냄) */
+function strokeRunsOutside(st, covered) {
+  const pts = st.points;
+  const lerp = (a, b, t) => {
+    const o = Object.assign({}, t < 0.5 ? a : b, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+    if (typeof a.p === 'number' && typeof b.p === 'number') o.p = a.p + (b.p - a.p) * t;
+    return o;
+  };
+  const runs = []; let run = null;
+  if (!covered(pts[0].x, pts[0].y)) { run = [Object.assign({}, pts[0])]; runs.push(run); }
+  if (pts.length === 1) return runs;
+  for (let k = 1; k < pts.length; k++) {
+    const a = pts[k - 1], b = pts[k], n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y)));
+    for (let m = 1; m <= n; m++) {
+      const t = m / n, v = !covered(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+      if (v && !run) { run = [lerp(a, b, (m - 1) / n)]; runs.push(run); }
+      if (!v && run) { run.push(lerp(a, b, (m - 1) / n)); run = null; }
+    }
+    if (run) run.push(Object.assign({}, b));
+  }
+  return runs.filter(r => r.length >= 2 || (pts.length === 1 && r.length === 1));
+}
+/** 지우개 경로에 닿은 '그 색' 획만 잘라낸 새 배열. 바뀐 것이 없으면 null */
+function filterEraseApply(strokes, path, hex, halfW) {
+  const target = normHex(hex);
+  if (!target || target === 'all' || !path || !path.length) return null;
+  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+  path.forEach(p => { bx0 = Math.min(bx0, p.x); by0 = Math.min(by0, p.y); bx1 = Math.max(bx1, p.x); by1 = Math.max(by1, p.y); });
+  const pad = halfW + 24;
+  const near = b => !(b.x1 < bx0 - pad || b.x0 > bx1 + pad || b.y1 < by0 - pad || b.y0 > by1 + pad);
+  let changed = false;
+  const out = [];
+  for (const st of strokes) {
+    if (!st || st.tool === 'eraser' || !Array.isArray(st.points) || !st.points.length) { out.push(st); continue; }
+    if (normHex(st.color) !== target) { out.push(st); continue; }
+    const inkHalf = strokeLineWidth(st) * (st.pr && st.tool === 'pen' ? 1.28 : 1) / 2;
+    if (!near(inkBounds(st, inkHalf + halfW + 1))) { out.push(st); continue; }
+    const runs = strokeRunsOutside(st, pathCoverFn(path, halfW + inkHalf));
+    if (runs.length === 1 && runs[0].length === st.points.length) { out.push(st); continue; }
+    changed = true;
+    // 조각마다 새 id — 원본은 setStrokes에서 tombstone되어 다른 기기도 같이 줄어든다.
+    // og(원본 획 id)를 물려줘 '필기 N획'은 조각 수가 아니라 쓴 획 수로 센다.
+    const og = st.og || st.id || uid();
+    runs.forEach(pts => out.push(Object.assign({}, st, { id: uid(), og, points: pts })));
+  }
+  return changed ? out : null;
+}
+/** 필터 지우개 미리보기 — 지금 이 색이 지워질 자리를 옅게 보여 준다(pointerup 때 redrawInk로 사라짐).
+    끄는 동안 경로 전체를 한 번에 다시 그려서(스냅샷 위에) 자국이 겹겹이 진해지지 않게 한다. */
+function filterErasePaint() {
+  const fe = state.filterErase;
+  const c = canvas();
+  const ctx = getInkCtx();
+  if (!fe || !ctx || !c) return;
+  if (!fe.snap) fe.snap = document.createElement('canvas');
+  if (fe.snap.width !== c.width || fe.snap.height !== c.height) {
+    fe.snap.width = c.width; fe.snap.height = c.height; fe.snapValid = false;
+  }
+  if (!fe.snapValid) {
+    const sc = fe.snap.getContext('2d');
+    sc.setTransform(1, 0, 0, 1, 0, 0);
+    sc.clearRect(0, 0, fe.snap.width, fe.snap.height);
+    sc.drawImage(c, 0, 0);
+    fe.snapValid = true;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.drawImage(fe.snap, 0, 0);
+  inkT(ctx);
+  const w = eraserHalfW(), q = fe.path;
+  if (!q.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = fe.hex; ctx.fillStyle = fe.hex;
+  ctx.lineWidth = w * 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (q.length === 1) {
+    ctx.beginPath(); ctx.arc(q[0].x, q[0].y, Math.max(w, 0.5), 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y);
+    for (let i = 1; i < q.length; i++) ctx.lineTo(q[i].x, q[i].y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+/** 지금 고른 색의 필기를 이 페이지에서 한 번에 지운다 (Undo 1스텝) */
+function deleteEraserColorNow() {
+  const hex = state.eraserFilter;
+  if (!hex || hex === 'all') return;
+  const target = normHex(hex);
+  const strokes = getStrokes();
+  const keep = strokes.filter(st => !(st && st.tool !== 'eraser' && Array.isArray(st.points) && st.points.length && normHex(st.color) === target));
+  if (keep.length === strokes.length) { toast('이 색 필기가 없어요'); return; }
+  state.undoStack.push(strokes.slice());
+  if (state.undoStack.length > 50) state.undoStack.shift();
+  state.redoStack = [];
+  setStrokes(keep);
+  scheduleSave();
+  closeEraserPop();
+  redrawAll();
+  updateUndoBtns();
+  toastUndo(filterLabel(hex) + ' 필기를 지웠어요', () => doUndo());
+}
+/* ---- 지우개 색 팝오버 UI ---- */
+function buildEraserFilterChips() {
+  const box = $('#eraser-filter-chips');
+  if (!box || box.dataset.done) return;
+  box.innerHTML = ERASER_FILTERS.map(f => {
+    const dot = `<i class="dot" style="background:${f.hex === 'all' ? FILTER_ALL_DOT : f.hex}"></i>`;
+    return `<button type="button" class="pop-chip" data-hex="${f.hex}" aria-pressed="false">${dot}<span>${f.label}</span></button>`;
+  }).join('');
+  box.dataset.done = '1';
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest ? e.target.closest('.pop-chip') : null;
+    if (!b) return;
+    setEraserFilter(b.dataset.hex);
+  });
+}
+function selectEraserTool() {
+  if (state.tool !== 'eraser' && lasso.mode) lassoClear();
+  state.tool = 'eraser';
+  applyImgMode();
+  $$('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+  const b = $('.tool-btn[data-tool="eraser"]');
+  if (b) b.classList.add('active');
+}
+function setEraserFilter(hex) {
+  state.eraserFilter = (!hex || hex === 'all') ? 'all' : normHex(hex);
+  selectEraserTool();
+  syncEraserFilterUI();
+  toast(state.eraserFilter === 'all' ? '지우개: 전체 색' : '지우개: ' + filterLabel(state.eraserFilter) + '만 지워요');
+}
+function syncEraserFilterUI() {
+  const hex = state.eraserFilter || 'all';
+  const erBtn = $('.tool-btn[data-tool="eraser"]');
+  if (erBtn) {
+    erBtn.classList.toggle('has-filter', hex !== 'all');
+    const badge = erBtn.querySelector('.er-badge');
+    if (badge) badge.style.background = hex === 'all' ? 'transparent' : hex;
+    erBtn.title = hex === 'all' ? '지우개 (전체 색)' : '지우개 (' + filterLabel(hex) + '만)';
+  }
+  const fBtn = $('#btn-eraser-filter');
+  if (fBtn) {
+    const d = fBtn.querySelector('.ef-dot');
+    if (d) d.style.background = hex === 'all' ? FILTER_ALL_DOT : hex;
+    fBtn.title = '지우개 색 — ' + filterLabel(hex);
+  }
+  $$('#eraser-filter-chips .pop-chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.hex === hex)));
+  const bulk = $('#btn-color-bulk');
+  if (bulk) {
+    bulk.disabled = hex === 'all';
+    bulk.textContent = hex === 'all' ? '이 색 모두 지우기' : filterLabel(hex) + ' 모두 지우기';
+  }
+}
+function placeEraserPop() {
+  const pop = $('#eraser-filter-pop');
+  if (!pop || pop.hidden) return;
+  const anchor = $('#btn-eraser-filter') || $('.tool-btn[data-tool="eraser"]');
+  if (!anchor) return;
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth || 320, h = pop.offsetHeight || 180;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = r.left + r.width / 2 - w / 2;
+  left = Math.max(8, Math.min(left, vw - w - 8));
+  let top = r.bottom + 6;
+  if (top + h > vh - 8) top = Math.max(8, r.top - h - 6);
+  pop.style.left = Math.round(left) + 'px';
+  pop.style.top = Math.round(top) + 'px';
+}
+function openEraserPop() {
+  const pop = $('#eraser-filter-pop');
+  if (!pop) return;
+  buildEraserFilterChips();
+  syncEraserFilterUI();
+  pop.hidden = false;
+  placeEraserPop();
+}
+function closeEraserPop() { const pop = $('#eraser-filter-pop'); if (pop) pop.hidden = true; }
+function toggleEraserPop() {
+  const pop = $('#eraser-filter-pop');
+  if (!pop) return;
+  if (pop.hidden) openEraserPop(); else closeEraserPop();
+}
+
 /** Before moving/copying: replace selected ink by its visible pieces on top of the z-order,
     so no eraser (moved or not) can cut it at the destination and erased parts stay gone.
     Erase strokes stay where they are. Returns false when nothing needed changing. */
@@ -6427,6 +6756,7 @@ function wireEvents() {
   // Draw toolbar
   $$('.tool-btn[data-tool]').forEach(btn => {
     btn.addEventListener('click', () => {
+      const wasEraser = btn.dataset.tool === 'eraser' && btn.classList.contains('active') && state.tool === 'eraser';
       state.tool = btn.dataset.tool;
       if (btn.dataset.color) state.color = btn.dataset.color;
       if (state.tool !== 'lasso') lassoClear();
@@ -6434,8 +6764,32 @@ function wireEvents() {
       applyImgMode();
       $$('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      if (state.tool === 'eraser') {
+        // 지우개를 다시 탭하면 색 고르기 팝오버, 처음 고르면 현재 필터만 알려 준다.
+        if (wasEraser) toggleEraserPop();
+        else if (state.eraserFilter !== 'all') toast('지우개: ' + filterLabel(state.eraserFilter) + '만 지워요');
+      } else {
+        closeEraserPop();
+      }
     });
   });
+  // 지우개 색 필터 팝오버
+  const efBtn = $('#btn-eraser-filter');
+  if (efBtn) efBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleEraserPop(); });
+  const bulkBtn = $('#btn-color-bulk');
+  if (bulkBtn) bulkBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteEraserColorNow(); });
+  document.addEventListener('pointerdown', (e) => {
+    const pop = $('#eraser-filter-pop');
+    if (!pop || pop.hidden) return;
+    if (pop.contains(e.target)) return;
+    const t = e.target;
+    if (t && t.closest && (t.closest('#btn-eraser-filter') || t.closest('.tool-btn[data-tool="eraser"]'))) return;
+    closeEraserPop();
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEraserPop(); });
+  window.addEventListener('resize', placeEraserPop);
+  buildEraserFilterChips();
+  syncEraserFilterUI();
   $$('.thickness-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       state.width = parseFloat(btn.dataset.w);
