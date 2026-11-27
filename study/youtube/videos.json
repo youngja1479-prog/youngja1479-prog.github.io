@@ -1,6 +1,160 @@
 {
-  "updatedAt": "2026-11-27T03:27:34Z",
+  "updatedAt": "2026-11-27T11:52:15Z",
   "videos": [
+    {
+      "id": "3ivvsvttSdU",
+      "title": "도형과 함수 ㅣ 수능 대비 실전 개념 총정리",
+      "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
+      "published": "2026-11-27T09:00:38+00:00",
+      "isShort": false
+    },
+    {
+      "id": "-UYRy2YYkqk",
+      "title": "욕 아닙니다",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T09:00:38+00:00",
+      "isShort": true
+    },
+    {
+      "id": "cwWpdAMcdHg",
+      "title": "눈치 100단 학생의 대답",
+      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
+      "published": "2026-11-27T09:00:20+00:00",
+      "isShort": true
+    },
+    {
+      "id": "GzAmv03UXy0",
+      "title": "'생소함'으로 변별하는 통합과학",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T09:00:12+00:00",
+      "isShort": true
+    },
+    {
+      "id": "W3O3nDuDT-o",
+      "title": "연세대 정시 합격생은 하루 몇 시간 공부했을까?",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T08:30:30+00:00",
+      "isShort": true
+    },
+    {
+      "id": "nJM3XP6sQ_o",
+      "title": "[대성마이맥] 수학 손승연T - 2028 손절 OT",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T08:30:18+00:00",
+      "isShort": false
+    },
+    {
+      "id": "SCgi8_1Dwhc",
+      "title": "[메가스터디] 통합과학 함석진쌤 - [2028 통합과학] 함석진 수능 대비 연간 커리큘럼",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T08:09:36+00:00",
+      "isShort": false
+    },
+    {
+      "id": "nT09iGNRJfk",
+      "title": "[메가스터디] 통합과학 강민웅쌤 - [2028 통합과학] 강민웅 수능 대비 연간 커리큘럼",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T08:07:08+00:00",
+      "isShort": false
+    },
+    {
+      "id": "f4AZmmE_Umc",
+      "title": "[메가스터디] 통합과학 정훈구&백호쌤 - [2028 수능 통합과학] N수생 학습 전략",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T08:04:46+00:00",
+      "isShort": false
+    },
+    {
+      "id": "CsY-6_3UtKg",
+      "title": "[메가스터디] 통합과학 장풍쌤 - 수능은 경험했지만 통합과학은 처음인 N수생에게!",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T08:01:38+00:00",
+      "isShort": false
+    },
+    {
+      "id": "pr8Ucl6-Lkc",
+      "title": "[대성마이맥] 국어 김젬마T - 2028 봄봄 개념 : 기출 문학의 패턴",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T08:00:34+00:00",
+      "isShort": false
+    },
+    {
+      "id": "PQ8XaxSovEw",
+      "title": "[메가스터디] 통합과학 박지향쌤 - [통합과학, 누구나 된다] 박지향의 개념끝장 OT",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T07:58:16+00:00",
+      "isShort": false
+    },
+    {
+      "id": "zWtbe_ezq-8",
+      "title": "[대성마이맥] 수능 영어 고민의 끝 | 고연승 Surfing Starter",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T07:37:19+00:00",
+      "isShort": false
+    },
+    {
+      "id": "hOSrrN_H6FA",
+      "title": "[이투스 통합사회 한세희 선생님] 2028 한세희T 커리큘럼",
+      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
+      "published": "2026-11-27T07:33:42+00:00",
+      "isShort": false
+    },
+    {
+      "id": "LeV3eReGi2o",
+      "title": "[이투스 통합과학 홍인왕 선생님] 2028 홍인왕T 커리큘럼",
+      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
+      "published": "2026-11-27T07:33:40+00:00",
+      "isShort": false
+    },
+    {
+      "id": "3tIkXZZWEQQ",
+      "title": "[이투스 수학 전인덕 선생님] 2028 전인덕T 커리큘럼",
+      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
+      "published": "2026-11-27T07:33:38+00:00",
+      "isShort": false
+    },
+    {
+      "id": "8z5wF9bg2sI",
+      "title": "[이투스 수학 강윤구 선생님] 수학은 판단 싸움! 판단의 중요성을 인식하자!★",
+      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
+      "published": "2026-11-27T07:33:36+00:00",
+      "isShort": false
+    },
+    {
+      "id": "G2OcaddJgZw",
+      "title": "수능 통합과학  융합적 사고?? 속지마세요!",
+      "channelId": "UCEZgS-_4GOwLfK_UyPs-OPQ",
+      "published": "2026-11-27T07:00:35+00:00",
+      "isShort": true
+    },
+    {
+      "id": "MjN810WSe1s",
+      "title": "추상적인 지문? 대입해 봐!ㅣ실전 문해력",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T06:24:16+00:00",
+      "isShort": true
+    },
+    {
+      "id": "Nhl65ABE5Qk",
+      "title": "[대성마이맥] 영어 고연승T - 2028 SURFING STARTER",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T05:00:30+00:00",
+      "isShort": false
+    },
+    {
+      "id": "3zVyZviwdiQ",
+      "title": "[메가스터디] 국어 윤지영쌤 - 달라진 수능, N수생 국어 학습 우선 순위",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T04:57:00+00:00",
+      "isShort": false
+    },
+    {
+      "id": "GRSHvOv17uU",
+      "title": "[대성마이맥] 사회 임정환T - 2027 SUPREME 사회와 문화 · 현대사회와 윤리 공통 OT",
+      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
+      "published": "2026-11-27T04:00:01+00:00",
+      "isShort": false
+    },
     {
       "id": "Mm1Qd7ePHZw",
       "title": "피카츄 말고 그 있잖아? #국어 #유머 #수능전문 #수험생 #쇼츠",
@@ -114,69 +268,6 @@
       "isShort": false
     },
     {
-      "id": "YXMgNlcdH9M",
-      "title": "[메가스터디] 수학 민동휘쌤 - NOBASE REMIX",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T02:16:20+00:00",
-      "isShort": false
-    },
-    {
-      "id": "L6RF8yEtTbw",
-      "title": "[메가스터디] 사관경찰 곽동령쌤 - 2028학년도 사관·경찰 연간 커리큘럼",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T02:08:52+00:00",
-      "isShort": false
-    },
-    {
-      "id": "xNIkSGDiC4g",
-      "title": "[메가스터디] 프랑스어 정수린쌤 - 2027학년도 수능 프랑스어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T02:03:36+00:00",
-      "isShort": false
-    },
-    {
-      "id": "GaZWS01OD2k",
-      "title": "[메가스터디] 중국어 박수진쌤 - 2027학년도 수능 중국어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T02:01:27+00:00",
-      "isShort": false
-    },
-    {
-      "id": "FmB4kqClyGA",
-      "title": "[메가스터디] 일본어 이선옥쌤 - 2027학년도 수능 일본어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:58:13+00:00",
-      "isShort": false
-    },
-    {
-      "id": "jawfqjgk8Ss",
-      "title": "[메가스터디] 러시아어 빠샤쌤 - 2027학년도 수능 러시아어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:56:15+00:00",
-      "isShort": false
-    },
-    {
-      "id": "KCUlhKFR4Xc",
-      "title": "[메가스터디] 과학 강민웅쌤 - 2027학년도 수능 물리 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:53:40+00:00",
-      "isShort": false
-    },
-    {
-      "id": "yfnppyoM1os",
-      "title": "[메가스터디] 사회 김종익쌤 - 2027학년도 수능 윤리와 사상 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:51:11+00:00",
-      "isShort": false
-    },
-    {
-      "id": "beCgkDy9mSQ",
-      "title": "[메가스터디] 사회 김종익쌤 - 2027학년도 수능 생활과 윤리 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:49:27+00:00",
-      "isShort": false
-    },
-    {
       "id": "QOgvAtIfIZw",
       "title": "[이투스 통합사회 최진기 선생님] 우리의 수능은 왜 '통합사회'로 바뀌었는가",
       "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
@@ -251,34 +342,6 @@
       "title": "흙수저 Faraday",
       "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
       "published": "2026-11-25T08:32:37+00:00",
-      "isShort": true
-    },
-    {
-      "id": "yoKhqB5e-Tw",
-      "title": "Faraday의 전자기 유도",
-      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
-      "published": "2026-11-25T08:32:24+00:00",
-      "isShort": true
-    },
-    {
-      "id": "xsW8-VRzwI0",
-      "title": "DNA 주형 판별법",
-      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
-      "published": "2026-11-25T08:11:56+00:00",
-      "isShort": true
-    },
-    {
-      "id": "7_itaZTWUBI",
-      "title": "지각, 생명체 원소 순서 외우기",
-      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
-      "published": "2026-11-25T08:11:31+00:00",
-      "isShort": true
-    },
-    {
-      "id": "WIAssN2YfDc",
-      "title": "규산염 사면체, 암기 꿀팁",
-      "channelId": "UCEv0kqq3WYMjCnJ6AMKYCpg",
-      "published": "2026-11-25T08:11:16+00:00",
       "isShort": true
     },
     {
@@ -387,27 +450,6 @@
       "isShort": true
     },
     {
-      "id": "KpMt04kOawc",
-      "title": "[대성마이맥] 과학 방인혁T - 2027학년도 수능 물리학II 전문항 해설강의",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-24T02:17:40+00:00",
-      "isShort": false
-    },
-    {
-      "id": "urT7DEEQzNA",
-      "title": "[대성마이맥] 과학 정성태T - 2028 Visual Schema 기출의 도식  OT",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-24T02:00:39+00:00",
-      "isShort": false
-    },
-    {
-      "id": "juKOMs7NfDc",
-      "title": "[대성마이맥] 국어 김승리T - 2028학년도 수능 국어 연간 커리큘럼",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-23T14:00:04+00:00",
-      "isShort": false
-    },
-    {
       "id": "bX4tgBCzmpQ",
       "title": "2028 이투스 강윤구",
       "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
@@ -448,27 +490,6 @@
       "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
       "published": "2026-11-23T09:00:04+00:00",
       "isShort": true
-    },
-    {
-      "id": "5kvzO-d3mOQ",
-      "title": "[대성마이맥] 수학 이미지T - 2028 세젤쉬 OT",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-23T08:30:25+00:00",
-      "isShort": false
-    },
-    {
-      "id": "22O2VKf2ytI",
-      "title": "2028 션샤인 장학생 모집 안내 | 영어 션티T [대성마이맥]",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-23T08:00:24+00:00",
-      "isShort": false
-    },
-    {
-      "id": "_LhetONPG5w",
-      "title": "[대성마이맥] 국어 김젬마T - 수능 국어 입문 쉬바국  OT",
-      "channelId": "UCKziRqbw2AvmAJ5wcYXRaMw",
-      "published": "2026-11-23T08:00:22+00:00",
-      "isShort": false
     },
     {
       "id": "vG7MAOq0ZHM",
@@ -520,6 +541,13 @@
       "isShort": true
     },
     {
+      "id": "lNzqXsGti2U",
+      "title": "[메가스터디 러셀] 2028학년도 수능 대비 통합사회 김제니T OT",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-11-21T12:36:03+00:00",
+      "isShort": false
+    },
+    {
       "id": "jn5gH82LMhA",
       "title": "2027학년도 수능에 대하여",
       "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
@@ -548,11 +576,11 @@
       "isShort": false
     },
     {
-      "id": "i2ZdePBE5SE",
-      "title": "공부도 아이템이 중요한가?",
-      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
-      "published": "2026-11-20T09:00:14+00:00",
-      "isShort": true
+      "id": "6sr8C0_uu3M",
+      "title": "은퇴 기념 27수능 사회문화 최초풀이",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-11-19T13:52:19+00:00",
+      "isShort": false
     },
     {
       "id": "MBeGubo-LSo",
@@ -632,13 +660,6 @@
       "isShort": true
     },
     {
-      "id": "KDR7-I9-kA8",
-      "title": "당부의 말씀을 드립니다.",
-      "channelId": "UCwpzqlsnZOOswsRE0xSKhpw",
-      "published": "2026-11-16T13:48:00+00:00",
-      "isShort": false
-    },
-    {
       "id": "XscZEmXalpE",
       "title": "통합과학에서 ‘통합’이 뭔데? | 이승후T #shorts",
       "channelId": "UCEZgS-_4GOwLfK_UyPs-OPQ",
@@ -674,6 +695,13 @@
       "isShort": true
     },
     {
+      "id": "kh7hjuPfUrA",
+      "title": "당신의 통합사회에 투표하세요",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-11-12T10:30:29+00:00",
+      "isShort": false
+    },
+    {
       "id": "kFKDV7XoP74",
       "title": "수능 끝나고 후회하지 말고, 지금 확인하세요.",
       "channelId": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -686,13 +714,6 @@
       "channelId": "UCEZgS-_4GOwLfK_UyPs-OPQ",
       "published": "2026-11-11T11:00:15+00:00",
       "isShort": true
-    },
-    {
-      "id": "pJbMLhOEBhw",
-      "title": "2028 수능 통합과학, 쉬울까? 어려울까? | 실제 출제를 해본 전문가가 알려드립니다",
-      "channelId": "UCEZgS-_4GOwLfK_UyPs-OPQ",
-      "published": "2026-11-10T11:00:36+00:00",
-      "isShort": false
     },
     {
       "id": "0Yr8fyfxtjg",
@@ -793,6 +814,13 @@
       "isShort": true
     },
     {
+      "id": "kcb5ts5qzGg",
+      "title": "통합사회의 킬러는 지리다 vs 경제다 | 댓글 투표",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-31T10:40:05+00:00",
+      "isShort": false
+    },
+    {
       "id": "sXpwnqqM2_E",
       "title": "명심하세요.",
       "channelId": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -805,6 +833,20 @@
       "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
       "published": "2026-10-26T10:26:52+00:00",
       "isShort": true
+    },
+    {
+      "id": "1po3y2kQaEA",
+      "title": "시대인재에서 사문 노베에게 도표를 가르쳐봤습니다.",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-25T13:04:09+00:00",
+      "isShort": false
+    },
+    {
+      "id": "eyesQg9UOgk",
+      "title": "2027 10월 사회문화 전문항 손풀이 해설강의",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-21T16:12:07+00:00",
+      "isShort": false
     },
     {
       "id": "hCqy7bzDhd4",
@@ -828,6 +870,13 @@
       "isShort": false
     },
     {
+      "id": "KgziIWFueHo",
+      "title": "[통합사회] 2학기 내신&10평 대비 총정리 | 자료 댓글💌 | 고1 2학기중간&기말&수능 | 제니T와 고등 통합사회 공부",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-11T11:40:52+00:00",
+      "isShort": false
+    },
+    {
       "id": "-8eG-vsGWUw",
       "title": "거울 꼭 기억하자..!",
       "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
@@ -835,10 +884,31 @@
       "isShort": true
     },
     {
+      "id": "ynIAybzVRpQ",
+      "title": "10월 사회문화 마지막 특강!!!",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-04T13:35:27+00:00",
+      "isShort": true
+    },
+    {
+      "id": "k0LfAybtabI",
+      "title": "철학자 공부 이걸로 하세요ㅣ스타강사 연습생 김제니 [EP.4-2]",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-10-04T12:21:08+00:00",
+      "isShort": false
+    },
+    {
       "id": "LO8i-sJjoXE",
       "title": "순서는 무조건 다 맞히게 될 겁니다.",
       "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
       "published": "2026-10-02T10:58:43+00:00",
+      "isShort": false
+    },
+    {
+      "id": "X3K7Lna2ie0",
+      "title": "특강 한번 더 하겠습니다..| 사회문화 김제니T",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-29T13:40:39+00:00",
       "isShort": false
     },
     {
@@ -853,6 +923,41 @@
       "title": "D-52, 영어 성적 뒤집어 드리겠습니다.",
       "channelId": "UCGwOGZs0aoxMLhtY9q1WGRw",
       "published": "2026-09-28T11:19:15+00:00",
+      "isShort": false
+    },
+    {
+      "id": "KDN9xs4ZLKE",
+      "title": "스타강사연습생 데뷔무대 선공개합니다",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-25T09:55:29+00:00",
+      "isShort": true
+    },
+    {
+      "id": "BX67Vlmeecs",
+      "title": "여러분이 푸는 시험지는 이렇게 만들어집니다",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-19T12:14:41+00:00",
+      "isShort": false
+    },
+    {
+      "id": "OTjDhpIv1ds",
+      "title": "너무 충격적이라 말하고 싶지 않았는데",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-18T13:15:41+00:00",
+      "isShort": true
+    },
+    {
+      "id": "1DTbKhBT1fA",
+      "title": "27 9평 사회문화 최초풀이 실전 운영‼⏰️",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-13T09:42:58+00:00",
+      "isShort": true
+    },
+    {
+      "id": "A6Gg_uMANLs",
+      "title": "서울대 입시 독기 월드컵 | 스타강사 연습생 김제니 [EP.4-1]",
+      "channelId": "UCul_vrsVKqanG_vsLMkMPHg",
+      "published": "2026-09-12T10:00:04+00:00",
       "isShort": false
     },
     {
