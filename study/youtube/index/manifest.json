@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-26T20:53:10Z",
+  "updatedAt": "2026-11-27T03:28:17Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -11,7 +11,7 @@
       "id": "UChvD-OcXLp7em-mu4LpWw_A",
       "name": "신영균 국어",
       "file": "UChvD-OcXLp7em-mu4LpWw_A.json",
-      "count": 1755
+      "count": 1756
     },
     {
       "id": "UCwpzqlsnZOOswsRE0xSKhpw",
@@ -47,7 +47,7 @@
       "id": "UCma37fJBlF718VRgGlx4yGA",
       "name": "theMEGASTUDY",
       "file": "UCma37fJBlF718VRgGlx4yGA.json",
-      "count": 15019
+      "count": 15024
     },
     {
       "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
@@ -56,5 +56,5 @@
       "count": 5305
     }
   ],
-  "total": 28583
+  "total": 28589
 }

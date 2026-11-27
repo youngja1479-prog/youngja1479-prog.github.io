@@ -1,6 +1,48 @@
 {
-  "updatedAt": "2026-11-26T20:52:21Z",
+  "updatedAt": "2026-11-27T03:27:34Z",
   "videos": [
+    {
+      "id": "Mm1Qd7ePHZw",
+      "title": "피카츄 말고 그 있잖아? #국어 #유머 #수능전문 #수험생 #쇼츠",
+      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
+      "published": "2026-11-27T03:00:01+00:00",
+      "isShort": true
+    },
+    {
+      "id": "8y03clfShno",
+      "title": "[메가스터디] 수학 현우진쌤 - 2028 수분감 OT",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T02:28:53+00:00",
+      "isShort": false
+    },
+    {
+      "id": "SMU4fIrHmKw",
+      "title": "[메가스터디] 수학 양승진쌤 - 2028 양승진의 커리큘럼",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T02:25:24+00:00",
+      "isShort": false
+    },
+    {
+      "id": "2HvIKYojz7U",
+      "title": "[메가스터디] 수학 이승효쌤 - N수 벌써 생각한다면!",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T02:17:37+00:00",
+      "isShort": false
+    },
+    {
+      "id": "oX1KPPua1XM",
+      "title": "[메가스터디] 수학 현우진쌤 - 2028 수능 대비 현우진 커리큘럼 가이드",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T02:15:51+00:00",
+      "isShort": false
+    },
+    {
+      "id": "K3i61bCZUnU",
+      "title": "[메가스터디] 수학 현우진쌤 - 입문 N제, 드릴제로 시즌2 OT",
+      "channelId": "UCma37fJBlF718VRgGlx4yGA",
+      "published": "2026-11-27T01:56:50+00:00",
+      "isShort": false
+    },
     {
       "id": "74U1s7zTck4",
       "title": "올해 영어는 적게 공부하는 사람이 이깁니다.",
@@ -132,41 +174,6 @@
       "title": "[메가스터디] 사회 김종익쌤 - 2027학년도 수능 생활과 윤리 해설강의",
       "channelId": "UCma37fJBlF718VRgGlx4yGA",
       "published": "2026-11-26T01:49:27+00:00",
-      "isShort": false
-    },
-    {
-      "id": "Fe2QR_UKf2U",
-      "title": "[메가스터디] 수학 김성은쌤 - 2027학년도 수능 확률과 통계 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:46:18+00:00",
-      "isShort": false
-    },
-    {
-      "id": "mthaSA88A8k",
-      "title": "[메가스터디] 영어 김기철쌤 - 2027학년도 수능 영어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:44:04+00:00",
-      "isShort": false
-    },
-    {
-      "id": "HufKC91zJ5Y",
-      "title": "[메가스터디] 영어 고수현쌤 - 2027학년도 수능 영어 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:41:44+00:00",
-      "isShort": false
-    },
-    {
-      "id": "NjY58_qofaw",
-      "title": "[메가스터디] 국어 윤지영쌤 - 2027학년도 수능 화법과 작문 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:38:49+00:00",
-      "isShort": false
-    },
-    {
-      "id": "uWtRVO6Rxug",
-      "title": "[메가스터디] 국어 정담온쌤 - 2027학년도 수능 언어와 매체 해설강의",
-      "channelId": "UCma37fJBlF718VRgGlx4yGA",
-      "published": "2026-11-26T01:36:59+00:00",
       "isShort": false
     },
     {
@@ -545,13 +552,6 @@
       "title": "공부도 아이템이 중요한가?",
       "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
       "published": "2026-11-20T09:00:14+00:00",
-      "isShort": true
-    },
-    {
-      "id": "kbEqfjkivyM",
-      "title": "EBS 선택 과목을 4개월 째 푼다고?",
-      "channelId": "UChvD-OcXLp7em-mu4LpWw_A",
-      "published": "2026-11-20T03:00:24+00:00",
       "isShort": true
     },
     {
