@@ -1287,7 +1287,7 @@
       backBtn.addEventListener("click", closePlayer);
 
       // pizza-videos.json 은 피자가 직접 고른 영상 목록입니다. update_feed.py 가 건드리지 않는 별도 파일이라
-      // 3시간 자동 상신에도 내용이 유지됩니다. 형식이 조금 어긋나도 페이지가 깨지지 않게 보정합니다.
+      // 3시간 자동 갱신에도 내용이 유지됩니다. 형식이 조금 어긋나도 페이지가 깨지지 않게 보정합니다.
       const normalizeCuratedVideos = (data) => {
         const rows = data && Array.isArray(data.videos) ? data.videos : [];
         const out = [];
