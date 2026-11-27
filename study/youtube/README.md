@@ -28,6 +28,34 @@ python3 -m venv /tmp/ytdlp-venv && /tmp/ytdlp-venv/bin/pip install -U yt-dlp
 
 4. 변경된 `channels.json`, `videos.json`, `index/` 를 커밋하면 사이트에 반영됩니다.
 
+## 피자 추천 채널
+
+실제 유튜브 채널이 아닌 가상 채널입니다. 피자가 "GKC(강찬)가 보면 좋을 영상"을 직접 골라 올려두면 사이트 채널 칩 목록에 `🍕 피자`로 나타납니다.
+
+- 데이터는 `pizza-videos.json` 한 파일에만 둡니다. `channels.json`에 넣지 마세요(RSS 자동 갱신 대상이 아닙니다).
+- `videos.json`은 `.github/workflows/youtube-feed.yml`이 3시간마다 덮어쓰기 때문에, 피자가 고른 영상은 절대 `videos.json`에 넣지 마세요.
+- 형식:
+
+```json
+{
+  "updatedAt": "2026-11-27T11:45:00Z",
+  "videos": [
+    {
+      "id": "dQw4w9WgXcQ",
+      "title": "영상 제목",
+      "channelId": "pizza",
+      "published": "2026-11-26T00:00:00+00:00",
+      "isShort": false,
+      "note": "왜 이 영상이 도움되는지 한두 줄"
+    }
+  ]
+}
+```
+
+- `id`는 유튜브 영상 ID 11자입니다. `note`(피자 한마디)는 카드와 플레이어 위에 표시됩니다.
+- 파일을 고질 때 `updatedAt`도 현재 시각으로 바꿔주세요. 빈 목록(`videos: []`)이면 채널을 눌렀을 때 "피자가 아직 올린 영상이 없어요…" 안내가 나옵니다.
+- `pizza-videos.json`은 서비스 워커가 네트워크 우선으로 읽으므로 수정 후 3시간 자동 갱신과 상관없이 바로 반영됩니다.
+
 ## 목록을 다시 받는 방법
 
 - 최근 영상(채널당 약 15개, `videos.json`): `python3 study/youtube/update_feed.py`
@@ -54,7 +82,7 @@ python3 -m venv /tmp/ytdlp-venv && /tmp/ytdlp-venv/bin/pip install -U yt-dlp
 안드로이드 크롬에서 주소창 메뉴 → `앱 설치`(또는 페이지 상단의 `앱 설치` 버튼)로 홈 화면에 앱처럼 설치됩니다.
 
 - `manifest.json` — 이름·아이콘·`start_url`(`/study/youtube/`)·`scope`·`display: standalone`·테마색.
-- `sw.js` — 서비스 워커. 데이터(`videos.json`, `channels.json`, `comments/*`, `index/*`)는 네트워크 우선 + 캐시 fallback,
+- `sw.js` — 서비스 워커. 데이터(`videos.json`, `channels.json`, `pizza-videos.json`, `comments/*`, `index/*`)는 네트워크 우선 + 캐시 fallback,
   앱 셸(`index.html`, 아이콘, manifest)은 stale-while-revalidate, 화면 이동은 네트워크 우선 + 오프라인 시 캐시된 `index.html`.
   설치 직후 오프라인에서도 목록이 보이도록 `videos.json`·`channels.json`·`comments/index.json`·`index/manifest.json`만 미리 담아 둡니다.
 - `icons/` — `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`. 다시 만들려면 `python3 study/youtube/icons/make_icons.py`(Pillow 필요).

@@ -226,6 +226,8 @@
       border-color: var(--accent);
       color: var(--accent-ink);
     }
+    .chip.is-curated { border-color: #4a4230; }
+    .chip.is-curated[aria-pressed="true"] { border-color: var(--accent); }
 
     .list {
       flex: 1 1 auto;
@@ -294,6 +296,16 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .v-note {
+      margin-top: 5px;
+      color: #d9c9a0;
+      font-size: 0.75rem;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
 
     .status {
       color: var(--muted);
@@ -303,6 +315,7 @@
       line-height: 1.5;
     }
     .status.error { color: var(--danger); }
+    .status.curated-empty { white-space: pre-line; padding: 40px 8px; }
     .updated, .result-count {
       color: var(--muted);
       font-size: 0.72rem;
@@ -364,6 +377,25 @@
       font-size: 0.66rem;
       font-weight: 700;
       vertical-align: 2px;
+    }
+    .now .now-note {
+      margin: 10px 0 0;
+      padding: 9px 11px;
+      border-left: 2px solid var(--accent);
+      border-radius: 0 9px 9px 0;
+      background: rgba(232, 197, 107, 0.08);
+      color: #e9ddb9;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .now .now-note b {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
     }
 
     /* 댓글 */
@@ -526,6 +558,13 @@
         { id: "short", label: "쇼츠" },
       ];
 
+      // 채널 목록(channels.json)에 넣지 않는 가상 채널입니다.
+      // 피자가 pizza-videos.json 에 직접 고른 영상을 올려두는 자리입니다.
+      const CURATED_CHANNEL = { id: "pizza", name: "🍕 피자", isCurated: true };
+
+      const CURATED_EMPTY_MESSAGE =
+        "피자가 아직 올린 영상이 없어요.\n곧 GKC한테 도움 될 영상을 골라 채워둘게요!";
+
       const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 
       const PAGE_SIZE = 100;
@@ -536,6 +575,8 @@
         channelMap: new Map(),
         allowed: new Set(),
         videos: [],
+        pizzaVideos: [],
+        pizzaUpdatedAt: "",
         index: null,
         indexParts: new Map(),
         indexError: false,
@@ -653,10 +694,12 @@
 
       const neededChannelIds = () => {
         if (state.filter === "all") return state.channels.map((c) => c.id);
+        if (state.filter === CURATED_CHANNEL.id) return [];
         return [state.filter];
       };
 
-      const indexReady = () => neededChannelIds().every((id) => state.indexParts.has(id));
+      const indexReady = () =>
+        Boolean(state.index) && neededChannelIds().every((id) => state.indexParts.has(id));
 
       const invalidateHits = () => {
         state.hits = null;
@@ -666,17 +709,23 @@
 
       const getHits = () => {
         const q = state.query.trim();
-        const key = state.filter + "\n" + state.kind + "\n" + q + "\n" + (q && indexReady() ? "i" : "v");
+        const isCurated = state.filter === CURATED_CHANNEL.id;
+        const useIndex = Boolean(q) && !isCurated && indexReady();
+        const key = state.filter + "\n" + state.kind + "\n" + q + "\n" + (useIndex ? "i" : "v");
         if (state.hits && state.hitsKey === key) return state.hits;
         const prepared = prepareQuery(q);
-        const source = prepared && indexReady() ? state.index : state.videos;
         let list;
-        if (state.filter === "all") list = source.slice();
-        else list = source.filter((v) => v.channelId === state.filter);
+        if (isCurated) {
+          list = state.pizzaVideos.slice();
+        } else {
+          const source = useIndex ? state.index : state.videos;
+          if (state.filter === "all") list = source.slice();
+          else list = source.filter((v) => v.channelId === state.filter);
+        }
         if (state.kind !== "all") list = list.filter(kindMatches);
         if (prepared) {
           list = list.filter((v) => titleMatches(v, prepared));
-          if (indexReady()) {
+          if (useIndex) {
             list.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
           }
         }
@@ -687,11 +736,11 @@
 
       const renderChips = () => {
         chipsEl.innerHTML = "";
-        const items = [{ id: "all", name: "전체" }, ...state.channels];
+        const items = [{ id: "all", name: "전체" }, CURATED_CHANNEL, ...state.channels];
         for (const ch of items) {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "chip";
+          btn.className = ch.isCurated ? "chip is-curated" : "chip";
           btn.textContent = ch.name;
           btn.setAttribute("aria-pressed", String(state.filter === ch.id));
           btn.addEventListener("click", () => {
@@ -765,6 +814,12 @@
         sub.textContent = date ? channelName(v.channelId) + " · " + date : channelName(v.channelId);
         meta.appendChild(title);
         meta.appendChild(sub);
+        if (v.note) {
+          const note = document.createElement("div");
+          note.className = "v-note";
+          note.textContent = "🍕 " + v.note;
+          meta.appendChild(note);
+        }
 
         btn.appendChild(thumb);
         btn.appendChild(meta);
@@ -776,7 +831,7 @@
         const q = state.query.trim();
         listEl.innerHTML = "";
 
-        if (q && !indexReady() && !state.indexError) {
+        if (q && state.filter !== CURATED_CHANNEL.id && !indexReady() && !state.indexError) {
           const p = document.createElement("p");
           p.className = "status";
           p.textContent = "검색용 목록을 불러오는 중…";
@@ -814,7 +869,22 @@
         }
 
         if (!videos.length) {
-          if (!q) {
+          if (state.filter === CURATED_CHANNEL.id) {
+            const p = document.createElement("p");
+            p.className = "status curated-empty";
+            if (!state.pizzaVideos.length) {
+              p.textContent = CURATED_EMPTY_MESSAGE;
+            } else if (q) {
+              p.textContent = "피자 채널 영상 중에는 맞는 제목이 없어요.";
+            } else if (state.kind === "short") {
+              p.textContent = "피자가 올린 쇼츠는 아직 없어요.";
+            } else if (state.kind === "video") {
+              p.textContent = "피자가 올린 일반 영상은 아직 없어요.";
+            } else {
+              p.textContent = CURATED_EMPTY_MESSAGE;
+            }
+            listEl.appendChild(p);
+          } else if (!q) {
             const p = document.createElement("p");
             p.className = "status";
             if (state.kind === "short") p.textContent = "이 채널에는 모아 둔 쇼츠가 없어요.";
@@ -866,10 +936,13 @@
         }
 
         if (state.updatedAt && !state.current && !q) {
-          const u = document.createElement("p");
-          u.className = "updated";
-          u.textContent = "목록 업데이트 " + fmtUpdated(state.updatedAt);
-          listEl.appendChild(u);
+          const iso = state.filter === CURATED_CHANNEL.id ? state.pizzaUpdatedAt : state.updatedAt;
+          if (iso) {
+            const u = document.createElement("p");
+            u.className = "updated";
+            u.textContent = "목록 업데이트 " + fmtUpdated(iso);
+            listEl.appendChild(u);
+          }
         }
       };
 
@@ -1071,6 +1144,15 @@
         p.textContent = date ? channelName(video.channelId) + " · " + date : channelName(video.channelId);
         nowEl.appendChild(h);
         nowEl.appendChild(p);
+        if (video.note) {
+          const note = document.createElement("div");
+          note.className = "now-note";
+          const tag = document.createElement("b");
+          tag.textContent = "🍕 피자 한마디";
+          note.appendChild(tag);
+          note.appendChild(document.createTextNode(video.note));
+          nowEl.appendChild(note);
+        }
 
         renderList();
         loadComments(video);
@@ -1095,7 +1177,16 @@
 
       const rebuildIndex = () => {
         const all = [];
-        for (const list of state.indexParts.values()) all.push(...list);
+        const seen = new Set();
+        const push = (v) => {
+          if (!v || !v.id || seen.has(v.id)) return;
+          seen.add(v.id);
+          all.push(v);
+        };
+        // 피자 큐레이션 채널 영상은 목록 맨 앞에 둡니다. 같은 영상이 허용 채널 인덱스에도 있으면
+        // 추천 코멘트가 붙은 큐레이션 항목만 남깁니다.
+        for (const v of state.pizzaVideos) push(v);
+        for (const list of state.indexParts.values()) for (const v of list) push(v);
         state.index = all;
         invalidateHits();
       };
@@ -1195,6 +1286,30 @@
 
       backBtn.addEventListener("click", closePlayer);
 
+      // pizza-videos.json 은 피자가 직접 고른 영상 목록입니다. update_feed.py 가 건드리지 않는 별도 파일이라
+      // 3시간 자동 상신에도 내용이 유지됩니다. 형식이 조금 어긋나도 페이지가 깨지지 않게 보정합니다.
+      const normalizeCuratedVideos = (data) => {
+        const rows = data && Array.isArray(data.videos) ? data.videos : [];
+        const out = [];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== "object") continue;
+          const id = String(row.id || "").trim();
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          out.push({
+            id: id,
+            title: typeof row.title === "string" ? row.title : "",
+            channelId: CURATED_CHANNEL.id,
+            published: typeof row.published === "string" ? row.published : "",
+            isShort: row.isShort === true,
+            note: typeof row.note === "string" ? row.note.trim() : "",
+          });
+        }
+        out.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+        return out;
+      };
+
       const fail = (msg) => {
         listEl.innerHTML = "";
         const p = document.createElement("p");
@@ -1212,8 +1327,12 @@
           if (!r.ok) throw new Error("videos");
           return r.json();
         }),
+        // 피자 큐레이션 목록은 별도 파일입니다. 실패해도 기존 채널 목록은 그대로 뜽니다.
+        fetch("pizza-videos.json", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : { videos: [] }))
+          .catch(() => ({ videos: [] })),
       ])
-        .then(([chData, vData]) => {
+        .then(([chData, vData, pizzaData]) => {
           state.channels = Array.isArray(chData.channels) ? chData.channels : [];
           state.channelMap = new Map();
           state.allowed = new Set();
@@ -1222,10 +1341,15 @@
             state.allowed.add(ch.id);
             state.channelMap.set(ch.id, ch);
           }
+          state.channelMap.set(CURATED_CHANNEL.id, CURATED_CHANNEL);
+          state.pizzaVideos = normalizeCuratedVideos(pizzaData).map(enrich);
+          state.pizzaUpdatedAt = pizzaData && typeof pizzaData.updatedAt === "string" ? pizzaData.updatedAt : "";
+          const pizzaIds = new Set(state.pizzaVideos.map((v) => v.id));
           const videos = Array.isArray(vData.videos) ? vData.videos : [];
-          state.videos = videos
-            .filter((v) => v && v.id && state.allowed.has(v.channelId))
+          const allowedVideos = videos
+            .filter((v) => v && v.id && state.allowed.has(v.channelId) && !pizzaIds.has(v.id))
             .map(enrich);
+          state.videos = state.pizzaVideos.concat(allowedVideos);
           state.updatedAt = vData.updatedAt || "";
           renderKinds();
           renderChips();
