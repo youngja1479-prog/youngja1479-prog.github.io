@@ -4,7 +4,7 @@
  * 캐시 버전을 올리면 activate 때 예전 캐시를 지웁니다.
  */
 
-const VERSION = "1";
+const VERSION = "2";
 const SHELL_CACHE = "sy-shell-v" + VERSION;
 const DATA_CACHE = "sy-data-v" + VERSION;
 
@@ -23,7 +23,7 @@ const SHELL_ASSETS = [
 
 // 설치 직후에도 오프라인에서 목록이 보이도록 작은 데이터 파일은 미리 담아 둡니다.
 // (index/*.json 은 채널 전체라 3MB가 넘어서 쓰는 것만 담습니다.)
-const DATA_PRECACHE = ["./videos.json", "./channels.json", "./comments/index.json", "./index/manifest.json"];
+const DATA_PRECACHE = ["./videos.json", "./channels.json", "./pizza-videos.json", "./comments/index.json", "./index/manifest.json"];
 
 const OFFLINE_HTML =
   '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">' +
@@ -104,6 +104,7 @@ function isData(relative) {
   return (
     relative === "videos.json" ||
     relative === "channels.json" ||
+    relative === "pizza-videos.json" ||
     relative === "shorts-cache.json" ||
     relative.indexOf("comments/") === 0 ||
     relative.indexOf("index/") === 0
