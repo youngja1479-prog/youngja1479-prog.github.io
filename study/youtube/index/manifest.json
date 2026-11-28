@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T16:01:59Z",
+  "updatedAt": "2026-11-28T01:09:49Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
@@ -29,7 +29,7 @@
       "id": "UCul_vrsVKqanG_vsLMkMPHg",
       "name": "제니 사탐",
       "file": "UCul_vrsVKqanG_vsLMkMPHg.json",
-      "count": 156
+      "count": 165
     },
     {
       "id": "UCEZgS-_4GOwLfK_UyPs-OPQ",
@@ -47,7 +47,7 @@
       "id": "UCma37fJBlF718VRgGlx4yGA",
       "name": "theMEGASTUDY",
       "file": "UCma37fJBlF718VRgGlx4yGA.json",
-      "count": 15032
+      "count": 15033
     },
     {
       "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
@@ -56,5 +56,5 @@
       "count": 5311
     }
   ],
-  "total": 28366
+  "total": 28376
 }
