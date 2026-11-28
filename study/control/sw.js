@@ -5,7 +5,7 @@
  * 캐시 버전을 올리면 activate 때 예전 캐시를 지웁니다.
  */
 
-const VERSION = "1";
+const VERSION = "2";
 const SHELL_CACHE = "control-shell-v" + VERSION;
 
 const SCOPE = new URL("./", self.location.href).pathname; // "/study/control/"
