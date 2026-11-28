@@ -1,17 +1,17 @@
 {
-  "updatedAt": "2026-11-28T01:09:49Z",
+  "updatedAt": "2026-11-28T11:17:36Z",
   "channels": [
     {
       "id": "UC-JSzYAYzGI19jPtanJ3mEQ",
       "name": "이현호(미친국어)",
       "file": "UC-JSzYAYzGI19jPtanJ3mEQ.json",
-      "count": 529
+      "count": 530
     },
     {
       "id": "UChvD-OcXLp7em-mu4LpWw_A",
       "name": "신영균 국어",
       "file": "UChvD-OcXLp7em-mu4LpWw_A.json",
-      "count": 1757
+      "count": 1759
     },
     {
       "id": "UCwpzqlsnZOOswsRE0xSKhpw",
@@ -35,7 +35,7 @@
       "id": "UCEZgS-_4GOwLfK_UyPs-OPQ",
       "name": "통과생과 이승후",
       "file": "UCEZgS-_4GOwLfK_UyPs-OPQ.json",
-      "count": 286
+      "count": 287
     },
     {
       "id": "UCEv0kqq3WYMjCnJ6AMKYCpg",
@@ -53,8 +53,8 @@
       "id": "UCKziRqbw2AvmAJ5wcYXRaMw",
       "name": "대성마이맥",
       "file": "UCKziRqbw2AvmAJ5wcYXRaMw.json",
-      "count": 5311
+      "count": 5312
     }
   ],
-  "total": 28376
+  "total": 28381
 }
