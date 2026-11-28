@@ -294,9 +294,9 @@ main { flex: 1; width: 100%; max-width: 660px; margin: 0 auto; padding: 0 16px c
         </div>
         <div class="kv-row">
           <span class="k">취침</span>
-          <input class="time" type="text" id="sleep" inputmode="numeric" placeholder="24:00" maxlength="5" autocomplete="off" enterkeyhint="done" aria-label="취침 시각 (예: 24:00)">
+          <input class="time" type="text" id="sleep" inputmode="numeric" placeholder="00:00" maxlength="5" autocomplete="off" enterkeyhint="done" aria-label="취침 시각 (예: 00:00)">
           <button class="chip sm" data-act="sleep-now">지금</button>
-          <button class="chip sm" data-act="sleep-2400">24:00</button>
+          <button class="chip sm" data-act="sleep-0000">00:00</button>
         </div>
         <div class="mood-wrap">
           <span class="k">컨디션</span>
@@ -371,7 +371,7 @@ main { flex: 1; width: 100%; max-width: 660px; margin: 0 auto; padding: 0 16px c
 const KEY = 'gkc-control-v1';
 const DEFAULT_RULES = [
   { id: 'r-wake',  label: '07:00 기상' },
-  { id: 'r-sleep', label: '24:00 취침 (폰 내려놓기)' },
+  { id: 'r-sleep', label: '00:00 취침 (폰 내려놓기)' },
   { id: 'r-phone', label: '공부 중 폰 멀리 두기' },
   { id: 'r-food',  label: '과식·야식 안 하기 (80% 식사)' },
 ];
@@ -395,7 +395,35 @@ function freshState() {
 }
 
 /* ---------- state ---------- */
+let needsSave = false;
 let S = loadState();
+if (needsSave) { needsSave = false; save(); }
+
+/* 예전 표기는 '24:00', 지금은 '00:00'. 저장된 기록은 그대로 두고 표기만 바꿉니다. */
+function fixMidnight(text) {
+  return String(text).replace(/\b24:00\b/g, '00:00');
+}
+
+function applyMidnightFixes(st) {
+  let changed = false;
+  if (!st || !Array.isArray(st.rules)) return false;
+  st.rules.forEach((r) => {
+    const fixed = fixMidnight(r.label);
+    if (fixed !== r.label) { r.label = fixed; changed = true; }
+  });
+  const days = (st && st.days) || {};
+  for (const k in days) {
+    const d = days[k];
+    if (!d) continue;
+    ['wake', 'sleep'].forEach((f) => {
+      if (typeof d[f] === 'string' && d[f] !== '') {
+        const fixed = fixMidnight(d[f]);
+        if (fixed !== d[f]) { d[f] = fixed; changed = true; }
+      }
+    });
+  }
+  return changed;
+}
 
 function loadState() {
   try {
@@ -410,6 +438,8 @@ function loadState() {
         st.rules = rules.length ? rules : st.rules;
         st.days = o.days;
         st.seg = o.seg === 7 ? 7 : 14;
+        // '24:00 취침 (폰 내려놓기)' → '00:00 취침 (폰 내려놓기)' (예전 기록 보존)
+        if (applyMidnightFixes(st)) needsSave = true;
         return st;
       }
     }
@@ -650,7 +680,7 @@ function setTime(field, val) {
   renderAll();
 }
 
-/* "7", "0708", "7:5", "24:00" 같은 입력을 HH:MM로 맞춥니다 */
+/* "7", "0708", "7:5", "00:00" 같은 입력을 HH:MM로 맞춥니다 (24:00은 00:00으로) */
 function parseTimeText(v) {
   const s = String(v || '').trim().replace(/[^\d:]/g, '');
   if (!s) return '';
@@ -668,7 +698,7 @@ function parseTimeText(v) {
     if (s.length === 3 && m > 59) { h = parseInt(s.slice(0, 2), 10); m = parseInt(s.slice(2), 10); }
   }
   if (!isFinite(h) || !isFinite(m)) return null;
-  if (h === 24 && m === 0) return '24:00';
+  if (h === 24 && m === 0) return '00:00';
   if (h < 0 || h > 23 || m < 0 || m > 59) return null;
   return pad2(h) + ':' + pad2(m);
 }
@@ -762,6 +792,7 @@ function importFile(file) {
       if (!window.confirm('지금 기록을 불러온 파일로 바꿀까? 지금 기록은 사라져.')) return;
       S.rules = rules;
       S.days = o.days;
+      applyMidnightFixes(S);
       save();
       renderAll();
       toast('기록을 불러왔어');
@@ -837,7 +868,7 @@ function bind() {
     if (act === 'wake-now') { setTime('wake', nowHM()); toast('기상 ' + nowHM() + ' 기록'); return; }
     if (act === 'sleep-now') { setTime('sleep', nowHM()); toast('취침 ' + nowHM() + ' 기록'); return; }
     if (act === 'wake-0700') { setTime('wake', '07:00'); toast('기상 07:00 기록'); return; }
-    if (act === 'sleep-2400') { setTime('sleep', '24:00'); toast('취침 24:00 기록'); return; }
+    if (act === 'sleep-0000') { setTime('sleep', '00:00'); toast('취침 00:00 기록'); return; }
     if (act === 'export') { exportJSON(); return; }
     if (act === 'import') { $('#import-file').click(); return; }
     if (act === 'reset') { resetAll(); return; }
